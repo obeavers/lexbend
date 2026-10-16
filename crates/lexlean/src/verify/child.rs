@@ -504,7 +504,7 @@ pub fn run(
     let started = Instant::now();
     let timeout = Duration::from_millis(limits.child_timeout_ms);
     let deadline = started.checked_add(timeout);
-    // Measurement is observation only (§22.12): without a telemetry
+    // Measurement is observation only (§22.13): without a telemetry
     // context in force none of it is done, and with one it is written to the
     // sink and read by nobody here.
     let context = telemetry::current();

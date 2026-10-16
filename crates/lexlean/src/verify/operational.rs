@@ -1,4 +1,4 @@
-//! The operational settings of one verification (SPEC.md §22.11, §22.12):
+//! The operational settings of one verification (SPEC.md §22.11, §22.13):
 //! how many proof processes run at once, in which start order, within what
 //! memory budget, and where performance telemetry goes.
 //!
@@ -215,7 +215,7 @@ impl Operational {
     /// labels of the items of a stage (this verifier: full Lean module names,
     /// and audit-member names) and whose values carry `wall_ms` with an
     /// optional `peak_rss_kib`, like the `process` events the telemetry
-    /// appends (§22.12). `cargo xtask ci-hints` derives such a file from a
+    /// appends (§22.13). `cargo xtask ci-hints` derives such a file from a
     /// telemetry file (the heaviest observation of a repeated label wins).
     ///
     /// # Errors

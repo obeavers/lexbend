@@ -135,6 +135,9 @@ pub struct Coverage {
     pub latex: Vec<OutputRow>,
     /// Generated Lean rows sorted by `byte_start`.
     pub lean: Vec<OutputRow>,
+    /// Generated Bend rows sorted by `byte_start`, for a module that lowers
+    /// to Bend (§18.10).
+    pub bend: Option<Vec<OutputRow>>,
 }
 
 impl Coverage {
@@ -142,10 +145,13 @@ impl Coverage {
     #[must_use]
     pub fn to_json(&self) -> Json {
         let mut o = BTreeMap::new();
-        o.insert(
-            "spec".to_owned(),
-            Json::Str("lexlean/coverage/1".to_owned()),
-        );
+        // Coverage that includes a Bend artifact is the version-2 schema.
+        let spec = if self.bend.is_some() {
+            "lexlean/coverage/2"
+        } else {
+            "lexlean/coverage/1"
+        };
+        o.insert("spec".to_owned(), Json::Str(spec.to_owned()));
         o.insert("module".to_owned(), Json::Str(self.module.clone()));
         o.insert(
             "source".to_owned(),
@@ -164,7 +170,11 @@ impl Coverage {
                     .collect(),
             ),
         );
-        for (key, rows) in [("latex", &self.latex), ("lean", &self.lean)] {
+        let mut outputs = vec![("latex", &self.latex), ("lean", &self.lean)];
+        if let Some(bend) = &self.bend {
+            outputs.push(("bend", bend));
+        }
+        for (key, rows) in outputs {
             o.insert(
                 key.to_owned(),
                 Json::Arr(

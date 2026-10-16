@@ -16,6 +16,8 @@ mod declarations;
 mod examples;
 mod extraction;
 pub use extraction::{compare_with_oracle, counter_independence, ne_04_lean_half, oracle_records};
+mod bend_backend;
+mod bend_verification;
 mod gnaf;
 mod grammar;
 mod latex_pdf;
@@ -94,6 +96,7 @@ pub fn run(id: &str) {
         "DF" => declarations::run(id),
         "PF" => proofs::run(id),
         "LN" => lean_backend::run(id),
+        "BN" => bend_backend::run(id),
         "TX" => latex_pdf::run(id),
         "AR" => artifacts::run(id),
         "VR" => verification::run(id),

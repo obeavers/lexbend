@@ -306,10 +306,11 @@ fn rt_02() {
         .iter()
         .map(|(path, bytes)| (path.as_str(), bytes.as_slice()))
         .collect();
-    let (ten, eleven, twelve) = support::semantics_ids(&borrowed);
+    let (ten, eleven, twelve, twenty) = support::semantics_ids(&borrowed);
     assert_eq!(ten, lexlean::compiler_semantics_id_for("1.0"));
     assert_eq!(eleven, lexlean::compiler_semantics_id_for("1.1"));
     assert_eq!(twelve, lexlean::compiler_semantics_id_for("1.2"));
+    assert_eq!(twenty, lexlean::compiler_semantics_id_for("2.0"));
     for path in [
         runtime::FROZEN_PORTABLE_PATH,
         runtime::FROZEN_CORE_DECODER_PATH,
@@ -324,7 +325,7 @@ fn rt_02() {
             .iter()
             .map(|(path, bytes)| (path.as_str(), bytes.as_slice()))
             .collect();
-        let (changed_ten, changed_eleven, changed_twelve) = support::semantics_ids(&borrowed);
+        let (changed_ten, changed_eleven, changed_twelve, _) = support::semantics_ids(&borrowed);
         assert_eq!(
             changed_ten, ten,
             "{path}: the language-1.0 ID does not read it"

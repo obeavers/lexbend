@@ -167,3 +167,32 @@ Feature: verification
     When it is verified whole and as the parts of one run
     Then the join publishes a verified directory byte-identical to the whole verification's, with the same attestation identity
     And a shard whose plan elaborates a module before its imports, and a join that is handed one shard too few, are refused
+
+  @VR-24 @build
+  Scenario: Language-2.0 verification locates exactly the pinned Bend on PATH, records its version output and executable digest, and refuses a missing or other release, or a kernel it cannot build, with LLV7019.
+    Given the language-2.0 nat-add-zero example
+    When it is verified with no `bend` on PATH, with a `bend` reporting `bend 2.0.36`, and with one whose kernel does not build
+    Then each verification fails with LLV7019 before any Lean process runs
+    And the pinned Bend preflights with version output `bend 2.0.37` and the digest of its executable
+
+  @VR-25 @build
+  Scenario: Language-2.0 verification checks every generated Bend module with the pinned Bend before any Lean process runs, and a refusal is LLV7020 remapped to its source span with the generated location as a note.
+    Given the language-1.0 propositional-logic module moved to language 2.0, whose `de_morgan` uses its hypothesis twice
+    When it is verified with a `bend` refusing generated line 5 and with the pinned Bend
+    Then the first fails with LLV7020 spanning `src/Main.lex.tex` with the note `generated location: modules/PropositionalLogic/Main.bend:5`
+    And the second fails with LLV7020 naming `de_morgan` and the hypothesis consumed more than once
+
+  @VR-26 @build
+  Scenario: Language-2.0 verification rechecks the generated program with the proved BendTT kernel through a root importing every module and requires its exact success verdict, or fails with LLV7021.
+    Given the language-2.0 nat-add-zero example and the kernel-recheck root of two modules
+    When it is verified with a `bend` whose kernel reports a mismatch, and its program is rechecked by the pinned Bend's kernel
+    Then the root imports Base and each module under a positional alias and nothing else
+    And the mismatch fails with LLV7021, and the pinned kernel prints exactly `ALL PROOFS CHECK`
+
+  @VR-27 @build
+  Scenario: A language-2.0 theorem's assumption premises must be admitted by its axiom policy, or verification fails with LLV7022 before any Lean process runs, and a verified attestation is schema v3 recording the Bend toolchain and each theorem's premises.
+    Given the language-2.0 peano-arithmetic example with `even-or-not` under `\noaxioms`, and its committed verification
+    When the altered example is verified, its committed records are read, and the unaltered example is verified
+    Then the altered verification fails with LLV7022 naming `excluded-middle`, and `attestation-v3` requires the `bend` object and `premises` rows
+    And the committed records hold an accepted Bend check of each of the five modules, the accepted kernel recheck, and its root
+    And the live attestation is `lexlean/attestation/3`, records `bend 2.0.37`, and records `excluded-middle` for `even_or_not`

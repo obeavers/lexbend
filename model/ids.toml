@@ -201,6 +201,12 @@ suite = "configuration-lock"
 statement = "Lockfile v2 schema migration validates 1.2 locks while preserving exact byte-stability for language 1.0 and 1.1 projects."
 
 [[id]]
+id = "CF-19"
+level = "build"
+suite = "configuration-lock"
+statement = "Language 2.0 requires exactly bend_toolchain bend 2.0.37, every other language rejects the field, and its lock is schema v3 pinning that toolchain."
+
+[[id]]
 id = "LX-01"
 level = "build"
 suite = "lexical-closure"
@@ -969,6 +975,60 @@ suite = "lean-backend"
 statement = "Generated file paths and module names exactly mirror the configured module prefix and source module."
 
 [[id]]
+id = "BN-01"
+level = "build"
+suite = "bend-backend"
+statement = "Every language-1.0 document module renders one byte-deterministic Bend file from the same linked IR, beside its Lean and LaTeX, with the exact import structure."
+
+[[id]]
+id = "BN-02"
+level = "build"
+suite = "bend-backend"
+statement = "Every external constant lowers only through the prelude registry with every signature binder, and an unregistered constant or undetermined implicit argument is a hard error."
+
+[[id]]
+id = "BN-03"
+level = "build"
+suite = "bend-backend"
+statement = "Generated Bend contains no comment, unsafe or foreign definition, hole, unfilled law, hub import, device call, or IO value."
+
+[[id]]
+id = "BN-04"
+level = "build"
+suite = "bend-backend"
+statement = "Theorems lower to laws with proof definitions and every proof step to an explicit Bend term, with case analysis and induction as auxiliary definitions emitted first."
+
+[[id]]
+id = "BN-05"
+level = "build"
+suite = "bend-backend"
+statement = "No generated declaration takes a template, a binder is reusable only at a Data type, and a proof that uses a function-typed hypothesis twice on one branch is refused by the pinned Bend."
+
+[[id]]
+id = "BN-06"
+level = "build"
+suite = "bend-backend"
+statement = "The shipped prelude reproduces the definitional equations of every registered Lean constant and checks under the pinned Bend."
+
+[[id]]
+id = "BN-07"
+level = "build"
+suite = "bend-backend"
+statement = "A theorem that uses or cites an assumption takes it as a leading premise and passes it to every theorem it cites, and a definition that uses one is a hard error."
+
+[[id]]
+id = "BN-08"
+level = "build"
+suite = "bend-backend"
+statement = "Every non-whitespace generated Bend token has exactly one coverage row and a source map mapping."
+
+[[id]]
+id = "BN-09"
+level = "build"
+suite = "bend-backend"
+statement = "The generated Bend of every language-1.0 example document module checks under the pinned Bend with every proof accepted."
+
+[[id]]
 id = "TX-01"
 level = "build"
 suite = "latex-pdf"
@@ -1261,6 +1321,30 @@ id = "VR-23"
 level = "build"
 suite = "verification"
 statement = "A project verified as the parts of one run, each shard running the processes its plan names with the oleans of the shards it needs and the join reading every shard's records, publishes a verified directory byte-identical to the whole verification's with the same attestation identity, and a shard whose plan leaves a module without its imports, or a join missing a record, is refused."
+
+[[id]]
+id = "VR-24"
+level = "build"
+suite = "verification"
+statement = "Language-2.0 verification locates exactly the pinned Bend on PATH, records its version output and executable digest, and refuses a missing or other release, or a kernel it cannot build, with LLV7019."
+
+[[id]]
+id = "VR-25"
+level = "build"
+suite = "verification"
+statement = "Language-2.0 verification checks every generated Bend module with the pinned Bend before any Lean process runs, and a refusal is LLV7020 remapped to its source span with the generated location as a note."
+
+[[id]]
+id = "VR-26"
+level = "build"
+suite = "verification"
+statement = "Language-2.0 verification rechecks the generated program with the proved BendTT kernel through a root importing every module and requires its exact success verdict, or fails with LLV7021."
+
+[[id]]
+id = "VR-27"
+level = "build"
+suite = "verification"
+statement = "A language-2.0 theorem's assumption premises must be admitted by its axiom policy, or verification fails with LLV7022 before any Lean process runs, and a verified attestation is schema v3 recording the Bend toolchain and each theorem's premises."
 
 [[id]]
 id = "CL-01"

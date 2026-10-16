@@ -1,0 +1,62 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\begin{document}
+\begin{center}
+{\LARGE Natural number divisibility}
+\end{center}
+\section{Divisibility}
+\label{ll:divisibility:definition}
+\begin{definition}
+\label{ll:divisibility:divides}
+For every natural number \(n\) and natural number \(m\), \(n\) divides \(m\) holds exactly when there exists a natural number \(k\) such that \(m = n \cdot k\).
+\end{definition}
+\section{Divisibility: order}
+\label{ll:divisibility:properties}
+\begin{theorem}
+\label{ll:divisibility:divides-refl}
+For every natural number \(n\), \(n\) divides \(n\).
+\end{theorem}
+\begin{proof}
+Use \(1\) as the witness.
+The goal follows from \(\operatorname{eqsymm}(\operatorname{mulone}(n))\).
+\end{proof}
+\begin{theorem}
+\label{ll:divisibility:one-divides}
+For every natural number \(n\), \(1\) divides \(n\).
+\end{theorem}
+\begin{proof}
+Use \(n\) as the witness.
+The goal follows from \(\operatorname{eqsymm}(\operatorname{onemul}(n))\).
+\end{proof}
+\begin{theorem}
+\label{ll:divisibility:divides-trans}
+For every natural number \(a\) and natural number \(b\) and natural number \(c\), if \(a\) divides \(b\) and \(b\) divides \(c\), then \(a\) divides \(c\).
+\end{theorem}
+\begin{proof}
+Assume \(h\).
+Consider the cases of \(h\).
+Case \(\operatorname{andintro}\) with \(hab\), \(hbc\):
+\begin{quote}
+Consider the cases of \(hab\).
+Case \(\operatorname{existsintro}\) with \(k\), \(hk\):
+\begin{quote}
+Consider the cases of \(hbc\).
+Case \(\operatorname{existsintro}\) with \(l\), \(hl\):
+\begin{quote}
+Use \(k \cdot l\) as the witness.
+Rewrite the goal using \(\rightarrow hl\), \(\rightarrow hk\).
+The goal follows from \(\operatorname{mulassoc}(a, k, l)\).
+\end{quote}
+\end{quote}
+\end{quote}
+\end{proof}
+\end{document}

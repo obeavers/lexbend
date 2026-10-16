@@ -221,6 +221,8 @@ struct RawProject {
     lockfile: String,
     lean_workspace: String,
     lean_toolchain: String,
+    #[serde(default)]
+    bend_toolchain: Option<String>,
     #[serde(rename = "lexicon_source")]
     lexicon_sources: Vec<RawLexiconSource>,
     #[serde(default, rename = "artifact_source")]
@@ -475,6 +477,28 @@ pub fn parse_project(path: &str, bytes: &[u8]) -> Result<ProjectConfig, Vec<Diag
             path,
             format!("lean_toolchain must be exactly `{}`", crate::LEAN_TOOLCHAIN),
         ));
+    }
+    // §18.10: language 2.0 pins the Bend release its modules lower to; no
+    // other language has a Bend toolchain.
+    match (
+        crate::lowers_to_bend(&raw.language),
+        raw.bend_toolchain.as_deref(),
+    ) {
+        (true, Some(crate::BEND_TOOLCHAIN)) | (false, None) => {}
+        (true, _) => diagnostics.push(config_error(
+            path,
+            format!(
+                "language 2.0 requires bend_toolchain = `{}`",
+                crate::BEND_TOOLCHAIN
+            ),
+        )),
+        (false, Some(_)) => diagnostics.push(config_error(
+            path,
+            format!(
+                "bend_toolchain is a language-2.0 field; language {} has no Bend toolchain",
+                raw.language
+            ),
+        )),
     }
     for (field, values) in [
         ("source_roots", &raw.source_roots),
@@ -983,6 +1007,12 @@ impl ProjectConfig {
             "lean_toolchain = {}\n",
             toml_string(crate::LEAN_TOOLCHAIN)
         ));
+        if crate::lowers_to_bend(&self.language) {
+            out.push_str(&format!(
+                "bend_toolchain = {}\n",
+                toml_string(crate::BEND_TOOLCHAIN)
+            ));
+        }
         let mut sources = self.lexicon_sources.clone();
         sources.sort_by(|a, b| a.package().cmp(b.package()));
         // §10.1 requires the field, so the empty case is written as the empty

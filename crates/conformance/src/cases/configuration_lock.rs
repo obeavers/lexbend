@@ -1084,7 +1084,7 @@ pub(crate) fn run(id: &str) {
             // naming the exact spelling: versions are matched exactly, never
             // parsed, trimmed, or padded.
             for spelling in [
-                "1.3", "2.0", "1.2.0", "01.2", " 1.2", "1.2 ", "1", "1.", "v1.2", "",
+                "1.3", "3.0", "2.0.0", "1.2.0", "01.2", " 1.2", "1.2 ", "1", "1.", "v1.2", "",
             ] {
                 let unsupported = P::example();
                 unsupported.edit(
@@ -1168,14 +1168,14 @@ pub(crate) fn run(id: &str) {
                 ),
                 "1.1"
             );
-            // The three languages have three distinct identities.
+            // The four languages have four distinct identities.
             let ids: std::collections::BTreeSet<_> = lexlean::LANGUAGE_VERSIONS
                 .iter()
                 .map(|language| lexlean::compiler_semantics_id_for(language))
                 .collect();
             assert_eq!(
                 ids.len(),
-                3,
+                4,
                 "each language has its own compiler-semantics ID"
             );
 
@@ -1287,10 +1287,85 @@ pub(crate) fn run(id: &str) {
 
             // 5. An unsupported lock schema fails parsing with LLC0103.
             let bad_lock =
-                bytes10.replacen("spec = \"lexlean/lock/1\"", "spec = \"lexlean/lock/3\"", 1);
+                bytes10.replacen("spec = \"lexlean/lock/1\"", "spec = \"lexlean/lock/4\"", 1);
             let error = lexlean::api::parse_lock_bytes("lexlean.lock", bad_lock.as_bytes())
                 .expect_err("bad lock spec fails");
             assert!(error.iter().any(|d| d.code.as_str() == "LLC0103"));
+        }
+        // §10.1, §11.1: language 2.0 pins exactly the Bend release, in its
+        // configuration and its schema-v3 lock; no other language has one.
+        "CF-19" => {
+            let project = P::copy_example("bend-nat-add-zero");
+            let config = project.read("lexlean.toml");
+            assert!(config.contains("language = \"2.0\"\n"));
+            assert!(config.contains(&format!(
+                "lean_toolchain = \"{}\"\nbend_toolchain = \"{}\"\n",
+                lexlean::LEAN_TOOLCHAIN,
+                lexlean::BEND_TOOLCHAIN
+            )));
+            let lock = project.read("lexlean.lock");
+            assert!(lock.starts_with("spec = \"lexlean/lock/3\"\nlanguage = \"2.0\"\n"));
+            assert!(lock.contains("\nbend_toolchain = \"bend 2.0.37\"\n"));
+            let (exit, _, stderr) = project.cli(&["lock", "--check"]);
+            assert_eq!(exit, 0, "the 2.0 lock is current: {stderr}");
+            assert_eq!(
+                support::assert_language_documents(
+                    &support::repo_root().join("examples/bend-nat-add-zero")
+                ),
+                "2.0"
+            );
+            let refused_config = |text: &str, why: &str| {
+                let copy = P::copy_example("bend-nat-add-zero");
+                copy.write("lexlean.toml", text);
+                let (exit, _, stderr) = copy.cli(&["check"]);
+                assert_ne!(exit, 0, "{why}");
+                assert!(stderr.contains("LLC0101"), "{why}: {stderr}");
+            };
+            refused_config(
+                &config.replace("bend_toolchain = \"bend 2.0.37\"\n", ""),
+                "language 2.0 without bend_toolchain",
+            );
+            refused_config(
+                &config.replace("bend 2.0.37", "bend 2.0.36"),
+                "language 2.0 with another Bend release",
+            );
+            let legacy = P::example();
+            let legacy_config = legacy.read("lexlean.toml");
+            refused_config(
+                &legacy_config.replace(
+                    &format!("lean_toolchain = \"{}\"\n", lexlean::LEAN_TOOLCHAIN),
+                    &format!(
+                        "lean_toolchain = \"{}\"\nbend_toolchain = \"bend 2.0.37\"\n",
+                        lexlean::LEAN_TOOLCHAIN
+                    ),
+                ),
+                "language 1.0 with a Bend toolchain",
+            );
+            for (bytes, why) in [
+                (
+                    lock.replace("bend_toolchain = \"bend 2.0.37\"\n", ""),
+                    "a 2.0 lock without the pin",
+                ),
+                (
+                    lock.replace("spec = \"lexlean/lock/3\"", "spec = \"lexlean/lock/1\""),
+                    "a 2.0 lock under schema v1",
+                ),
+                (
+                    legacy.read("lexlean.lock").replace(
+                        &format!("lean_toolchain = \"{}\"\n", lexlean::LEAN_TOOLCHAIN),
+                        &format!(
+                            "lean_toolchain = \"{}\"\nbend_toolchain = \"bend 2.0.37\"\n",
+                            lexlean::LEAN_TOOLCHAIN
+                        ),
+                    ),
+                    "a 1.0 lock with a Bend pin",
+                ),
+            ] {
+                assert!(
+                    lexlean::api::parse_lock_bytes("lexlean.lock", bytes.as_bytes()).is_err(),
+                    "{why} is refused"
+                );
+            }
         }
         other => panic!("no configuration-lock case is wired for {other}"),
     }

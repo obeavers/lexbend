@@ -112,13 +112,42 @@ pub const LANGUAGE_1_1: &str = "1.1";
 /// The language 1.2 identifier.
 pub const LANGUAGE_1_2: &str = "1.2";
 
+/// The language 2.0 identifier: the language-1.0 surface with the Bend
+/// backend (SPEC.md §18.10).
+pub const LANGUAGE_2_0: &str = "2.0";
+
 /// The newest supported language identifier, whose compiler-semantics ID
 /// covers the whole embedded tree. `init` keeps `1.0` as its default so an
 /// unqualified invocation never changes meaning.
-pub const LATEST_LANGUAGE_VERSION: &str = "1.2";
+pub const LATEST_LANGUAGE_VERSION: &str = "2.0";
 
 /// The closed set of language versions accepted by this compiler.
-pub const LANGUAGE_VERSIONS: &[&str] = &[LANGUAGE_VERSION, LANGUAGE_1_1, LANGUAGE_1_2];
+pub const LANGUAGE_VERSIONS: &[&str] =
+    &[LANGUAGE_VERSION, LANGUAGE_1_1, LANGUAGE_1_2, LANGUAGE_2_0];
+
+/// The language whose surface (grammar, lexicon, bootstrap) a project
+/// language reads: language 2.0 is the language-1.0 surface with the Bend
+/// backend.
+#[must_use]
+pub fn surface_language(language: &str) -> &str {
+    if language == LANGUAGE_2_0 {
+        LANGUAGE_VERSION
+    } else {
+        language
+    }
+}
+
+/// Whether a language lowers to Bend (SPEC.md §18.10).
+#[must_use]
+pub fn lowers_to_bend(language: &str) -> bool {
+    language == LANGUAGE_2_0
+}
+
+/// The exact pinned Bend toolchain string of language 2.0 (SPEC.md §18.10).
+pub const BEND_TOOLCHAIN: &str = "bend 2.0.37";
+
+/// The version line the pinned Bend executable prints for `bend version`.
+pub const BEND_VERSION_LINE: &str = "bend 2.0.37";
 
 /// Whether a project language is supported.
 #[must_use]
@@ -157,6 +186,17 @@ fn is_v1_1_file(path: &str) -> bool {
         || path == "language/semantics-1.1.toml"
         || path == "schemas/semantic-module.schema.json"
         || path == "schemas/semantic-snapshot.schema.json"
+}
+
+fn is_v2_0_file(path: &str) -> bool {
+    path.starts_with("language/bend-prelude/")
+        || path == "language/semantics-2.0.toml"
+        || path == "schemas/coverage-v2.schema.json"
+        || path == "schemas/source-map-v2.schema.json"
+        || path == "schemas/lock-v3.schema.json"
+        || path == "schemas/project-v3.schema.json"
+        || path == "schemas/build-manifest-v3.schema.json"
+        || path == "schemas/attestation-v3.schema.json"
 }
 
 fn is_v1_2_file(path: &str) -> bool {
@@ -256,12 +296,18 @@ pub fn compiler_semantics_id_for(language: &str) -> Sha256Digest {
     static V1_0: OnceLock<Sha256Digest> = OnceLock::new();
     static V1_1: OnceLock<Sha256Digest> = OnceLock::new();
     static V1_2: OnceLock<Sha256Digest> = OnceLock::new();
+    static V2_0: OnceLock<Sha256Digest> = OnceLock::new();
     match language {
-        LANGUAGE_VERSION => {
-            *V1_0.get_or_init(|| embedded_digest(|path| !is_v1_1_file(path) && !is_v1_2_file(path)))
+        LANGUAGE_VERSION => *V1_0.get_or_init(|| {
+            embedded_digest(|path| {
+                !is_v1_1_file(path) && !is_v1_2_file(path) && !is_v2_0_file(path)
+            })
+        }),
+        LANGUAGE_1_1 => {
+            *V1_1.get_or_init(|| embedded_digest(|path| !is_v1_2_file(path) && !is_v2_0_file(path)))
         }
-        LANGUAGE_1_1 => *V1_1.get_or_init(|| embedded_digest(|path| !is_v1_2_file(path))),
-        LANGUAGE_1_2 => *V1_2.get_or_init(|| embedded_digest(|_| true)),
+        LANGUAGE_1_2 => *V1_2.get_or_init(|| embedded_digest(|path| !is_v2_0_file(path))),
+        LANGUAGE_2_0 => *V2_0.get_or_init(|| embedded_digest(|_| true)),
         // An unsupported language never shares an identity with a supported
         // one; configuration rejects it before any identity is published.
         other => Sha256Digest::of(format!("unsupported-language\0{other}").as_bytes()),

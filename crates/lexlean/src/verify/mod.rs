@@ -21,6 +21,7 @@
 //!   unexpected absolute paths.
 
 pub mod axiom;
+pub mod bend;
 pub mod child;
 pub mod leanchecker;
 pub mod lifeline;
@@ -268,6 +269,181 @@ pub fn lean_position_to_byte(text: &str, line: usize, column: usize) -> Option<u
         offset += text_line.len() + 1;
     }
     None
+}
+
+/// The Bend stages of a language-2.0 verification (§22.13), over a copy of
+/// the build in a staging directory of their own: the assumption-premise
+/// policy, the Bend preflight, every module's check, and the kernel recheck.
+fn verify_bend(
+    project: &Project,
+    checked: &CheckedProject,
+    build: &RenderedBuild,
+    limits: &crate::config::Limits,
+    stages: &mut telemetry::Stages,
+) -> Result<(bend::Bend, Vec<ChildRecord>), LexLeanError> {
+    stages.enter("bend-premises");
+    let registry = crate::backend::bend::prelude::registry().map_err(fail)?;
+    for module in &build.modules {
+        let document = &checked.modules[&module.module].document;
+        for declaration in document.declarations() {
+            let full_name = format!("{}.{}", module.lean_module, declaration.lean_name);
+            for name in build.bend_premises.get(&full_name).into_iter().flatten() {
+                let axioms = registry
+                    .assumption_named(name)
+                    .map(|assumption| assumption.axioms.clone())
+                    .unwrap_or_default();
+                let admitted = match &declaration.policy {
+                    crate::ir::declaration::AxiomPolicy::None => false,
+                    crate::ir::declaration::AxiomPolicy::Allow(allowed)
+                    | crate::ir::declaration::AxiomPolicy::Exact(allowed) => {
+                        axioms.iter().all(|axiom| allowed.contains(axiom))
+                    }
+                };
+                if !admitted {
+                    let mut diagnostic = Diagnostic::new(
+                        code!("LLV7022"),
+                        format!(
+                            "`{full_name}` takes the assumption premise `{name}` (standing for [{}]), which its {} axiom policy does not admit",
+                            axioms.join(", "),
+                            declaration.policy.kind()
+                        ),
+                    );
+                    if let Some(span) =
+                        declaration_span(checked, module, &document.name, &declaration.component)
+                    {
+                        diagnostic = diagnostic.with_span(span);
+                    }
+                    return Err(fail(diagnostic));
+                }
+            }
+        }
+    }
+    stages.enter("bend-preflight");
+    let tool = bend::preflight(limits).map_err(fail)?;
+    stages.enter("bend-check");
+    let verified_root = project
+        .root
+        .join(&project.config.build_root)
+        .join("verified");
+    std::fs::create_dir_all(verified_root.as_std_path()).map_err(|io_error| {
+        fail(Diagnostic::new(
+            code!("LLB6003"),
+            format!("{verified_root}: {io_error}"),
+        ))
+    })?;
+    let staging = tempfile::Builder::new()
+        .prefix(".bend-staging-")
+        .tempdir_in(verified_root.as_std_path())
+        .map_err(|io_error| {
+            fail(Diagnostic::new(
+                code!("LLB6003"),
+                format!("Bend staging: {io_error}"),
+            ))
+        })?;
+    let staging_utf8 = Utf8PathBuf::from_path_buf(staging.path().to_path_buf())
+        .map_err(|_| fail(Diagnostic::new(code!("LLS8001"), "non-UTF-8 staging path")))?;
+    for (relative, bytes) in &build.files {
+        if relative.ends_with(".bend") {
+            write_staged(staging.path(), relative, bytes)?;
+        }
+    }
+    let workspace_root = project.root.join(&project.config.lean_workspace);
+    let normalizer = Normalizer::new(&staging_utf8, &project.root, &workspace_root, &tool.bin);
+    let mut records = Vec::new();
+    let mut module_paths = Vec::new();
+    for module in &build.modules {
+        let relative = crate::backend::bend::module_path(&module.lean_module);
+        let file = staging_utf8.join(&relative);
+        if !file.as_std_path().is_file() {
+            continue;
+        }
+        let (record, accepted) =
+            bend::check(&tool, &module.lean_module, &file, limits, &normalizer).map_err(fail)?;
+        let output = format!("{}{}", record.stdout, record.stderr);
+        records.push(record);
+        if !accepted {
+            let text = std::fs::read_to_string(file.as_std_path()).unwrap_or_default();
+            return Err(fail(remap_bend_refusal(checked, module, &text, &output)));
+        }
+        module_paths.push(relative);
+    }
+    stages.enter("bend-verdict");
+    write_staged(
+        staging.path(),
+        &format!("{}/Root.bend", bend::VERDICT_DIR),
+        bend::verdict_root(&module_paths).as_bytes(),
+    )?;
+    let root_dir = staging_utf8.join(bend::VERDICT_DIR);
+    let (record, accepted) = bend::verdict(&tool, &root_dir, limits, &normalizer).map_err(fail)?;
+    let output = format!("{}{}", record.stdout, record.stderr);
+    records.push(record);
+    if !accepted {
+        // A kernel the pinned Bend cannot build is the environment's
+        // failure, not the program's.
+        let code = if output.contains("BendTT infrastructure") {
+            code!("LLV7019")
+        } else {
+            code!("LLV7021")
+        };
+        return Err(fail(Diagnostic::new(
+            code,
+            format!(
+                "the BendTT kernel recheck did not accept the generated program: {}",
+                output.trim_end()
+            ),
+        )));
+    }
+    Ok((tool, records))
+}
+
+/// A Bend refusal of one generated module (`LLV7020`), remapped through the
+/// module's source map from the generated line Bend points at to the
+/// source it was generated from (§20.4); the generated location stays as a
+/// note.
+fn remap_bend_refusal(
+    checked: &CheckedProject,
+    module: &RenderedModule,
+    text: &str,
+    output: &str,
+) -> Diagnostic {
+    // The refusal's message lines (`Error:` through the context) and the
+    // definition Bend names, without the excerpt of generated text.
+    let message: Vec<&str> = output
+        .lines()
+        .filter(|line| line.starts_with("- ") || line.starts_with("Location:"))
+        .collect();
+    let mut diagnostic = Diagnostic::new(
+        code!("LLV7020"),
+        format!(
+            "Bend refused `{}`: {}",
+            module.lean_module,
+            if message.is_empty() {
+                output.trim_end().to_owned()
+            } else {
+                message.join(" | ")
+            }
+        ),
+    );
+    let artifact = module
+        .map
+        .artifacts
+        .iter()
+        .find(|artifact| artifact.kind == crate::artifact::source_map::ArtifactKind::Bend)
+        .map(|artifact| artifact.id);
+    if let (Some(line), Some(artifact)) = (bend::refusal_line(output), artifact) {
+        let generated = crate::backend::bend::module_path(&module.lean_module);
+        if let Some(offset) = bend::line_offset(text, line) {
+            if let Some(range) = module
+                .map
+                .remap(artifact, offset)
+                .and_then(|mapping| mapping.src_range)
+            {
+                diagnostic = diagnostic.with_span(source_span(checked, module, range));
+            }
+        }
+        diagnostic = diagnostic.with_note(format!("generated location: {generated}:{line}"));
+    }
+    diagnostic
 }
 
 fn source_span(checked: &CheckedProject, module: &RenderedModule, range: (usize, usize)) -> Span {
@@ -835,6 +1011,14 @@ pub fn run_part(
     let memory_kib = operational.memory_kib();
     let telemetry_run = telemetry::Run::begin(operational, &project.config.name);
     let mut stages = telemetry_run.stages();
+    // §22.13: a language-2.0 program is checked by the pinned Bend and
+    // rechecked by the proved BendTT kernel before any Lean process runs.
+    let (bend_tool, bend_records) = if crate::lowers_to_bend(&project.config.language) {
+        let (tool, records) = verify_bend(project, checked, build, &limits, &mut stages)?;
+        (Some(tool), records)
+    } else {
+        (None, Vec::new())
+    };
     stages.enter("certificate-generation");
 
     // Every production root is lowered before any Lean work, and before the
@@ -1879,7 +2063,8 @@ pub fn run_part(
                 }
                 return Err(fail(diagnostic));
             }
-            declaration_rows.push(Json::object(vec![
+            let premises = build.bend_premises.get(&full_name).cloned();
+            let mut row = vec![
                 ("name", Json::Str(full_name)),
                 (
                     "policy",
@@ -1904,7 +2089,20 @@ pub fn run_part(
                     Json::Arr(observed_set.into_iter().map(Json::Str).collect()),
                 ),
                 ("result", Json::Str("ok".to_owned())),
-            ]));
+            ];
+            if crate::lowers_to_bend(&project.config.language) {
+                row.push((
+                    "premises",
+                    Json::Arr(
+                        premises
+                            .unwrap_or_default()
+                            .into_iter()
+                            .map(Json::Str)
+                            .collect(),
+                    ),
+                ));
+            }
+            declaration_rows.push(Json::object(row));
         }
         if let Some(core) = &document.core {
             for declaration in &core.declarations {
@@ -2125,6 +2323,35 @@ pub fn run_part(
             ]));
         }
     }
+
+    // §22.8, §22.13: the Bend records and the kernel-recheck root are part
+    // of the verified set, as the Lean records are.
+    for record in &bend_records {
+        let name = record
+            .module
+            .as_deref()
+            .map_or_else(|| "verdict".to_owned(), str::to_owned);
+        write_staged(
+            staging.path(),
+            &format!("process/bend/{name}.json"),
+            &record.to_json().to_file_bytes(),
+        )?;
+    }
+    if bend_tool.is_some() {
+        let module_paths: Vec<String> = build
+            .modules
+            .iter()
+            .map(|module| crate::backend::bend::module_path(&module.lean_module))
+            .filter(|path| build.files.iter().any(|(candidate, _)| candidate == path)
+                || staging_utf8.join(path).as_std_path().is_file())
+            .collect();
+        write_staged(
+            staging.path(),
+            &format!("{}/Root.bend", bend::VERDICT_DIR),
+            bend::verdict_root(&module_paths).as_bytes(),
+        )?;
+    }
+    tail_records.extend(bend_records);
 
     stages.enter("extraction");
     // Stage 12: named-root extraction (§22.10). Lean's compiler front end
@@ -2782,6 +3009,8 @@ pub fn run_part(
             Json::Str(
                 if project.config.language == crate::LANGUAGE_1_2 {
                     "lexlean/attestation/2"
+                } else if crate::lowers_to_bend(&project.config.language) {
+                    "lexlean/attestation/3"
                 } else {
                     "lexlean/attestation/1"
                 }
@@ -2854,6 +3083,15 @@ pub fn run_part(
     ];
     if let Some(row) = compiler_input_row {
         body_fields.push(("compiler_input", row));
+    }
+    if let Some(tool) = &bend_tool {
+        body_fields.push((
+            "bend",
+            Json::object(vec![
+                ("version_output", Json::Str(tool.version_output.clone())),
+                ("executable_sha256", Json::Str(tool.sha256.to_hex())),
+            ]),
+        ));
     }
     if let Some(row) = preservation_row {
         body_fields.push(("preservation", row));

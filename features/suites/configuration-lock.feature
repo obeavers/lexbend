@@ -130,4 +130,12 @@ Feature: configuration-lock
     When each is relocked and checked with `lock --check`, its documents are validated against its language's schemas, and a copy of the 1.1 example is migrated to 1.2 and relocked
     Then the 1.0 and 1.1 locks are byte-identical with written = false and pass `lock --check`, and every example validates against its own language's schemas
     And the migrated copy fails `lock --check` with LLC0102 before relocking, then writes a `lexlean/lock/2` lock valid against `lock-v2` with an unchanged generated Lean module set and a different semantic identity
-    And an unsupported lock schema `lexlean/lock/3` fails lock parsing with LLC0103
+    And an unsupported lock schema `lexlean/lock/4` fails lock parsing with LLC0103
+
+  @CF-19 @build
+  Scenario: Language 2.0 requires exactly bend_toolchain bend 2.0.37, every other language rejects the field, and its lock is schema v3 pinning that toolchain.
+    Given the language-2.0 nat-add-zero example and the language-1.0 nat-add-zero example
+    When their configurations and locks are checked, and each is altered to drop, change, or add the Bend pin
+    Then the 2.0 configuration and `lexlean/lock/3` lock carry `bend_toolchain = "bend 2.0.37"`, pass `lock --check`, and validate against `project-v3` and `lock-v3`
+    And a 2.0 configuration without the pin or with another release, and a 1.0 configuration with one, fail with LLC0101
+    And a 2.0 lock without the pin or under schema v1, and a 1.0 lock with a pin, fail to parse

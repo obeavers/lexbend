@@ -230,7 +230,9 @@ pub fn load_package(
             .with_span(Span::whole_file(&manifest_path)),
         );
     }
-    if manifest.language != ctx.language {
+    // A package declares the surface language it is written in; language
+    // 2.0 reads the language-1.0 surface (§18.10).
+    if manifest.language != crate::surface_language(ctx.language) {
         diagnostics.push(
             Diagnostic::new(
                 code!("LLC0103"),

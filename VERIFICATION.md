@@ -41,6 +41,58 @@ Outside `vv`:
 
 Each gate below was made to fail by planting a defect, running the gate's command, recording the failure, and removing the defect. The observed lines are verbatim gate output (paths abbreviated to the repository root). `cargo xtask release-check` requires a `### <gate> can fail` record for every gate and audit named in `repo_model::release::GATES`.
 
+### Bend module check can fail
+
+In a copy of `examples/bend-nat-add-zero` whose theorem was changed to
+`\(n + 1 = n\)`, still closed by reflexivity, `lexlean lock` and then
+`lexlean verify` (with the pinned `bend 2.0.37` on `PATH`) stopped at the Bend
+module check, before any Lean process ran:
+
+```text
+error[LLV7020]: Bend refused `LexLeanExample.Main`: - expected : 1n+llv0 | - observed : llv0 | - llv0 : Nat | Location: add_zero
+  --> src/Main.lex.tex:9:1
+  note: generated location: modules/LexLeanExample/Main.bend:9
+```
+
+The refusal is remapped from Bend's `N>|` excerpt line, through the module's
+Bend mappings, to the proof sentence that generated it (§22.13, §20.4).
+Restoring the statement restores verification. `conformance_bn_09` plants
+the same false theorem on every run and requires `SOME PROOFS FAIL`, and
+`conformance_vr_25` plants a refusing `bend` and requires the remapped span
+and note.
+
+### BendTT kernel recheck can fail
+
+Before the template premises were removed from the Bend backend, the
+generated `PeanoArithmetic.Main` of `examples/bend-peano-arithmetic` took
+excluded middle as a template binder (`~ll_excluded_middle`). `bend Main.bend
+--check-only` printed `ALL PROOFS CHECK`, and `bend Main.bend --verdict`
+printed:
+
+```text
+SOME PROOFS FAIL
+Sorry - this is a mismatch between the TypeScript implementation, and the formalized BendTT kernel. Your proofs may or may not be correct, and we cannot validate them yet. This will be addressed in a future update. Meanwhile, feel free to open an issue to report this bug.
+```
+
+`bend Main.bend -o Main.bendtt` named the cause: `BendTT: out of scope, so
+not in Main.bendtt: - a_or: no model for a_or~em`. The proved kernel models no
+template, so a program the checker accepts can still be one the kernel does
+not. That is the gap the recheck exists to close. It is why §18.10.5 forbids
+templates, and why a language-2.0 result is kernel-checked only after the
+recheck (§22.13). `conformance_vr_26` plants a `bend` whose recheck reports
+this mismatch and requires `LLV7021`.
+
+### Bend prelude fidelity can fail
+
+The prelude's `Lean.Nat.add` recurses on its second argument, as Lean's
+`Nat.add` does. A probe importing the prelude and proving `{L.Lean.Nat.add(0n,
+x) == x : Nat}` by `{==}` is refused by `bend --check-only`, with `SOME PROOFS
+FAIL` and the expected and observed terms, exactly as `Nat.zero_add` is not
+`rfl` in Lean. The same probe with `{L.Lean.Nat.add(x, 0n) == x : Nat}`
+checks. A prelude `Lean.Nat.add` that recursed on its first argument, as
+Base's `Nat.add` does, would invert both outcomes. `conformance_bn_06` runs
+both probes on every Bend-backed run and requires that pair of outcomes.
+
 ### production bundle inventory can fail
 
 Before the correction for #133, `cargo test --offline --locked -p lexlean

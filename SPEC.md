@@ -333,6 +333,12 @@ The completed repository MUST have this layout. Additional files are allowed onl
 │   │       │   ├── mod.rs
 │   │       │   └── source_map.rs
 │   │       ├── backend/
+│   │       │   ├── bend/
+│   │       │   │   ├── engine.rs
+│   │       │   │   ├── mod.rs
+│   │       │   │   ├── prelude.rs
+│   │       │   │   ├── proof.rs
+│   │       │   │   └── syntax.rs
 │   │       │   ├── latex.rs
 │   │       │   ├── lean.rs
 │   │       │   ├── mod.rs
@@ -404,6 +410,7 @@ The completed repository MUST have this layout. Additional files are allowed onl
 │   ├── model/
 │   └── conformance/
 ├── examples/
+│   ├── bend-nat-add-zero/
 │   └── nat-add-zero/
 ├── features/
 │   └── suites/
@@ -414,8 +421,13 @@ The completed repository MUST have this layout. Additional files are allowed onl
 │   ├── semantics.toml
 │   ├── semantics-1.1.toml
 │   ├── semantics-1.2.toml
+│   ├── semantics-2.0.toml
 │   ├── production-1.2.toml
 │   ├── renderer-tokens.toml
+│   ├── bend-prelude/
+│   │   ├── LexLean.bend
+│   │   ├── README.md
+│   │   └── registry.toml
 │   ├── lcnf-1.2/
 │   │   └── tooling/
 │   ├── preservation-1.2/
@@ -453,12 +465,15 @@ The completed repository MUST have this layout. Additional files are allowed onl
 ├── schemas/
 │   ├── attestation.schema.json
 │   ├── attestation-v2.schema.json
+│   ├── attestation-v3.schema.json
 │   ├── build-manifest.schema.json
 │   ├── build-manifest-v2.schema.json
+│   ├── build-manifest-v3.schema.json
 │   ├── compiler-input.schema.json
 │   ├── core-module.schema.json
 │   ├── core-module-v2.schema.json
 │   ├── coverage.schema.json
+│   ├── coverage-v2.schema.json
 │   ├── diagnostic.schema.json
 │   ├── entry.schema.json
 │   ├── gnaf-certificate-fixture.schema.json
@@ -470,10 +485,12 @@ The completed repository MUST have this layout. Additional files are allowed onl
 │   ├── lock.schema.json
 │   ├── lock-1.1.schema.json
 │   ├── lock-v2.schema.json
+│   ├── lock-v3.schema.json
 │   ├── preservation.schema.json
 │   ├── production-eligibility.schema.json
 │   ├── project.schema.json
 │   ├── project-v2.schema.json
+│   ├── project-v3.schema.json
 │   ├── rust-package.schema.json
 │   ├── rust-provenance.schema.json
 │   ├── semantic-snapshot.schema.json
@@ -481,6 +498,7 @@ The completed repository MUST have this layout. Additional files are allowed onl
 │   ├── semantic-module.schema.json
 │   ├── semantic-module-v2.schema.json
 │   ├── source-map.schema.json
+│   ├── source-map-v2.schema.json
 │   ├── target-fixture.schema.json
 │   └── target-program.schema.json
 ├── tests/
@@ -707,7 +725,7 @@ No project file may override the language grammar, backend, verifier sequence, a
 
 ### 10.1 `lexlean.toml`
 
-`lexlean.toml` is UTF-8, NFC, LF-terminated TOML. Comments are forbidden. Unknown fields are errors. Every field below is required except `[pdf]`.
+`lexlean.toml` is UTF-8, NFC, LF-terminated TOML. Comments are forbidden. Unknown fields are errors. Every field below is required except `[pdf]`, and `bend_toolchain`, which language 2.0 requires and every other language rejects.
 
 ```toml
 spec = "lexlean/project/1"
@@ -759,7 +777,7 @@ Input whitespace does not affect this canonical serialization. A project may be 
 |---|---|
 | `spec` | Exactly `lexlean/project/1`. |
 | `name` | Lower-case ASCII package identifier: `[a-z][a-z0-9-]{0,62}`. |
-| `language` | Language version: `1.0`, `1.1`, or `1.2`. |
+| `language` | Language version: `1.0`, `1.1`, `1.2`, or `2.0`. Language 2.0 reads the language-1.0 surface and lowers its document modules to Bend (§18.10); a native core, semantic, or tooling module is `LLP2003` under it. |
 | `module_prefix` | One or more dot-separated ASCII Lean-name segments matching `[A-Z][A-Za-z0-9_]*`, the first of which is none of `Init`, `Std`, `Lean`, `Lake`, `LakeMain`, `LeanChecker`, `LeanIR` (module roots of the pinned toolchain, beside which a module of the project would be found, and which `leanchecker` replays against), `IO` (a namespace of Lean's prelude, which generated Lean never writes: the audit of §18.2 rejects it), or one of the roots this compiler ships or generates (`LexLeanAudit`, `LexLeanCollections`, `LexLeanCore`, `LexLeanExtract`, `LexLeanIdentityProbe`, `LexLeanModels`, `LexLeanPreserve`, `LexLeanProbe`, `LexLeanReasoning`, `LexLeanTokenProbe`, which `conformance` checks against the roots of the shipped certificate library, `LexLeanTarget`, `LexLeanPreservation`, and `LexLeanRuntime` excepted). A prefix that begins with one is `LLC0101`, the fixtures `module-prefix-reserved` and `module-prefix-shipped-root`. A prefix that begins with `LexLeanTarget`, `LexLeanPreservation`, or `LexLeanRuntime`, the roots of the calculus modules, of the proof library the certificates import, and of the runtime modules every generated language-1.2 module that uses the runtime imports (the repository's `compiler` project uses the first, the library's own project, §17.17, the second, and the runtime's own project, §17.12, the third), is accepted for a project without a production root, and `LLT4005` for a module with one (fixture `module-prefix-target-production`): its certificates would import the library's module for the project's. |
 | `source_roots` | Nonempty, unique, sorted project-relative directories. |
 | `entrypoints` | Nonempty, unique, sorted project-relative `.lex.tex` files beneath a source root. |
@@ -767,6 +785,7 @@ Input whitespace does not affect this canonical serialization. A project may be 
 | `lockfile` | Project-relative regular-file path; exactly one lock file. |
 | `lean_workspace` | Project-relative directory containing `lean-toolchain` and a Lake configuration. |
 | `lean_toolchain` | Exactly the language-1.0 toolchain string. |
+| `bend_toolchain` | Language 2.0 only, and required there: exactly `bend 2.0.37`, written after `lean_toolchain` (another language rejects the field, and language 2.0 rejects any other value, `LLC0101`). |
 | `lexicon_source` | Unique by package and sorted by package identifier. |
 | `artifact_source` | Language 1.2 only (another language rejects the field, `LLC0101`): optional `[[artifact_source]]` tables `sha256 = "<64 lowercase hex>"`, `path = "<project-relative file>"`, sorted by `sha256`, unique by digest and by path, never beneath the build root. Each names the content-addressed bytes of one model artifact (§17.12); `check`, `build`, `fmt`, and `verify` read the file, confined (§25.1), and require its SHA-256 to equal the configured digest (`LLR3007`). Artifacts are never fetched. |
 | `limits` | Every listed positive integer is required. There are no hidden compiler defaults. |
@@ -852,7 +871,7 @@ If both Lake configuration forms exist, locking fails. Verification requires the
 
 ### 11.1 General
 
-`lexlean.lock` is generated, canonical TOML with no comments and final LF. Users MUST NOT hand-edit it. `lexlean lock --check` regenerates it in memory and compares exact bytes. Language 1.0 and 1.1 use `spec = "lexlean/lock/1"`. Language 1.2 uses `spec = "lexlean/lock/2"`. `lexlean lock` migrates locks to the appropriate schema for the project language.
+`lexlean.lock` is generated, canonical TOML with no comments and final LF. Users MUST NOT hand-edit it. `lexlean lock --check` regenerates it in memory and compares exact bytes. Language 1.0 and 1.1 use `spec = "lexlean/lock/1"`. Language 1.2 uses `spec = "lexlean/lock/2"`. Language 2.0 uses `spec = "lexlean/lock/3"`: the version-1 fields with `bend_toolchain = "bend 2.0.37"` written after `lean_toolchain`, which no other lock schema has. `lexlean lock` migrates locks to the appropriate schema for the project language.
 
 The top-level schema is:
 
@@ -6655,6 +6674,200 @@ member order, are verification artifacts.
 A preexisting module with the reserved audit root or any member name is an
 environment conflict and causes verification to fail.
 
+### 18.10 Bend backend
+
+LexLean also generates, from the same linked IR as the Lean and LaTeX
+outputs (I7), a prose-free Bend 2 program: one `.bend` file per language-1.0
+document module, at
+
+```text
+modules/<full-module-path>.bend
+```
+
+beside the module's `.lean` and `.tex`. A module that holds a native core,
+semantic, or tooling module (§17.10–§17.20) has no Bend file. The Bend
+language is the one the pinned Bend release defines (`bend 2.0.37`). Bend is
+dependently typed, with one universe, an affine runtime discipline, and no
+tactics: a proposition is a type and a proof is a term of it. Its kernel is
+consistent because live code is affine and terminates; LexLean's lowering
+keeps every generated proof within that discipline or fails.
+
+#### 18.10.1 Output contract
+
+A generated Bend file is exactly:
+
+```text
+import Base
+import <relative path> as <alias>
+...
+<items in source declaration order>
+```
+
+The first import after `import Base` is the shipped prelude (§18.10.6) under
+the alias `L`, present exactly when the module names a prelude definition.
+The remaining imports are the generated modules the document imports or
+references, in sorted module-name order. Each is imported by its path
+relative to the importing file under the alias that replaces every `.` of
+its full generated module name with `_`. An alias collision is `LLB6008`.
+
+Items are separated by one blank line, indented by two spaces per level, and
+the file ends with one LF. The output is byte-deterministic.
+
+#### 18.10.2 Names and external constants
+
+A declaration's Bend name is its generated Lean name (§17.8). A name equal
+to a Bend reserved word (`as`, `case`, `def`, `do`, `exs`, `for`, `import`,
+`is`, `law`, `match`, `return`, `type`, `where`) is `LLB6008`. A reference to
+a declaration of another module is `<alias>.<name>`.
+
+Locals use the §17.8 spellings `llv<n>` and `llh<n>`. The backend introduces
+these locals of its own:
+
+- `llc<n>` for a scrutinee that is not a local;
+- `llp<n>` for an `apply` premise;
+- `llx` for a conjunction's unused binder;
+- `ll_<assumption>` for an assumption premise.
+
+An external constant that Lean's `Init` defines as a core connective
+(`And`, `Or`, `Iff`, `Not`), denoted at that connective's shape (two, or for
+`Not` one, explicit propositions to a proposition), lowers as the connective.
+Every other external Lean constant is lowered only through the prelude registry
+`language/bend-prelude/registry.toml`. That registry maps each Lean name,
+under the canonical signature of the entry that denotes it, to a prelude or
+Base definition, a type, a constructor form, a law, or an assumption. The
+backend passes every binder of the entry signature in order. The engine
+solves the implicit and instance binders Lean inferred, by first-order
+unification against the explicit arguments' types and the expected type,
+unfolding document definitions on a head mismatch. An external constant
+with no registry row under its signature, or an implicit argument the engine
+cannot determine, is `LLB6008`. The Bend checker remains final; the engine
+is not a second proof checker.
+
+#### 18.10.3 Prose-free and closed rule
+
+Generated Bend contains none of the following:
+
+- a comment;
+- an `@unsafe` or `?`-suffixed definition;
+- a foreign `import "..."`;
+- a `?` hole;
+- an unfilled law;
+- a hub import (`import 0x…` or `name@version`);
+- a device call (`f!(…)`);
+- an `IO` value.
+
+The backend can print only the closed syntax of its own lowering; there is
+no raw-Bend path, as there is no raw-Lean path (I6).
+
+#### 18.10.4 Declarations and proofs
+
+Sorts lower as follows: `Prop` lowers to Bend `Type` and `Type` to Bend
+`Data`.
+
+Every binder carries a quantity:
+
+- a binder whose type is a sort is erased (`-`);
+- a binder whose type is `Data` is reusable (`+`);
+- every other binder is affine.
+
+The connectives lower as follows:
+
+- An equation lowers to `{a == b : T}` and is `Data`.
+- A conjunction lowers to `Sigma<qa, qb, A, llx => B>`.
+- An existential lowers to `Sigma<qa, qb, A, x => P>`.
+- In both of these, a quantity is `&2` when its part is `Data` and `&1` otherwise.
+- A disjunction lowers to `Either<&1, &1, A, B>`.
+- A negation lowers to `A -> Empty`.
+- A biconditional lowers to the pair of its two implications.
+
+A document definition lowers to a typed `def`. Its lambda binders mirror its
+signature's leading binders as parameters. A predicate whose proposition is
+`Data` declares the result kind `Data`.
+
+A theorem, lemma, or corollary lowers to a `law` and the `def` that proves it.
+The law's `for` clauses are, in order:
+
+- the declaration parameters;
+- the lifted leading universal binders (§18.5);
+- the hypotheses the proof's leading `intro` steps introduce.
+
+Each proof step lowers to the Bend term former it stands for, against the
+goal it acts on, which the engine computes exactly:
+
+| step | lowering |
+|---|---|
+| `intro` | a lambda |
+| `exact` | the term |
+| `rfl` | `{==}` |
+| witness | a dependent pair, a statement-block component annotated with its type |
+| left / right | `Inl{…}` / `Inr{…}` |
+| constructor | a pair |
+| `have` | an annotated let |
+| `apply` | an application, every premise a proof term |
+| `rw` at the goal | one `%e : P` per rule, `P` the goal with the rewritten occurrences abstracted, then `{==}` when no step follows |
+| `rw` at a hypothesis | an auxiliary definition that rewrites the new type back to the old one |
+| `simp only` | the rewrites of the listed rules, left to right, each with the first rule that applies, until none applies, at the goal (closed by `{==}` when no step follows) or as a rewritten hypothesis; a rule set that rewrites nothing or does not stop within 64 rewrites is `LLB6008` |
+| `calc` | an `Equal.trans` chain |
+| `cases` / `induction` | an auxiliary definition, below |
+
+For `cases` and `induction`, the auxiliary definition takes these
+parameters, in context order:
+
+1. the parameters the scrutinee's type mentions;
+2. the scrutinee;
+3. the rest of the context.
+
+It matches on the scrutinee, with `Data` fields bound reusable. For
+`induction`, the hypothesis is the definition's own call at the structurally
+smaller field.
+
+For `rw` and `simp only`, a rule that quantifies its variables is instantiated
+as Lean's `rw` instantiates it: at the first subterm of the target, in
+post-order and left to right, that its rewritten side matches syntactically.
+
+Auxiliary definitions are named `<declaration>.<kind><n>` (`kind` is `c`,
+`i`, or `r`) and are emitted before the law that uses them. A step whose goal
+does not have the shape the step requires is `LLB6008`.
+
+#### 18.10.5 Affine discipline
+
+Bend copies only `Data`, and functions are never `Data`. A generated
+definition therefore uses an affine parameter or local at most once on each
+branch. A `+` parameter or field is reusable because its type is `Data`.
+
+A Bend template (`~`) is substituted at compile time and so may be copied,
+but the proved BendTT kernel of the pinned release models no template (its
+translation reports a template as out of scope). No generated declaration
+takes a template. A proof that needs a function-typed hypothesis, a
+negation, an implication, or a biconditional more than once on one branch
+has no Bend form. The pinned Bend refuses it (§22.13, `LLV7020`); the
+`de-morgan` direction `¬(p ∨ q) → ¬p ∧ ¬q`, whose two components each apply
+the hypothesis, is such a proof.
+
+#### 18.10.6 The prelude
+
+`language/bend-prelude/LexLean.bend` is the shipped prelude. It imports only
+`Base`. It is published at `modules/LexLeanPrelude.bend` in every build
+whose modules import it. Each of its computational definitions reproduces
+the definitional equations of the Lean constant it stands for, so a proof
+Lean closed by `rfl` or `decide` closes by `{==}`; for example,
+`Lean.Nat.add` recurses on its second argument. Each lemma it registers is a
+`law` with a proof, and the prelude checks under the pinned Bend with
+`ALL PROOFS CHECK`. The prelude holds no `@unsafe` definition, unfilled law,
+or foreign import.
+
+#### 18.10.7 Assumptions
+
+Bend has no axioms that live code can use. A registry constant of kind
+`assumption` (`Classical.em`) is never a definition. A theorem whose proof uses
+it, or cites a theorem that takes it, takes the assumption as a leading premise
+`ll_<name>` of the prelude's assumption type. The theorem passes the premise to
+every auxiliary definition and cited theorem that takes it, as their leading
+argument. A definition that uses an assumption is `LLB6008`. An assumption is
+therefore visible in the statement of every theorem that depends on it. The
+premise is affine like every function, so a proof that uses it more than once
+on one branch has no Bend form (§18.10.5).
+
 ---
 
 ## 19. Canonical LaTeX and PDF
@@ -6962,15 +7175,22 @@ canonical_json = "1"
 semantic IR, snapshot, proof forms, and fixed backends. A 1.1-only change
 updates that file and therefore the 1.1 compiler-semantics ID without changing
 the historical 1.0 ID. `language/semantics-1.2.toml` versions language 1.2 in
-the same way. The authoring notation of §17.21 is not part of any
+the same way, and `language/semantics-2.0.toml` versions language 2.0, the
+language-1.0 surface lowered to Bend (§18.10). The authoring notation of §17.21 is not part of any
 compiler-semantics ID: a module in the notation and in its data form have the
 same semantic ID and the same generated bytes (`AU-02`), so which of them a
 source is written in changes its source ID and source maps and nothing a build
 or a verification derives from the module.
 
 Each language's compiler-semantics ID is the §11.5 tree digest of a fixed,
-nested partition of the embedded tree. The language-1.2 ID covers the whole
-tree. The language-1.1 ID excludes the files introduced solely for 1.2:
+nested partition of the embedded tree. The language-2.0 ID covers the whole
+tree. The language-1.2 ID excludes the files introduced solely for 2.0:
+`language/bend-prelude/`, `language/semantics-2.0.toml`,
+`schemas/attestation-v3.schema.json`, `schemas/build-manifest-v3.schema.json`,
+`schemas/coverage-v2.schema.json`,
+`schemas/lock-v3.schema.json`, `schemas/project-v3.schema.json`, and
+`schemas/source-map-v2.schema.json`. The language-1.1 ID additionally
+excludes the files introduced solely for 1.2:
 `language/bootstrap-1.2.toml`, `language/semantics-1.2.toml`,
 `language/production-1.2.toml`, `language/lcnf-1.2/`,
 `language/preservation-1.2/`, `language/runtime-1.2/`, `language/core-1.2/`,
@@ -6999,7 +7219,7 @@ bytes of languages 1.0 and 1.1 (§17.12, *Runtime modules*) are held under
 those IDs were fixed, so they belong to neither, and their equality with the
 released output is what keeps those languages' output byte-identical.
 
-The full (language-1.2) tree is the §11.5 tree digest of:
+The full (language-2.0) tree is the §11.5 tree digest of:
 
 - every regular file under `language/`;
 - every regular file under `schemas/`;
@@ -7021,7 +7241,7 @@ library (`library.registry_sha256`, §17.17) is taken the same way, over the
 module list and each native source as its data form, so moving a library module
 to the notation changes no verification record (`AU-06`).
 
-The released binary embeds all three closed language IDs. Repository tests
+The released binary embeds all four closed language IDs. Repository tests
 recompute the complete current input tree and, from the exclusion lists of
 this section, the compatibility-filtered trees independently, compare each with
 the embedded ID, and pin the 1.0 and 1.1 IDs to the committed example locks.
@@ -7168,7 +7388,9 @@ A failed command removes its staging tree and leaves no verified artifact.
 
 1. project/config/lock validation;
 2. check and linked-IR construction;
-3. deterministic build rendering;
+3. deterministic build rendering, and for language 2.0 the
+   assumption-premise policy, Bend preflight, Bend module check, and BendTT
+   kernel recheck (§22.13);
 4. Lean/Lake/leanchecker toolchain preflight;
 5. Lake-workspace lock preflight;
 6. external-interface probe generation and elaboration;
@@ -7312,6 +7534,8 @@ audit/output.txt
 audit/<audit-module-member>.process.json
 process/lean/*.json
 process/leanchecker/*.json
+process/bend/*.json                        # language 2.0: one per module, and verdict.json
+bend-verdict/Root.bend                     # language 2.0
 production/*.eligibility.json              # when a production root exists
 extract/<extraction-module>.lean           # when a production root exists
 extract/process.json                       # when a production root exists
@@ -7577,6 +7801,50 @@ Wall time, resident-set and swap measurements, scheduling and completion order, 
 Telemetry is write-only: no stage reads it, no ID or verified artifact contains any of it, and a failure to write it changes no result. Every key it uses is in a closed vocabulary (`wall_ms`, `started_unix_ms`, `peak_rss_kib`, `peak_swap_kib`, `mem_total_kib`, `mem_available_kib`, `swap_total_kib`, `swap_used_kib`, `host_cpus`, `process_width`, `completion_seq`), and a JSON key of that vocabulary anywhere in a verified directory fails the gate: `cargo xtask verify-examples` checks every example's verified directory for one.
 
 ---
+
+### 22.13 Bend verification
+
+A language-2.0 project is verified twice over: by the pinned Bend release
+(§18.10) and by the Lean stages above. Right after build rendering, before any
+Lean process runs, verification runs the following stages in order, over a copy
+of the build's Bend files in a staging directory of their own under the
+verified root.
+
+1. **Assumption-premise policy.** Every theorem's assumption premises (§18.10.7)
+   must be admitted by its axiom policy. A premise stands for the Lean axioms its
+   registry row lists: `excluded-middle` stands for `Classical.choice`,
+   `Quot.sound`, and `propext`. A `\noaxioms` theorem admits no premise, and an
+   `\allowaxioms` or `\exactaxioms` theorem admits a premise whose axioms its
+   list contains. A premise its policy does not admit is `LLV7022`. The premise
+   names are recorded on the theorem's attestation row as `premises`.
+2. **Bend preflight.** `bend` is located on `PATH` and must print exactly
+   `bend 2.0.37` for `bend version`. Its executable digest is recorded. Any other
+   outcome is `LLV7019`.
+3. **Bend module check.** Every generated `.bend` file is checked in place,
+   from its own directory, with `bend <file> --check-only`. Success is exit 0,
+   stdout exactly `ALL PROOFS CHECK` and
+   `Use --verdict for mathematical validity.` as two lines, and an empty stderr.
+   Anything else is `LLV7020`. The refusal is remapped from the generated line
+   Bend's excerpt marks (`N>|`), through the module's Bend mappings, to its
+   source span, and the generated location is kept as a note (§20.4).
+4. **BendTT kernel recheck.** Verification writes `bend-verdict/Root.bend`,
+   which imports every generated module under positional aliases and holds
+   nothing else, and runs `bend Root.bend --verdict` from its directory. Success
+   is exit 0, stdout exactly `ALL PROOFS CHECK`, and an empty stderr. A kernel
+   the pinned Bend reports it cannot build (`BendTT infrastructure`) is
+   `LLV7019`; anything else is `LLV7021`.
+
+Every Bend child runs under the §25.4 environment with
+`BEND_NO_TELEMETRY=1`, so the installed Bend never asks its website for a
+newer release. The Bend process records join the attestation's `processes`
+after the Lean ones, in Bend stage order. The kernel recheck builds BendTT's kernel with the elan toolchain
+`leanprover/lean4:v4.34.0`; that Lean is an authority of the kernel's build, not
+of LexLean's (§27.4).
+
+A language-2.0 attestation is schema `lexlean/attestation/3`: the version-1
+attestation with a `bend` object (`version_output`, `executable_sha256`) and a
+`premises` list on every declaration row. `kernel-checked` may be said of a
+language-2.0 result only after the BendTT recheck succeeded.
 
 ## 23. Command-line interface
 
@@ -8190,6 +8458,7 @@ The initial registry MUST include at least these exact codes and meanings:
 | `LLB6005` | Target realization program or Rust package invalid or unrenderable (§17.14, §17.16). |
 | `LLB6006` | GNAF request malformed (§17.15). |
 | `LLB6007` | GNAF certificate malformed (§17.18). |
+| `LLB6008` | Bend lowering has no defined form (§18.10). |
 | `LLV7001` | Lean/Lake/leanchecker version or executable mismatch. |
 | `LLV7002` | Generated Lean elaboration or compilation failure. |
 | `LLV7003` | `leanchecker` replay failure. |
@@ -8205,6 +8474,10 @@ The initial registry MUST include at least these exact codes and meanings:
 | `LLV7016` | Certificate E rejected (§17.17). |
 | `LLV7017` | Invalid verification resource profile (§22.11). |
 | `LLV7018` | Child start refused after the host ended the live children (§24.6). |
+| `LLV7019` | The pinned Bend toolchain is missing or reports another version (§22.13). |
+| `LLV7020` | Bend refused a generated module (§22.13). |
+| `LLV7021` | The BendTT kernel did not accept the generated program (§22.13). |
+| `LLV7022` | An assumption premise is not admitted by its theorem's axiom policy (§22.13). |
 | `LLV7101` | Certificate evidence does not certify the root (§24.7). |
 | `LLV7102` | Production artifact replay rejected (§24.7). |
 | `LLS8001` | Path escape, symlink, special file, or filesystem identity conflict. |
@@ -8924,6 +9197,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `CF-16` | `configuration-lock` | Language 1.1 has a parallel exact builtin closure and rejects a language-1.0 lock or package without altering language-1.0 identities. | §10.1 |
 | `CF-17` | `configuration-lock` | Language 1.2 declaration support accepts language 1.2 and rejects unsupported or malformed language versions. | §10.1 |
 | `CF-18` | `configuration-lock` | Lockfile v2 schema migration validates 1.2 locks while preserving exact byte-stability for language 1.0 and 1.1 projects. | §11.1, §11.2 |
+| `CF-19` | `configuration-lock` | Language 2.0 requires exactly bend_toolchain bend 2.0.37, every other language rejects the field, and its lock is schema v3 pinning that toolchain. | §10.1, §11.1 |
 | `LX-01` | `lexical-closure` | Source decoding and line normalization enforce valid UTF-8, LF, final LF, and forbidden-scalar rules. | §12.1 |
 | `LX-02` | `lexical-closure` | Non-NFC source is diagnosed and canonical formatting rewrites it without semantic change. | §12.1, §23.5 |
 | `LX-03` | `lexical-closure` | Raw percent, comments, tabs, trailing spaces, and non-ASCII whitespace are rejected. | §12.1 |
@@ -9052,6 +9326,15 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `LN-10` | `lean-backend` | Every non-whitespace generated Lean token has a source, glossary, IR, or synthetic-core mapping. | §20.3 |
 | `LN-11` | `lean-backend` | The generated-source audit tokenizes and rejects prose-bearing or forbidden Lean tokens before verification. | §18.2 |
 | `LN-12` | `lean-backend` | Generated file paths and module names exactly mirror the configured module prefix and source module. | §15.1, §18.1 |
+| `BN-01` | `bend-backend` | Every language-1.0 document module renders one byte-deterministic Bend file from the same linked IR, beside its Lean and LaTeX, with the exact import structure. | §18.10, §18.10.1 |
+| `BN-02` | `bend-backend` | Every external constant lowers only through the prelude registry with every signature binder, and an unregistered constant or undetermined implicit argument is a hard error. | §18.10.2 |
+| `BN-03` | `bend-backend` | Generated Bend contains no comment, unsafe or foreign definition, hole, unfilled law, hub import, device call, or IO value. | §18.10.3 |
+| `BN-04` | `bend-backend` | Theorems lower to laws with proof definitions and every proof step to an explicit Bend term, with case analysis and induction as auxiliary definitions emitted first. | §18.10.4 |
+| `BN-05` | `bend-backend` | No generated declaration takes a template, a binder is reusable only at a Data type, and a proof that uses a function-typed hypothesis twice on one branch is refused by the pinned Bend. | §18.10.5 |
+| `BN-06` | `bend-backend` | The shipped prelude reproduces the definitional equations of every registered Lean constant and checks under the pinned Bend. | §18.10.6 |
+| `BN-07` | `bend-backend` | A theorem that uses or cites an assumption takes it as a leading premise and passes it to every theorem it cites, and a definition that uses one is a hard error. | §18.10.7 |
+| `BN-08` | `bend-backend` | Every non-whitespace generated Bend token has exactly one coverage row and a source map mapping. | §18.10.1, §20.3 |
+| `BN-09` | `bend-backend` | The generated Bend of every language-1.0 example document module checks under the pinned Bend with every proof accepted. | §18.10 |
 | `TX-01` | `latex-pdf` | Canonical LaTeX is rendered solely from linked IR and never copies source text or controls. | §19.1 |
 | `TX-02` | `latex-pdf` | Every module uses the exact canonical LaTeX preamble and no host or timestamp metadata. | §19.2 |
 | `TX-03` | `latex-pdf` | Statements use only canonical controlled proposition and definition renderings. | §19.3, §19.4 |
@@ -9101,6 +9384,10 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `VR-21` | `verification` | A multi-module project whose imports form nontrivial frontiers verifies at width 1 and at a larger width to byte-identical verified directories and the same attestation identity, observed axiom sets, and policy rows, and no completion order orders a record or changes which failure is reported. | §22.3, §22.4, §22.11 |
 | `VR-22` | `verification` | Performance telemetry is written only to the CI evidence directory the environment names, a verification with telemetry on publishes byte-identical artifacts to one without, and telemetry planted in a verified artifact fails the gate. | §22.12 |
 | `VR-23` | `verification` | A project verified as the parts of one run, each shard running the processes its plan names with the oleans of the shards it needs and the join reading every shard's records, publishes a verified directory byte-identical to the whole verification's with the same attestation identity, and a shard whose plan leaves a module without its imports, or a join missing a record, is refused. | §9.4, §22.11 |
+| `VR-24` | `verification` | Language-2.0 verification locates exactly the pinned Bend on PATH, records its version output and executable digest, and refuses a missing or other release, or a kernel it cannot build, with LLV7019. | §22.13 |
+| `VR-25` | `verification` | Language-2.0 verification checks every generated Bend module with the pinned Bend before any Lean process runs, and a refusal is LLV7020 remapped to its source span with the generated location as a note. | §22.13, §20.4 |
+| `VR-26` | `verification` | Language-2.0 verification rechecks the generated program with the proved BendTT kernel through a root importing every module and requires its exact success verdict, or fails with LLV7021. | §22.13 |
+| `VR-27` | `verification` | A language-2.0 theorem's assumption premises must be admitted by its axiom policy, or verification fails with LLV7022 before any Lean process runs, and a verified attestation is schema v3 recording the Bend toolchain and each theorem's premises. | §22.13 |
 | `CL-01` | `cli-api` | Global options and upward project discovery obey the exact CLI contract. | §23.1, §23.2 |
 | `CL-02` | `cli-api` | Init creates the complete canonical skeleton only in an absent or empty destination and never overwrites. | §23.4 |
 | `CL-03` | `cli-api` | Lock check, local update, and explicit network acquisition obey their exact mutually exclusive behavior. | §23.4 |
@@ -9281,7 +9568,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `RT-03` | `runtime` | A verification compiles every runtime module that a project's generated modules, or the calculus modules its certificates are checked against, import before the project's modules, replays it with `leanchecker`, and audits each of its declarations against the axioms its row pins; the committed verification of a project that uses the collections prints them, the runtime's own project verifies under the pinned Lean, and a row that pins another axiom set than its declaration observes fails with LLV7005. | §17.12, §22.3, §22.5, §22.6 |
 | `RT-04` | `runtime` | No Lean runtime text remains in the language-1.2 compiler: a generated language-1.2 module imports the runtime modules whose constants it names and declares nothing under a runtime namespace, and the only Lean runtime text in the compiler's source outside unit-test items, in one string literal or in several written together, is the decoder of core module 2, which loads native modules and so cannot be one; a runtime text planted in any of its shapes, raw or escaped, with or without a namespace line, split across literals, or after a test module, is found. | §17.12, §18.1 |
 
-**Total required capability IDs:** 387.
+**Total required capability IDs:** 401.
 
 No row may be downgraded to `some-true` or `open`. Upstream Lean facts are ledger/authority rows, not substitutions for these build behaviors.
 

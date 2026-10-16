@@ -173,6 +173,8 @@ pub fn load_bootstrap() -> Result<Bootstrap, Diagnostic> {
 
 /// Load the embedded bootstrap data for an explicitly selected language.
 pub fn load_bootstrap_for(language: &str) -> Result<Bootstrap, Diagnostic> {
+    // Language 2.0 reads the language-1.0 surface (§18.10).
+    let language = crate::surface_language(language);
     let path = match language {
         "1.0" => "language/bootstrap.toml",
         "1.1" => "language/bootstrap-1.1.toml",

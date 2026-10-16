@@ -61,10 +61,6 @@ const RESERVED: &[&str] = &[
 /// so a theorem's premises are known before any citing theorem lowers.
 pub type AssumptionTable = BTreeMap<(String, String), Vec<(String, String)>>;
 
-/// Which leading parameters of each generated definition are templates,
-/// by `Alias.name` (the alias is the generated module's import alias).
-pub type TemplateTable = BTreeMap<String, Vec<bool>>;
-
 /// Whether a module lowers to Bend: language-1.0 document modules.
 #[must_use]
 pub fn lowers(checked: &CheckedModule) -> bool {
@@ -110,12 +106,11 @@ fn origin_source(range: (usize, usize)) -> EmitSource {
 ///
 /// # Errors
 ///
-/// `LLB6001` when a construct has no Bend lowering.
+/// `LLB6008` when a construct has no Bend lowering.
 pub fn render_module(
     checked: &CheckedModule,
     project: &ProjectIndex<'_>,
     table: &mut AssumptionTable,
-    templates: &mut TemplateTable,
 ) -> Result<(Emitter, bool), Diagnostic> {
     let registry = registry()?;
     let document = &checked.document;
@@ -129,12 +124,15 @@ pub fn render_module(
                 declaration.lean_name
             )));
         }
-        let origin = checked.decl_origins.get(&declaration.component).ok_or_else(|| {
-            fail(format!(
-                "declaration `{}` has no source origin",
-                declaration.component
-            ))
-        })?;
+        let origin = checked
+            .decl_origins
+            .get(&declaration.component)
+            .ok_or_else(|| {
+                fail(format!(
+                    "declaration `{}` has no source origin",
+                    declaration.component
+                ))
+            })?;
         engine.start_declaration();
         match &declaration.body {
             DeclBody::TheoremLike { statement, proof } => {
@@ -145,9 +143,10 @@ pub fn render_module(
                     .iter()
                     .map(|(name, ty)| (name.clone(), ty.clone()))
                     .collect();
-                engine
-                    .assumption_table
-                    .insert((document.name.clone(), declaration.component.clone()), premises);
+                engine.assumption_table.insert(
+                    (document.name.clone(), declaration.component.clone()),
+                    premises,
+                );
             }
             DeclBody::Definition { ty, value, .. } => {
                 items.push(definition(&mut engine, declaration, ty, value, origin)?);
@@ -188,8 +187,6 @@ pub fn render_module(
             alias,
         });
     }
-    let own_alias = module_alias(&document.lean_module);
-    templatize(&mut items, &own_alias, templates);
     let module = Module { imports, items };
     let mut emitter = Emitter::new();
     print_module(&module, &mut emitter);
@@ -285,7 +282,8 @@ fn theorem(
         steps.remove(0);
     }
     let owner = declaration.lean_name.clone();
-    let mut lowering = ProofLowering::new(engine, owner, spans, origin.proof.unwrap_or(origin.whole));
+    let mut lowering =
+        ProofLowering::new(engine, owner, spans, origin.proof.unwrap_or(origin.whole));
     let body = lowering.prove(&ctx, &goal, &steps)?;
     let mut auxiliary = std::mem::take(&mut lowering.auxiliary);
     let mut params = Vec::new();
@@ -296,7 +294,7 @@ fn theorem(
         params.push(param);
     }
     let claim = engine.lower(&ctx, &goal, None)?;
-    // Assumption premises lead, as Bend requires of template clauses.
+    // Assumption premises lead the law's clauses.
     let premises: Vec<(String, String)> = engine
         .assumptions
         .iter()
@@ -307,38 +305,53 @@ fn theorem(
         let premise_params: Vec<Param> = premises
             .iter()
             .map(|(name, ty)| Param {
-                quantity: Quantity::Template,
+                quantity: Quantity::Affine,
                 name: Name::synthetic(premise_name(name)),
                 ty: BTerm::Call(
-                    Name::synthetic(format!(
-                        "{PRELUDE_ALIAS}.{}",
-                        ty.trim_end_matches("()")
-                    )),
+                    Name::synthetic(format!("{PRELUDE_ALIAS}.{}", ty.trim_end_matches("()"))),
                     Vec::new(),
                 ),
                 source: origin_source(origin.sentence),
             })
             .collect();
         engine.uses_prelude = true;
-        let aux_names: BTreeSet<String> = auxiliary
-            .iter()
-            .map(|item| match item {
-                Item::Def { name, .. } | Item::Law { name, .. } => name.text.clone(),
-            })
-            .collect();
-        let template_args: Vec<(bool, BTerm)> = premises
-            .iter()
-            .map(|(name, _)| (true, BTerm::Name(Name::synthetic(premise_name(name)))))
-            .collect();
-        for item in &mut auxiliary {
-            if let Item::Def { params, body, .. } = item {
-                let mut with = premise_params.clone();
-                with.append(params);
-                *params = with;
-                thread_body(body, &aux_names, &template_args);
+        // A premise reaches exactly the auxiliaries that use it, directly or
+        // through a call: it is affine, so passing it to one that does not
+        // would spend it twice.
+        let premise_texts: BTreeSet<String> =
+            premises.iter().map(|(name, _)| premise_name(name)).collect();
+        let mut needing: BTreeSet<String> = BTreeSet::new();
+        loop {
+            let before = needing.len();
+            for item in &auxiliary {
+                if let Item::Def { name, body, .. } = item {
+                    if !needing.contains(&name.text)
+                        && (body_names(body).iter().any(|used| premise_texts.contains(used))
+                            || body_names(body).iter().any(|used| needing.contains(used)))
+                    {
+                        needing.insert(name.text.clone());
+                    }
+                }
+            }
+            if needing.len() == before {
+                break;
             }
         }
-        thread_body(&mut body, &aux_names, &template_args);
+        let premise_args: Vec<BTerm> = premises
+            .iter()
+            .map(|(name, _)| BTerm::Name(Name::synthetic(premise_name(name))))
+            .collect();
+        for item in &mut auxiliary {
+            if let Item::Def { name, params, body, .. } = item {
+                if needing.contains(&name.text) {
+                    let mut with = premise_params.clone();
+                    with.append(params);
+                    *params = with;
+                }
+                thread_body(body, &needing, &premise_args);
+            }
+        }
+        thread_body(&mut body, &needing, &premise_args);
         let mut with = premise_params;
         with.append(&mut params);
         params = with;
@@ -361,64 +374,110 @@ fn theorem(
     Ok(items)
 }
 
-/// Pass the assumption premises to every call of an auxiliary definition.
-fn thread_body(body: &mut Body, aux: &BTreeSet<String>, templates: &[(bool, BTerm)]) {
+/// Every name a body mentions in live position: variables and call heads.
+fn body_names(body: &Body) -> BTreeSet<String> {
+    fn term(t: &BTerm, out: &mut BTreeSet<String>) {
+        match t {
+            BTerm::Name(name) => {
+                out.insert(name.text.clone());
+            }
+            BTerm::Call(head, args) => {
+                out.insert(head.text.clone());
+                for arg in args {
+                    term(arg, out);
+                }
+            }
+            BTerm::Lam(_, inner) | BTerm::Succ(inner) => term(inner, out),
+            BTerm::Pair(a, b) | BTerm::Ann(a, b) => {
+                term(a, out);
+                term(b, out);
+            }
+            BTerm::Constructor(_, fields) => {
+                for field in fields {
+                    term(field, out);
+                }
+            }
+            BTerm::Block(inner) => out.extend(body_names(inner)),
+            _ => {}
+        }
+    }
+    let mut out = BTreeSet::new();
+    for stmt in &body.stmts {
+        match stmt {
+            syntax::Stmt::Rewrite { proof, .. } => term(proof, &mut out),
+            syntax::Stmt::Let { value, .. } => term(value, &mut out),
+        }
+    }
+    match &body.tail {
+        Tail::Term(t, _) => term(t, &mut out),
+        Tail::Match { cases, .. } => {
+            for (_, case) in cases {
+                out.extend(body_names(case));
+            }
+        }
+    }
+    out
+}
+
+/// Pass the assumption premises to every call of an auxiliary definition
+/// that takes them.
+fn thread_body(body: &mut Body, aux: &BTreeSet<String>, premises_args: &[BTerm]) {
     for stmt in &mut body.stmts {
         match stmt {
             syntax::Stmt::Rewrite { proof, motive, .. } => {
-                thread_term(proof, aux, templates);
-                thread_term(motive, aux, templates);
+                thread_term(proof, aux, premises_args);
+                thread_term(motive, aux, premises_args);
             }
-            syntax::Stmt::Let { value, .. } => thread_term(value, aux, templates),
+            syntax::Stmt::Let { value, .. } => thread_term(value, aux, premises_args),
         }
     }
     match &mut body.tail {
-        Tail::Term(term, _) => thread_term(term, aux, templates),
+        Tail::Term(term, _) => thread_term(term, aux, premises_args),
         Tail::Match { cases, .. } => {
             for (_, case) in cases {
-                thread_body(case, aux, templates);
+                thread_body(case, aux, premises_args);
             }
         }
     }
 }
 
-fn thread_term(term: &mut BTerm, aux: &BTreeSet<String>, templates: &[(bool, BTerm)]) {
+fn thread_term(term: &mut BTerm, aux: &BTreeSet<String>, premises_args: &[BTerm]) {
     match term {
         BTerm::Call(head, args) => {
-            for (_, arg) in args.iter_mut() {
-                thread_term(arg, aux, templates);
+            for arg in args.iter_mut() {
+                thread_term(arg, aux, premises_args);
             }
             if aux.contains(&head.text) {
-                let mut with = templates.to_vec();
+                let mut with = premises_args.to_vec();
                 with.append(args);
                 *args = with;
             }
         }
-        BTerm::Lam(_, body) | BTerm::Succ(body) => thread_term(body, aux, templates),
+        BTerm::Lam(_, body) | BTerm::Succ(body) => thread_term(body, aux, premises_args),
         BTerm::Pi {
             domain, codomain, ..
         }
         | BTerm::Sigma {
             domain, codomain, ..
         } => {
-            thread_term(domain, aux, templates);
-            thread_term(codomain, aux, templates);
+            thread_term(domain, aux, premises_args);
+            thread_term(codomain, aux, premises_args);
         }
         BTerm::Product(a, b) | BTerm::Pair(a, b) | BTerm::Ann(a, b) => {
-            thread_term(a, aux, templates);
-            thread_term(b, aux, templates);
+            thread_term(a, aux, premises_args);
+            thread_term(b, aux, premises_args);
         }
         BTerm::Equal(a, b, t) => {
-            thread_term(a, aux, templates);
-            thread_term(b, aux, templates);
-            thread_term(t, aux, templates);
+            thread_term(a, aux, premises_args);
+            thread_term(b, aux, premises_args);
+            thread_term(t, aux, premises_args);
         }
         BTerm::Datatype(_, _, args) | BTerm::Constructor(_, args) => {
             for arg in args {
-                thread_term(arg, aux, templates);
+                thread_term(arg, aux, premises_args);
             }
         }
-        BTerm::Block(body) => thread_body(body, aux, templates),
+        BTerm::Block(body) => thread_body(body, aux, premises_args),
         BTerm::Name(_) | BTerm::Refl | BTerm::Nat(_) | BTerm::Kind(_) | BTerm::Hole => {}
     }
 }
@@ -465,7 +524,12 @@ fn definition(
         }
         _ => (ty.clone(), value.clone()),
     };
-    let mut lowering = ProofLowering::new(engine, declaration.lean_name.clone(), BTreeMap::new(), origin.whole);
+    let mut lowering = ProofLowering::new(
+        engine,
+        declaration.lean_name.clone(),
+        BTreeMap::new(),
+        origin.whole,
+    );
     let mut params = Vec::new();
     for (index, (id, binder_ty)) in binders.iter().enumerate() {
         let prefix: Ctx = ctx[..index].to_vec();
@@ -521,11 +585,15 @@ pub fn prelude_artifact() -> Result<(&'static str, &'static [u8]), Diagnostic> {
 ///
 /// # Errors
 ///
-/// `LLB6001` when a construct has no Bend lowering.
+/// `LLB6008` when a construct has no Bend lowering.
 pub fn render_project(
+    language: &str,
     modules: &BTreeMap<String, CheckedModule>,
     closure: &crate::lexicon::resolve::Closure,
-) -> Result<(BTreeMap<String, Emitter>, bool), Diagnostic> {
+) -> Result<RenderedBend, Diagnostic> {
+    if !crate::lowers_to_bend(language) {
+        return Ok(RenderedBend::default());
+    }
     let mut declarations = BTreeMap::new();
     let mut generated_modules = BTreeMap::new();
     for (name, checked) in modules {
@@ -563,7 +631,6 @@ pub fn render_project(
         }
     }
     let mut table = AssumptionTable::new();
-    let mut templates = TemplateTable::new();
     let mut out = BTreeMap::new();
     let mut any_prelude = false;
     for name in order {
@@ -571,231 +638,37 @@ pub fn render_project(
         if !lowers(checked) {
             continue;
         }
-        let (emitter, uses_prelude) = render_module(checked, &project, &mut table, &mut templates)?;
+        let (emitter, uses_prelude) = render_module(checked, &project, &mut table)?;
         any_prelude |= uses_prelude;
         out.insert(name.clone(), emitter);
     }
-    Ok((out, any_prelude))
+    let mut premises = BTreeMap::new();
+    for ((module, component), names) in table {
+        let declaration = project
+            .declarations
+            .get(&(module.clone(), component.clone()));
+        let generated = project.generated_modules.get(&module);
+        if let (Some(declaration), Some(generated)) = (declaration, generated) {
+            premises.insert(
+                format!("{generated}.{}", declaration.lean_name),
+                names.into_iter().map(|(name, _)| name).collect(),
+            );
+        }
+    }
+    Ok(RenderedBend {
+        emitters: out,
+        uses_prelude: any_prelude,
+        premises,
+    })
 }
 
-/// Bend's kernel is affine: a function-typed parameter may be used once
-/// per branch. A parameter a definition uses more than once is made a
-/// template (`~`), which Bend substitutes at compile time and so may copy;
-/// Bend requires templates to lead, so every parameter before it becomes
-/// one too, and a caller passes those arguments as templates, which makes
-/// the caller's own parameter a template in turn. Iterated to a fixpoint
-/// over the module, against the masks of modules lowered before it.
-fn templatize(items: &mut [Item], own_alias: &str, table: &mut TemplateTable) {
-    loop {
-        let mut changed = false;
-        for index in 0..items.len() {
-            let (name, params, body) = match &items[index] {
-                Item::Law {
-                    name, params, proof, ..
-                } => (name.text.clone(), params.clone(), proof.clone()),
-                Item::Def {
-                    name, params, body, ..
-                } => (name.text.clone(), params.clone(), body.clone()),
-            };
-            let mut need = vec![false; params.len()];
-            for (position, param) in params.iter().enumerate() {
-                if param.quantity == Quantity::Affine && count_body(&body, &param.name.text) > 1 {
-                    need[position] = true;
-                }
-            }
-            let mut passed = BTreeSet::new();
-            calls_body(&body, own_alias, table, &mut passed);
-            for (position, param) in params.iter().enumerate() {
-                if passed.contains(&param.name.text) {
-                    need[position] = true;
-                }
-            }
-            let Some(last) = need.iter().rposition(|flag| *flag) else {
-                continue;
-            };
-            let mask: Vec<bool> = (0..params.len()).map(|position| position <= last).collect();
-            let key = format!("{own_alias}.{name}");
-            if table.get(&key) != Some(&mask) {
-                table.insert(key, mask.clone());
-                changed = true;
-            }
-            let params = match &mut items[index] {
-                Item::Law { params, .. } | Item::Def { params, .. } => params,
-            };
-            for (param, template) in params.iter_mut().zip(&mask) {
-                if *template && param.quantity != Quantity::Template {
-                    param.quantity = Quantity::Template;
-                    changed = true;
-                }
-            }
-        }
-        // Mark template arguments at every call site.
-        for item in items.iter_mut() {
-            let body = match item {
-                Item::Law { proof, .. } => proof,
-                Item::Def { body, .. } => body,
-            };
-            changed |= mark_body(body, own_alias, table);
-        }
-        if !changed {
-            return;
-        }
-    }
-}
-
-fn mask_for<'t>(head: &str, own_alias: &str, table: &'t TemplateTable) -> Option<&'t Vec<bool>> {
-    table
-        .get(head)
-        .or_else(|| table.get(&format!("{own_alias}.{head}")))
-}
-
-fn count_body(body: &Body, name: &str) -> usize {
-    let mut count = 0;
-    for stmt in &body.stmts {
-        match stmt {
-            syntax::Stmt::Rewrite { proof, motive, .. } => {
-                count += count_term(proof, name) + count_term(motive, name);
-            }
-            syntax::Stmt::Let { value, .. } => count += count_term(value, name),
-        }
-    }
-    match &body.tail {
-        Tail::Term(term, _) => count += count_term(term, name),
-        // Arms are alternatives: a name used once in each arm is used once.
-        Tail::Match { cases, .. } => {
-            count += cases
-                .iter()
-                .map(|(_, case)| count_body(case, name))
-                .max()
-                .unwrap_or(0);
-        }
-    }
-    count
-}
-
-fn count_term(term: &BTerm, name: &str) -> usize {
-    match term {
-        BTerm::Name(found) => usize::from(found.text == name),
-        BTerm::Call(head, args) => {
-            usize::from(head.text == name)
-                + args.iter().map(|(_, arg)| count_term(arg, name)).sum::<usize>()
-        }
-        BTerm::Lam(_, body) | BTerm::Succ(body) => count_term(body, name),
-        // Types are dead: a use there is not a use.
-        BTerm::Pi { .. } | BTerm::Sigma { .. } | BTerm::Product(..) | BTerm::Datatype(..) | BTerm::Equal(..) | BTerm::Kind(_) => 0,
-        BTerm::Pair(a, b) => count_term(a, name) + count_term(b, name),
-        BTerm::Ann(value, _) => count_term(value, name),
-        BTerm::Constructor(_, fields) => fields.iter().map(|field| count_term(field, name)).sum(),
-        BTerm::Block(body) => count_body(body, name),
-        BTerm::Refl | BTerm::Nat(_) | BTerm::Hole => 0,
-    }
-}
-
-fn calls_body(body: &Body, own_alias: &str, table: &TemplateTable, out: &mut BTreeSet<String>) {
-    for stmt in &body.stmts {
-        match stmt {
-            syntax::Stmt::Rewrite { proof, .. } => calls_term(proof, own_alias, table, out),
-            syntax::Stmt::Let { value, .. } => calls_term(value, own_alias, table, out),
-        }
-    }
-    match &body.tail {
-        Tail::Term(term, _) => calls_term(term, own_alias, table, out),
-        Tail::Match { cases, .. } => {
-            for (_, case) in cases {
-                calls_body(case, own_alias, table, out);
-            }
-        }
-    }
-}
-
-fn calls_term(term: &BTerm, own_alias: &str, table: &TemplateTable, out: &mut BTreeSet<String>) {
-    match term {
-        BTerm::Call(head, args) => {
-            if let Some(mask) = mask_for(&head.text, own_alias, table) {
-                // Assumption premises lead a call; the mask covers the
-                // parameters after them only when the counts agree.
-                let offset = args.iter().take_while(|(template, _)| *template).count();
-                let offset = if args.len() == mask.len() { 0 } else { offset };
-                for (position, template) in mask.iter().enumerate() {
-                    if *template {
-                        if let Some((_, BTerm::Name(name))) = args.get(position + offset) {
-                            out.insert(name.text.clone());
-                        }
-                    }
-                }
-            }
-            for (_, arg) in args {
-                calls_term(arg, own_alias, table, out);
-            }
-        }
-        BTerm::Lam(_, body) | BTerm::Succ(body) => calls_term(body, own_alias, table, out),
-        BTerm::Pair(a, b) | BTerm::Ann(a, b) => {
-            calls_term(a, own_alias, table, out);
-            calls_term(b, own_alias, table, out);
-        }
-        BTerm::Constructor(_, fields) => {
-            for field in fields {
-                calls_term(field, own_alias, table, out);
-            }
-        }
-        BTerm::Block(body) => calls_body(body, own_alias, table, out),
-        _ => {}
-    }
-}
-
-fn mark_body(body: &mut Body, own_alias: &str, table: &TemplateTable) -> bool {
-    let mut changed = false;
-    for stmt in &mut body.stmts {
-        match stmt {
-            syntax::Stmt::Rewrite { proof, .. } => changed |= mark_term(proof, own_alias, table),
-            syntax::Stmt::Let { value, .. } => changed |= mark_term(value, own_alias, table),
-        }
-    }
-    match &mut body.tail {
-        Tail::Term(term, _) => changed |= mark_term(term, own_alias, table),
-        Tail::Match { cases, .. } => {
-            for (_, case) in cases {
-                changed |= mark_body(case, own_alias, table);
-            }
-        }
-    }
-    changed
-}
-
-fn mark_term(term: &mut BTerm, own_alias: &str, table: &TemplateTable) -> bool {
-    let mut changed = false;
-    match term {
-        BTerm::Call(head, args) => {
-            if let Some(mask) = mask_for(&head.text, own_alias, table).cloned() {
-                let leading = args.iter().take_while(|(template, _)| *template).count();
-                let offset = if args.len() == mask.len() { 0 } else { leading };
-                for (position, template) in mask.iter().enumerate() {
-                    if *template {
-                        if let Some(slot) = args.get_mut(position + offset) {
-                            if !slot.0 {
-                                slot.0 = true;
-                                changed = true;
-                            }
-                        }
-                    }
-                }
-            }
-            for (_, arg) in args.iter_mut() {
-                changed |= mark_term(arg, own_alias, table);
-            }
-        }
-        BTerm::Lam(_, body) | BTerm::Succ(body) => changed |= mark_term(body, own_alias, table),
-        BTerm::Pair(a, b) | BTerm::Ann(a, b) => {
-            changed |= mark_term(a, own_alias, table);
-            changed |= mark_term(b, own_alias, table);
-        }
-        BTerm::Constructor(_, fields) => {
-            for field in fields {
-                changed |= mark_term(field, own_alias, table);
-            }
-        }
-        BTerm::Block(body) => changed |= mark_body(body, own_alias, table),
-        _ => {}
-    }
-    changed
+/// The Bend side of one rendered build.
+#[derive(Debug, Default)]
+pub struct RenderedBend {
+    /// Each lowering module's emitter, by source module name.
+    pub emitters: BTreeMap<String, Emitter>,
+    /// Whether any module imports the prelude.
+    pub uses_prelude: bool,
+    /// The assumption premises of every theorem, by full generated name.
+    pub premises: BTreeMap<String, Vec<String>>,
 }

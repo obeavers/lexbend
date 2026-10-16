@@ -38,21 +38,25 @@ int_negsucc = ["M", "K"]
 name = "excluded-middle"
 bend_type = "Lean.Assume.excluded_middle()"
 lean = ["Classical.em"]
+axioms = ["Classical.choice", "Quot.sound", "propext"]
 
 [[assumption]]
 name = "choice"
 bend_type = "Lean.Assume.choice()"
 lean = ["Classical.choice"]
+axioms = ["Classical.choice"]
 
 [[assumption]]
 name = "propext"
 bend_type = "Lean.Assume.propext()"
 lean = ["propext"]
+axioms = ["propext"]
 
 [[assumption]]
 name = "funext"
 bend_type = "Lean.Assume.funext()"
 lean = ["funext"]
+axioms = ["Quot.sound"]
 
 [[constant]]
 lean = "And.intro"

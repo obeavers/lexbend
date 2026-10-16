@@ -6,7 +6,7 @@
 //! be known here. The engine is not a second proof checker (§13.7): it
 //! computes types syntactically, with definitional unfolding of document
 //! definitions, and the Bend checker is final. A term whose implicit
-//! arguments the engine cannot determine is refused with `LLB6001` rather
+//! arguments the engine cannot determine is refused with `LLB6008` rather
 //! than emitted with a guess.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -27,7 +27,7 @@ use crate::lexicon::resolve::Closure;
 use crate::source::coverage::Origin;
 
 pub(crate) fn fail(message: impl Into<String>) -> Diagnostic {
-    Diagnostic::new(code!("LLB6001"), message.into())
+    Diagnostic::new(code!("LLB6008"), message.into())
 }
 
 /// Every document declaration of the linked project, so a module can type
@@ -52,9 +52,9 @@ fn core_type(core: CoreRef, fresh: &mut Fresh) -> Term {
     };
     match core {
         CoreRef::Eq => {
-            let alpha = fresh.next();
-            let x = fresh.next();
-            let y = fresh.next();
+            let alpha = fresh.local();
+            let x = fresh.local();
+            let y = fresh.local();
             Term::Pi {
                 binders: vec![
                     binder(alpha, BinderMode::Implicit, Term::Sort(Universe::Num(1))),
@@ -65,8 +65,8 @@ fn core_type(core: CoreRef, fresh: &mut Fresh) -> Term {
             }
         }
         CoreRef::And | CoreRef::Or | CoreRef::Iff => {
-            let a = fresh.next();
-            let b = fresh.next();
+            let a = fresh.local();
+            let b = fresh.local();
             Term::Pi {
                 binders: vec![
                     binder(a, BinderMode::Explicit, prop.clone()),
@@ -76,16 +76,16 @@ fn core_type(core: CoreRef, fresh: &mut Fresh) -> Term {
             }
         }
         CoreRef::Not => {
-            let a = fresh.next();
+            let a = fresh.local();
             Term::Pi {
                 binders: vec![binder(a, BinderMode::Explicit, prop.clone())],
                 body: Box::new(prop),
             }
         }
         CoreRef::Exists | CoreRef::ExistsUnique => {
-            let alpha = fresh.next();
-            let p = fresh.next();
-            let x = fresh.next();
+            let alpha = fresh.local();
+            let p = fresh.local();
+            let x = fresh.local();
             Term::Pi {
                 binders: vec![
                     binder(alpha, BinderMode::Implicit, Term::Sort(Universe::Num(1))),
@@ -113,7 +113,7 @@ pub struct Fresh {
 
 impl Fresh {
     /// The next identity.
-    pub fn next(&mut self) -> LocalId {
+    pub fn local(&mut self) -> LocalId {
         self.count += 1;
         LocalId(u64::MAX / 2 + self.count)
     }
@@ -246,7 +246,10 @@ pub struct Engine<'a> {
 pub type Ctx = Vec<(LocalId, Term)>;
 
 fn ctx_type(ctx: &Ctx, id: LocalId) -> Option<&Term> {
-    ctx.iter().rev().find(|(local, _)| *local == id).map(|(_, ty)| ty)
+    ctx.iter()
+        .rev()
+        .find(|(local, _)| *local == id)
+        .map(|(_, ty)| ty)
 }
 
 /// The import alias of a generated module.
@@ -311,7 +314,10 @@ impl<'a> Engine<'a> {
             .get(&id)
             .cloned()
             .unwrap_or_else(|| self.term_binder(id));
-        Name::new(text, Origin::Local(usize::try_from(id.0).unwrap_or(usize::MAX)))
+        Name::new(
+            text,
+            Origin::Local(usize::try_from(id.0).unwrap_or(usize::MAX)),
+        )
     }
 
     fn prelude(&mut self, bend: &str, origin: Origin) -> Name {
@@ -382,10 +388,11 @@ impl<'a> Engine<'a> {
             .entry(id)
             .ok_or_else(|| fail(format!("`{id}` is not in the glossary closure")))?;
         Ok(match &entry.denotation {
-            Denotation::Core { constructor } => GlobalRef::Core(
-                CoreRef::from_constructor(constructor)
-                    .ok_or_else(|| fail(format!("core constructor `{constructor}` in a signature")))?,
-            ),
+            Denotation::Core { constructor } => {
+                GlobalRef::Core(CoreRef::from_constructor(constructor).ok_or_else(|| {
+                    fail(format!("core constructor `{constructor}` in a signature"))
+                })?)
+            }
             Denotation::Lean { module, name } => GlobalRef::External(ExternalConstRef {
                 package: id.package.clone(),
                 entry: id.to_string(),
@@ -454,7 +461,7 @@ impl<'a> Engine<'a> {
                 for (index, argument) in explicit_args.iter_mut().enumerate() {
                     if let Term::NatLiteral { expected_type, .. } = argument {
                         if let Some(Some(ty)) = binder_types.get(index) {
-                            *expected_type = Box::new(ty.clone());
+                            **expected_type = ty.clone();
                         }
                     }
                 }
@@ -469,7 +476,7 @@ impl<'a> Engine<'a> {
                 let mut out = Vec::new();
                 for binder in binders {
                     let ty = self.lse_term(&binder.ty, scope)?;
-                    let id = self.fresh.next();
+                    let id = self.fresh.local();
                     scope.push((binder.name.clone(), id));
                     out.push(Binder {
                         id,
@@ -500,7 +507,7 @@ impl<'a> Engine<'a> {
             } => {
                 let ty_term = self.lse_term(ty, scope)?;
                 let value_term = self.lse_term(value, scope)?;
-                let id = self.fresh.next();
+                let id = self.fresh.local();
                 scope.push((name.clone(), id));
                 let body_term = self.lse_term(body, scope)?;
                 scope.pop();
@@ -591,10 +598,33 @@ impl<'a> Engine<'a> {
         self.lse_term(&value, &mut Vec::new())
     }
 
+    /// The core connective an external constant is, when Lean's `Init`
+    /// defines it as one and the entry offers it at that connective's
+    /// shape: two propositions for `And`, `Or`, and `Iff`, one for `Not`.
+    pub fn external_core(&mut self, external: &ExternalConstRef) -> Option<CoreRef> {
+        let (core, arity) = match external.lean_name.as_str() {
+            "And" => (CoreRef::And, 2),
+            "Or" => (CoreRef::Or, 2),
+            "Iff" => (CoreRef::Iff, 2),
+            "Not" => (CoreRef::Not, 1),
+            _ => return None,
+        };
+        let signature = self.external_signature(external).ok()?;
+        let (binders, result) = flatten_pi(&signature);
+        let props = binders.iter().all(|binder| {
+            binder.mode == BinderMode::Explicit && matches!(binder.ty, Term::Sort(Universe::Num(0)))
+        });
+        (props && binders.len() == arity && matches!(result, Term::Sort(Universe::Num(0))))
+            .then_some(core)
+    }
+
     /// Unfold the head of a term once: a document definition applied to
     /// arguments, a defined lexicon value, a beta redex, or a let.
     pub fn unfold_head(&mut self, term: &Term) -> Result<Option<Term>, Diagnostic> {
         match term {
+            Term::Global(GlobalRef::External(external), universes) => Ok(self
+                .external_core(external)
+                .map(|core| Term::Global(GlobalRef::Core(core), universes.clone()))),
             Term::Global(GlobalRef::Document(reference), _) => {
                 let declaration = self.document(reference)?;
                 match &declaration.body {
@@ -621,7 +651,7 @@ impl<'a> Engine<'a> {
                 {
                     return Ok(Some(Term::Pi {
                         binders: vec![Binder {
-                            id: self.fresh.next(),
+                            id: self.fresh.local(),
                             mode: BinderMode::Explicit,
                             ty: inner.clone(),
                             spelling: String::new(),
@@ -674,7 +704,9 @@ impl<'a> Engine<'a> {
                 None => return Ok(current),
             }
         }
-        Err(fail("a term did not reach weak-head normal form within 4096 unfoldings"))
+        Err(fail(
+            "a term did not reach weak-head normal form within 4096 unfoldings",
+        ))
     }
 
     // -----------------------------------------------------------------
@@ -718,7 +750,9 @@ impl<'a> Engine<'a> {
                 if let Some(value) = metas.solved.get(id).cloned() {
                     return self.unify_at(pattern, &value, metas, bound, depth + 1);
                 }
-                if !mentions(pattern, *id) && !bound.iter().any(|(left, _)| mentions(pattern, *left)) {
+                if !mentions(pattern, *id)
+                    && !bound.iter().any(|(left, _)| mentions(pattern, *left))
+                {
                     metas.solved.insert(*id, pattern.clone());
                     return true;
                 }
@@ -830,10 +864,7 @@ impl<'a> Engine<'a> {
                 }
                 ok
             }
-            (
-                Term::NatLiteral { decimal: a, .. },
-                Term::NatLiteral { decimal: b, .. },
-            ) => a == b,
+            (Term::NatLiteral { decimal: a, .. }, Term::NatLiteral { decimal: b, .. }) => a == b,
             _ => false,
         }
     }
@@ -1278,9 +1309,11 @@ impl<'a> Engine<'a> {
         let (head, _) = spine(&normal);
         if let Term::Global(GlobalRef::External(external), _) = head {
             let row = self.require_row(external)?;
-            let value: u64 = decimal
-                .parse()
-                .map_err(|_| fail(format!("the numeral `{decimal}` exceeds Bend's literal range")))?;
+            let value: u64 = decimal.parse().map_err(|_| {
+                fail(format!(
+                    "the numeral `{decimal}` exceeds Bend's literal range"
+                ))
+            })?;
             if value > u64::from(u32::MAX) {
                 return Err(fail(format!(
                     "the numeral `{decimal}` exceeds Bend's `Nat` literal range (at most 4294967295)"
@@ -1290,14 +1323,19 @@ impl<'a> Engine<'a> {
                 "Nat" => Ok(BTerm::Nat(decimal.to_owned())),
                 "Lean.Int" => {
                     let head = self.prelude("ofNat", Origin::Numeral);
-                    Ok(BTerm::Constructor(head, vec![BTerm::Nat(decimal.to_owned())]))
+                    Ok(BTerm::Constructor(
+                        head,
+                        vec![BTerm::Nat(decimal.to_owned())],
+                    ))
                 }
                 other => Err(fail(format!(
                     "a numeral of type `{other}` has no Bend lowering"
                 ))),
             };
         }
-        Err(fail("a numeral's expected type is not a prelude number type"))
+        Err(fail(
+            "a numeral's expected type is not a prelude number type",
+        ))
     }
 
     /// Lower `function(explicit_args)` with every implicit argument.
@@ -1326,16 +1364,18 @@ impl<'a> Engine<'a> {
             }
             Term::Global(GlobalRef::Core(core), _) => self.lower_core(ctx, *core, explicit_args),
             Term::Global(GlobalRef::External(external), _) => {
+                if let Some(core) = self.external_core(external) {
+                    return self.lower_core(ctx, core, explicit_args);
+                }
                 if let Some(assumption) = self.registry.assumption_for(&external.lean_name) {
                     let name = assumption.name.clone();
                     let premise = premise_name(&name);
-                    self.assumptions
-                        .insert(name, assumption.bend_type.clone());
+                    self.assumptions.insert(name, assumption.bend_type.clone());
                     let ty = self.global_type(&GlobalRef::External(external.clone()))?;
                     let (values, _) = self.instantiate(ctx, &ty, explicit_args, expected)?;
                     let mut args = Vec::new();
                     for (binder, value) in values {
-                        args.push((false, self.lower(ctx, &value, Some(&binder.ty))?));
+                        args.push(self.lower(ctx, &value, Some(&binder.ty))?);
                     }
                     let head = Name::synthetic(premise);
                     return Ok(if args.is_empty() {
@@ -1364,10 +1404,10 @@ impl<'a> Engine<'a> {
                 let (values, _) = self.instantiate(ctx, &ty, explicit_args, expected)?;
                 let mut args = Vec::new();
                 for prefix in &row.prefix {
-                    args.push((false, self.prelude_type_name(prefix)));
+                    args.push(self.prelude_type_name(prefix));
                 }
                 for (binder, value) in &values {
-                    args.push((false, self.lower(ctx, value, Some(&binder.ty))?));
+                    args.push(self.lower(ctx, value, Some(&binder.ty))?);
                 }
                 match row.kind {
                     ConstantKind::Constructor => {
@@ -1387,7 +1427,7 @@ impl<'a> Engine<'a> {
                     }
                     ConstantKind::Type => match row.form {
                         Some(TypeForm::List) => {
-                            let [(_, element)] = args.as_slice() else {
+                            let [element] = args.as_slice() else {
                                 return Err(fail("`List` takes exactly one type argument"));
                             };
                             Ok(BTerm::Datatype(
@@ -1445,18 +1485,18 @@ impl<'a> Engine<'a> {
                 let (values, _) = self.instantiate(ctx, &ty, explicit_args, expected)?;
                 let mut args = Vec::new();
                 // A cited theorem's assumption premises are this theorem's
-                // too, passed on as template arguments.
+                // too, passed on as its leading arguments.
                 let premises = self
                     .assumption_table
                     .get(&(reference.module.clone(), reference.component.clone()))
                     .cloned()
                     .unwrap_or_default();
                 for (premise, premise_type) in premises {
-                    args.push((true, BTerm::Name(Name::synthetic(premise_name(&premise)))));
+                    args.push(BTerm::Name(Name::synthetic(premise_name(&premise))));
                     self.assumptions.insert(premise, premise_type);
                 }
                 for (binder, value) in &values {
-                    args.push((false, self.lower(ctx, value, Some(&binder.ty))?));
+                    args.push(self.lower(ctx, value, Some(&binder.ty))?);
                 }
                 let name = Name::new(text, origin);
                 Ok(BTerm::Call(name, args))
@@ -1475,14 +1515,16 @@ impl<'a> Engine<'a> {
                             "a local function with implicit binders has no Bend call form",
                         ));
                     }
-                    args.push((false, self.lower(ctx, value, Some(&binder.ty))?));
+                    args.push(self.lower(ctx, value, Some(&binder.ty))?);
                 }
                 Ok(BTerm::Call(name, args))
             }
             Term::Lambda { .. } | Term::App { .. } | Term::Let { .. } => {
                 let reduced = self.whnf(&applied)?;
                 if reduced == applied {
-                    return Err(fail("an application of a compound function has no Bend form"));
+                    return Err(fail(
+                        "an application of a compound function has no Bend form",
+                    ));
                 }
                 self.lower(ctx, &reduced, expected)
             }
@@ -1554,19 +1596,17 @@ impl<'a> Engine<'a> {
 
     fn prelude_type_name(&mut self, bend: &str) -> BTerm {
         if bend.starts_with("Lean.") {
-            BTerm::Name(self.prelude(bend, Origin::Synthetic(super::syntax::SYNTAX_ORIGIN.to_owned())))
+            BTerm::Name(self.prelude(
+                bend,
+                Origin::Synthetic(super::syntax::SYNTAX_ORIGIN.to_owned()),
+            ))
         } else {
             BTerm::Name(Name::synthetic(bend))
         }
     }
 
     /// Lower a core connective.
-    fn lower_core(
-        &mut self,
-        ctx: &Ctx,
-        core: CoreRef,
-        args: &[Term],
-    ) -> Result<BTerm, Diagnostic> {
+    fn lower_core(&mut self, ctx: &Ctx, core: CoreRef, args: &[Term]) -> Result<BTerm, Diagnostic> {
         let origin = core_origin(core);
         match (core, args) {
             (CoreRef::Eq, [left, right]) => {
@@ -1577,7 +1617,11 @@ impl<'a> Engine<'a> {
                 let left_b = self.lower(ctx, left, Some(&ty))?;
                 let right_b = self.lower(ctx, right, Some(&ty))?;
                 let ty_b = self.lower(ctx, &ty, None)?;
-                Ok(BTerm::Equal(Box::new(left_b), Box::new(right_b), Box::new(ty_b)))
+                Ok(BTerm::Equal(
+                    Box::new(left_b),
+                    Box::new(right_b),
+                    Box::new(ty_b),
+                ))
             }
             // Conjunction, disjunction and existence carry the quantities
             // of their parts, so a proposition built from equations is
@@ -1587,24 +1631,25 @@ impl<'a> Engine<'a> {
                 let (qa, qb) = (self.quantity_of(ctx, left), self.quantity_of(ctx, right));
                 let left_b = self.lower(ctx, left, None)?;
                 let right_b = self.lower(ctx, right, None)?;
-                let dummy = self.fresh.next();
+                let dummy = self.fresh.local();
                 self.names.insert(dummy, "llx".to_owned());
                 Ok(BTerm::Datatype(
                     Name::new("Sigma", origin.clone()),
                     vec![qa, qb],
-                    vec![left_b, BTerm::Lam(Name::new("llx", origin), Box::new(right_b))],
+                    vec![
+                        left_b,
+                        BTerm::Lam(Name::new("llx", origin), Box::new(right_b)),
+                    ],
                 ))
             }
             // A disjunction stays affine: the prelude's assumption types
             // (excluded middle) state it at `&1`, and a case split consumes
             // it once.
-            (CoreRef::Or, [left, right]) => {
-                Ok(BTerm::Datatype(
-                    Name::new("Either", origin),
-                    vec!["&1".to_owned(), "&1".to_owned()],
-                    vec![self.lower(ctx, left, None)?, self.lower(ctx, right, None)?],
-                ))
-            }
+            (CoreRef::Or, [left, right]) => Ok(BTerm::Datatype(
+                Name::new("Either", origin),
+                vec!["&1".to_owned(), "&1".to_owned()],
+                vec![self.lower(ctx, left, None)?, self.lower(ctx, right, None)?],
+            )),
             (CoreRef::Not, [inner]) => Ok(BTerm::Pi {
                 name: None,
                 erased: false,
@@ -1641,7 +1686,10 @@ impl<'a> Engine<'a> {
                     (**body).clone()
                 } else {
                     Term::App {
-                        function: Box::new(Term::Global(GlobalRef::Core(CoreRef::Exists), Vec::new())),
+                        function: Box::new(Term::Global(
+                            GlobalRef::Core(CoreRef::Exists),
+                            Vec::new(),
+                        )),
                         explicit_args: vec![Term::Lambda {
                             binders: rest.to_vec(),
                             body: body.clone(),
@@ -1658,7 +1706,10 @@ impl<'a> Engine<'a> {
                 Ok(BTerm::Datatype(
                     Name::new("Sigma", origin),
                     vec![qa, qb],
-                    vec![domain, BTerm::Lam(self.local_name(binder.id), Box::new(codomain))],
+                    vec![
+                        domain,
+                        BTerm::Lam(self.local_name(binder.id), Box::new(codomain)),
+                    ],
                 ))
             }
             (CoreRef::ExistsUnique, [predicate]) => {
@@ -1682,7 +1733,7 @@ impl<'a> Engine<'a> {
         let [binder] = binders.as_slice() else {
             return Err(fail("a unique existential binds exactly one variable"));
         };
-        let y = self.fresh.next();
+        let y = self.fresh.local();
         let mut map = BTreeMap::new();
         map.insert(binder.id, Term::Local(y));
         let renamed = subst(body, &map);
@@ -1692,7 +1743,7 @@ impl<'a> Engine<'a> {
             explicit_args: args,
             omitted_implicit_binders: Vec::new(),
         };
-        let hypothesis = self.fresh.next();
+        let hypothesis = self.fresh.local();
         let uniqueness = Term::Pi {
             binders: vec![
                 Binder {
@@ -1708,7 +1759,10 @@ impl<'a> Engine<'a> {
                     spelling: String::new(),
                 },
             ],
-            body: Box::new(app(core(CoreRef::Eq), vec![Term::Local(y), Term::Local(binder.id)])),
+            body: Box::new(app(
+                core(CoreRef::Eq),
+                vec![Term::Local(y), Term::Local(binder.id)],
+            )),
         };
         Ok(app(
             core(CoreRef::Exists),
@@ -1717,6 +1771,44 @@ impl<'a> Engine<'a> {
                 body: Box::new(app(core(CoreRef::And), vec![(**body).clone(), uniqueness])),
             }],
         ))
+    }
+}
+
+/// Syntactic first-order matching of `pattern` (holding `metas`) against
+/// `target`, without unfolding: Lean's `rw` finds instances by keyed
+/// syntactic matching, not by definitional unfolding.
+pub fn syntactic_match(pattern: &Term, target: &Term, metas: &mut Metas) -> bool {
+    if let Term::Local(id) = pattern {
+        if metas.open.contains(id) {
+            if let Some(value) = metas.solved.get(id).cloned() {
+                return crate::elaborate::expressions::unify_closed(&value, target);
+            }
+            metas.solved.insert(*id, target.clone());
+            return true;
+        }
+    }
+    match (pattern, target) {
+        (Term::Local(a), Term::Local(b)) => a == b,
+        (Term::Global(a, _), Term::Global(b, _)) => same_global(a, b),
+        (
+            Term::App {
+                function: f1,
+                explicit_args: a1,
+                ..
+            },
+            Term::App {
+                function: f2,
+                explicit_args: a2,
+                ..
+            },
+        ) => {
+            a1.len() == a2.len()
+                && syntactic_match(f1, f2, metas)
+                && a1.iter().zip(a2).all(|(x, y)| syntactic_match(x, y, metas))
+        }
+        (Term::NatLiteral { decimal: a, .. }, Term::NatLiteral { decimal: b, .. }) => a == b,
+        (Term::Sort(_), Term::Sort(_)) => true,
+        _ => false,
     }
 }
 

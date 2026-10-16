@@ -95,6 +95,8 @@ pub enum ArtifactKind {
     Lean,
     /// Canonical LaTeX.
     Tex,
+    /// Generated Bend source (§18.10).
+    Bend,
 }
 
 impl ArtifactKind {
@@ -104,6 +106,7 @@ impl ArtifactKind {
         match self {
             Self::Lean => "lean",
             Self::Tex => "tex",
+            Self::Bend => "bend",
         }
     }
 }
@@ -195,10 +198,17 @@ impl SourceMap {
     #[must_use]
     pub fn to_json(&self) -> Json {
         let mut o = BTreeMap::new();
-        o.insert(
-            "spec".to_owned(),
-            Json::Str("lexlean/source-map/1".to_owned()),
-        );
+        // A map over a Bend artifact is the version-2 schema (§18.10).
+        let spec = if self
+            .artifacts
+            .iter()
+            .any(|artifact| artifact.kind == ArtifactKind::Bend)
+        {
+            "lexlean/source-map/2"
+        } else {
+            "lexlean/source-map/1"
+        };
+        o.insert("spec".to_owned(), Json::Str(spec.to_owned()));
         o.insert("source_id".to_owned(), Json::Str(self.source_id.to_hex()));
         o.insert(
             "semantic_id".to_owned(),

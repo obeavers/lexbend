@@ -116,6 +116,10 @@ Every directory under [examples/](examples/) is discovered by the example gate (
 | [peano-arithmetic](examples/peano-arithmetic/) | Five modules with explicit imports, a local path glossary of proof constants from `Init` (`Nat.add_comm`, `Nat.le_trans`, `Eq.symm`, universe-polymorphic `rfl`, ...), label words, document-denoted definitions of all three kinds (`count`, `double`, `even`, `positive`, `divides`), noun-of and binary-noun-of frames (`the successor of`, `the sum of ... and ...`), sections with inherited parameters and references to parameterized declarations, and every §16 proof form: `Assume`, `Apply`, `Close the goal with`/`by reflexivity`, witnesses, left/right, multi-rule `rewrite` at the goal, `constructor`, `cases` on naturals and on hypotheses (`And`, `Exists`), `induction`, and `calculate`; theorems under `\noaxioms`, `\allowaxioms{propext}`, and `\exactaxioms{Classical.choice;Quot.sound;propext}` whose observed axiom sets are audited exactly. |
 | [propositional-logic](examples/propositional-logic/) | Reasoning over `Prop`-typed locals with a `proposition` type noun defined as the sort: commutativity and associativity of conjunction and disjunction, disjunction elimination, double negation, De Morgan, explosion, biconditionals, and classical double-negation elimination under an exact axiom policy — through cases on `And`/`Or`/`Iff` hypotheses, `constructor`, and `Apply`. |
 | [list-induction](examples/list-induction/) | Universe-polymorphic `List` with an eliminator descriptor: type-valued section parameters, `List.nil`/`List.cons`, an infix `⧺` for `List.append`, structural induction over lists using earlier document lemmas as rewrite rules, and nested noun phrases (`the length of ... equals the sum of the length of ... and the length of ...`). |
+| [bend-nat-add-zero](examples/bend-nat-add-zero/) | The §29 document under language 2.0 (SPEC.md §18.10): its generated Bend, `law add_zero` proved by `{==}` over the prelude's `Lean.Nat.add`, beside the Lean and LaTeX of the same IR. |
+| [bend-peano-arithmetic](examples/bend-peano-arithmetic/) | The peano-arithmetic modules under language 2.0: every §16 proof form as an explicit Bend term, case analysis and induction as auxiliary definitions, rewrites as `%` steps, and excluded middle as the visible premise `ll_excluded_middle`. |
+| [bend-propositional-logic](examples/bend-propositional-logic/) | The propositional-logic module under language 2.0, without the `de-morgan` direction whose proof applies its hypothesis twice, which Bend's affine kernel admits no proof of (SPEC.md §18.10.5). |
+| [bend-list-induction](examples/bend-list-induction/) | The list-induction module under language 2.0: list induction as a recursive auxiliary definition whose call is the induction hypothesis. |
 | [semantic-1.1](examples/semantic-1.1/) | A source-Lean-free, multi-module language-1.1 project covering every closed type, declaration, term, instance, structural-recursion, match, Boolean/Nat validation, proof variant, portable integer width, byte/string form, primitive operation, and cross-module kernel reduction. |
 | [language-1.2](examples/language-1.2/) | The language-1.2 contract (SPEC.md §17.12): a `lexlean/semantic-module/2` module whose definition and theorem statement use the 1.2-only typed `let` term, lowered to Lean `let` and verified with an empty observed axiom set. |
 | [recursive-data](examples/recursive-data/) | Language-1.2 recursive data (SPEC.md §17.12) across two modules: a self-recursive parameterized `Tree`, a nested `Rose` through `List`, the mutual `Expr`/`Stmt` group, a parameterized result-like `Outcome`, products and pairs in a structure; structural recursion and induction with one hypothesis per recursive field, under exact axiom policies. |
@@ -137,7 +141,7 @@ just vv        # the complete normative acceptance gate (SPEC.md §9.2)
 just release   # vv, then the §30 release criterion; refused until 1.0.0
 ```
 
-All 387 registered conformance IDs are implemented and pass; `just vv` runs clean from a checkout with the pinned toolchain installed.
+All 401 registered conformance IDs are implemented and pass; `just vv` runs clean from a checkout with the pinned toolchain installed.
 
 The differential against the independent generator `lean4-prod` (SPEC.md §17.19, `OR-01`..`OR-08`) acquires it at its pinned commit: from the checkout `LEXLEAN_ORACLE_DIR` names, or by fetching the commit with `git` into the Cargo target directory (`LEXLEAN_ORACLE_CACHE` overrides), and builds it with the pinned Lean and Rust toolchains. It is validation evidence only and no input to any identity. An oracle that cannot be acquired, is not the pinned files, or fails is unavailable: that fails the gate on Linux x86-64 and is printed as `NOT VALIDATED` elsewhere, and is never reported as agreement.
 
@@ -150,7 +154,7 @@ Every row is validated by `just vv`; the IDs link the claim to its register row,
 | Capability | IDs | Level |
 | --- | --- | --- |
 | Exact repository identity, layout, generated documents, and release gate | `RP-01`..`RP-14` | `build` |
-| Closed project configuration, canonical lock file, and offline dependency policy | `CF-01`..`CF-18` | `build` |
+| Closed project configuration, canonical lock file, and offline dependency policy | `CF-01`..`CF-19` | `build` |
 | Total lexical closure: every accepted atom is covered by exactly one declared origin | `LX-01`..`LX-14` | `build` |
 | Versioned lexicon packages with closed schemas, denotations, and renderer tokens | `GL-01`..`GL-18` | `build` |
 | Fixed structural, mathematical, and proposition grammar with closed ambiguity handling | `GR-01`..`GR-16` | `build` |
@@ -158,9 +162,10 @@ Every row is validated by `just vv`; the IDs link the claim to its register row,
 | Document and generic semantic declarations with exact self-application, type checking, structural recursion, recursive and mutual language-1.2 data, generic and executable higher-order definitions, mutual and well-founded recursion with semantic evidence, explicit state threading, and acyclicity rules | `DF-01`..`DF-18` | `build` |
 | The structured proof language with pinned Lean lowerings, including closed linear arithmetic | `PF-01`..`PF-19` | `build` |
 | Prose-free deterministic generated Lean with complete token traceability | `LN-01`..`LN-12` | `build` |
+| Language 2.0: prose-free deterministic Bend 2 generated from the same linked IR, every proof an explicit term over a shipped prelude faithful to Lean's definitional equations, assumptions as visible premises, the affine discipline of Bend's kernel kept with no template, complete token traceability, and every example module checked by the pinned Bend | `BN-01`..`BN-09` | `build` |
 | Canonical LaTeX regeneration and the optional hash-checked PDF provider | `TX-01`..`TX-12` | `build` |
 | Canonical diagnostics, source maps, coverage, manifests, and reproducible builds | `AR-01`..`AR-14` | `build` |
-| Fifteen-stage verification with leanchecker replay and exact axiom audit | `VR-01`..`VR-23` | `build` |
+| Fifteen-stage verification with leanchecker replay and exact axiom audit, and for language 2.0 the pinned Bend's check, the BendTT kernel recheck, and assumption premises against their policies | `VR-01`..`VR-27` | `build` |
 | The exact CLI contract, the stable seven-method Rust `Engine` API, the host-driven end of the children the library started, and the `production` subcommands | `CL-01`..`CL-23` | `build` |
 | Filesystem confinement, no shell, no hidden network, closed failure model | `SE-01`..`SE-12` | `build` |
 | Language-1.2 production eligibility: closed targets, effects, and construct dispositions; runtime closures; target-dependent, fail-closed root analysis; deterministic eligibility reports; an exhaustiveness audit | `PD-01`..`PD-07` | `build` |

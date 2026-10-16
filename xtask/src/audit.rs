@@ -873,7 +873,7 @@ pub fn audit_deferral(root: &Path) -> Result<(), Fail> {
             "lean", "compiler",
         ],
         &[
-            ".rs", ".toml", ".json", ".md", ".feature", ".lex.tex", ".lean", ".txt", ".sh",
+            ".rs", ".toml", ".json", ".md", ".feature", ".lex.tex", ".lean", ".txt", ".sh", ".bend",
         ],
         &mut files,
     );
@@ -1266,8 +1266,8 @@ fn dependency_roles(manifest: &str, spec: &str) -> Result<usize, Fail> {
 /// is canonical JSON with the expected identity.
 pub fn audit_generated(root: &Path) -> Result<(), Fail> {
     let count = audit_schema_directory(&root.join("schemas"))?;
-    if count != 32 {
-        return Err(format!("§7 commits exactly 32 schemas, found {count}").into());
+    if count != 38 {
+        return Err(format!("§7 commits exactly 38 schemas, found {count}").into());
     }
     // The schema of the compiler-tooling language (§17.20) lies outside the
     // compiler-semantics ID and is held to the same form.

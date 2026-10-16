@@ -55,6 +55,20 @@ the error registry does not sanction (R5, `ERRORS.md`).
 | `AU-11` | `build` | Malformed core notation fails closed and never panics: an unclosed delimiter, a keyword used as a name, a label that is not the number of its node, a reference to a node not yet written, a numeral with a redundant leading zero, a statement that defines no node, a nesting beyond the bound, and every single-token deletion and duplication of a committed module fail with a registered code at a position in the notation or link to a module that decodes. |
 | `AU-12` | `build` | A core module written with names for its statements and its variables reads to exactly the module its canonical notation reads to, and the canonical notation keeps the names of the binders and writes the numbers of the statements: a variable is written by the name of its binder exactly when no nearer binder has the name, a constant a binder in scope is named like is written as a string, a theorem added to the certification library by name reads to the committed module and is written as the committed bytes, and an unknown or repeated statement name and a variable given universe levels are refused with a position. |
 
+## bend-backend
+
+| ID | Level | Statement |
+| --- | --- | --- |
+| `BN-01` | `build` | Every language-1.0 document module renders one byte-deterministic Bend file from the same linked IR, beside its Lean and LaTeX, with the exact import structure. |
+| `BN-02` | `build` | Every external constant lowers only through the prelude registry with every signature binder, and an unregistered constant or undetermined implicit argument is a hard error. |
+| `BN-03` | `build` | Generated Bend contains no comment, unsafe or foreign definition, hole, unfilled law, hub import, device call, or IO value. |
+| `BN-04` | `build` | Theorems lower to laws with proof definitions and every proof step to an explicit Bend term, with case analysis and induction as auxiliary definitions emitted first. |
+| `BN-05` | `build` | No generated declaration takes a template, a binder is reusable only at a Data type, and a proof that uses a function-typed hypothesis twice on one branch is refused by the pinned Bend. |
+| `BN-06` | `build` | The shipped prelude reproduces the definitional equations of every registered Lean constant and checks under the pinned Bend. |
+| `BN-07` | `build` | A theorem that uses or cites an assumption takes it as a leading premise and passes it to every theorem it cites, and a definition that uses one is a hard error. |
+| `BN-08` | `build` | Every non-whitespace generated Bend token has exactly one coverage row and a source map mapping. |
+| `BN-09` | `build` | The generated Bend of every language-1.0 example document module checks under the pinned Bend with every proof accepted. |
+
 ## calculus
 
 | ID | Level | Statement |
@@ -117,6 +131,7 @@ the error registry does not sanction (R5, `ERRORS.md`).
 | `CF-16` | `build` | Language 1.1 has a parallel exact builtin closure and rejects a language-1.0 lock or package without altering language-1.0 identities. |
 | `CF-17` | `build` | Language 1.2 declaration support accepts language 1.2 and rejects unsupported or malformed language versions. |
 | `CF-18` | `build` | Lockfile v2 schema migration validates 1.2 locks while preserving exact byte-stability for language 1.0 and 1.1 projects. |
+| `CF-19` | `build` | Language 2.0 requires exactly bend_toolchain bend 2.0.37, every other language rejects the field, and its lock is schema v3 pinning that toolchain. |
 
 ## declarations
 
@@ -550,6 +565,10 @@ the error registry does not sanction (R5, `ERRORS.md`).
 | `VR-21` | `build` | A multi-module project whose imports form nontrivial frontiers verifies at width 1 and at a larger width to byte-identical verified directories and the same attestation identity, observed axiom sets, and policy rows, and no completion order orders a record or changes which failure is reported. |
 | `VR-22` | `build` | Performance telemetry is written only to the CI evidence directory the environment names, a verification with telemetry on publishes byte-identical artifacts to one without, and telemetry planted in a verified artifact fails the gate. |
 | `VR-23` | `build` | A project verified as the parts of one run, each shard running the processes its plan names with the oleans of the shards it needs and the join reading every shard's records, publishes a verified directory byte-identical to the whole verification's with the same attestation identity, and a shard whose plan leaves a module without its imports, or a join missing a record, is refused. |
+| `VR-24` | `build` | Language-2.0 verification locates exactly the pinned Bend on PATH, records its version output and executable digest, and refuses a missing or other release, or a kernel it cannot build, with LLV7019. |
+| `VR-25` | `build` | Language-2.0 verification checks every generated Bend module with the pinned Bend before any Lean process runs, and a refusal is LLV7020 remapped to its source span with the generated location as a note. |
+| `VR-26` | `build` | Language-2.0 verification rechecks the generated program with the proved BendTT kernel through a root importing every module and requires its exact success verdict, or fails with LLV7021. |
+| `VR-27` | `build` | A language-2.0 theorem's assumption premises must be admitted by its axiom policy, or verification fails with LLV7022 before any Lean process runs, and a verified attestation is schema v3 recording the Bend toolchain and each theorem's premises. |
 
 ## Cited authorities
 

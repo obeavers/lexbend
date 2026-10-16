@@ -1,4 +1,4 @@
-//! Performance telemetry (SPEC.md §22.12): what the verification cost, written
+//! Performance telemetry (SPEC.md §22.13): what the verification cost, written
 //! to CI evidence and to nowhere else.
 //!
 //! Wall time, resident set, swap, scheduling order, and the host's memory are
@@ -26,7 +26,7 @@ use crate::verify::operational::Operational;
 pub const VERIFY_FILE: &str = "verify-telemetry.jsonl";
 
 /// The keys that carry a host-dependent measurement. A JSON key of this
-/// vocabulary in a verified artifact is a defect (SPEC.md §22.12).
+/// vocabulary in a verified artifact is a defect (SPEC.md §22.13).
 pub const VOCABULARY: [&str; 11] = [
     "wall_ms",
     "started_unix_ms",

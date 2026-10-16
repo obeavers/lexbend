@@ -44,7 +44,7 @@ pub enum ConstantKind {
     Constructor,
     /// A proved law, called like a definition.
     Law,
-    /// An assumption: a use becomes the theorem's template premise.
+    /// An assumption: a use becomes the theorem's leading premise.
     Assumption,
 }
 
@@ -85,6 +85,7 @@ struct RawAssumption {
     name: String,
     bend_type: String,
     lean: Vec<String>,
+    axioms: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -126,7 +127,7 @@ pub struct Constant {
     pub live: Vec<String>,
 }
 
-/// One assumption the backend may turn into a template premise (§15.9 as
+/// One assumption the backend may turn into a leading premise (§15.9 as
 /// amended for Bend: an assumption is a visible premise, never an axiom).
 #[derive(Debug, Clone)]
 pub struct Assumption {
@@ -134,6 +135,9 @@ pub struct Assumption {
     pub name: String,
     /// The Bend type of the premise.
     pub bend_type: String,
+    /// The Lean axioms the Lean constant it stands for depends on: what an
+    /// axiom policy (§15.9) must admit for a theorem to take the premise.
+    pub axioms: Vec<String>,
 }
 
 /// The parsed registry.
@@ -149,6 +153,14 @@ impl Registry {
     pub fn constant(&self, lean: &str, canonical_signature: &str) -> Option<&Constant> {
         self.constants
             .get(&(lean.to_owned(), canonical_signature.to_owned()))
+    }
+
+    /// An assumption by its policy name.
+    #[must_use]
+    pub fn assumption_named(&self, name: &str) -> Option<&Assumption> {
+        self.assumptions
+            .values()
+            .find(|assumption| assumption.name == name)
     }
 
     /// The assumption a Lean name stands for, if it is one.
@@ -180,7 +192,10 @@ fn parse(text: &str) -> Result<Registry, String> {
         };
         let _ = row.template;
         if constants.insert(key, constant).is_some() {
-            return Err(format!("`{}` is registered twice under one signature", row.lean));
+            return Err(format!(
+                "`{}` is registered twice under one signature",
+                row.lean
+            ));
         }
     }
     let mut assumptions = BTreeMap::new();
@@ -191,6 +206,7 @@ fn parse(text: &str) -> Result<Registry, String> {
                 Assumption {
                     name: row.name.clone(),
                     bend_type: row.bend_type.clone(),
+                    axioms: row.axioms.clone(),
                 },
             );
         }
@@ -227,7 +243,7 @@ pub fn registry() -> Result<&'static Registry, Diagnostic> {
         .as_ref()
         .map_err(|message| {
             Diagnostic::new(
-                code!("LLB6001"),
+                code!("LLB6008"),
                 format!("the Bend prelude registry is unusable: {message}"),
             )
         })
@@ -241,7 +257,7 @@ pub fn registry() -> Result<&'static Registry, Diagnostic> {
 pub fn prelude_bytes() -> Result<&'static [u8], Diagnostic> {
     embedded(PRELUDE_PATH).ok_or_else(|| {
         Diagnostic::new(
-            code!("LLB6001"),
+            code!("LLB6008"),
             format!("`{PRELUDE_PATH}` is not embedded"),
         )
     })

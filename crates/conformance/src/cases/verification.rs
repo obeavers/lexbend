@@ -41,6 +41,11 @@ pub(crate) fn run(id: &str) {
         super::operational::run(id);
         return;
     }
+    // §22.13: the Bend stages gate their own host requirements.
+    if matches!(id, "VR-24" | "VR-25" | "VR-26" | "VR-27") {
+        super::bend_verification::run(id);
+        return;
+    }
     if LEAN_BACKED.contains(&id) && !support::lean_backed(id) {
         run_platform_independent(id);
         return;

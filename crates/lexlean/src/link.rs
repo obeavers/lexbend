@@ -410,8 +410,9 @@ fn check_project_inline(
     let limits = project.config.limits.within_compile_stack();
     let registry =
         crate::lexicon::load_token_registry().map_err(|diagnostic| err(vec![diagnostic]))?;
-    let bootstrap = crate::lexicon::load_bootstrap_for(&project.config.language)
-        .map_err(|diagnostic| err(vec![diagnostic]))?;
+    let bootstrap =
+        crate::lexicon::load_bootstrap_for(crate::surface_language(&project.config.language))
+            .map_err(|diagnostic| err(vec![diagnostic]))?;
     let closure =
         Closure::build(packages, registry, bootstrap, limits.max_import_depth).map_err(err)?;
 
@@ -702,6 +703,15 @@ fn check_project_inline(
         scopes.pop_frame();
 
         let core = if let Some(ast) = &load.ast.core {
+            // Language 2.0 lowers document modules to Bend (§18.10); a
+            // native core module is Lean kernel data with no Bend form.
+            if crate::lowers_to_bend(&project.config.language) {
+                return Err(err(vec![Diagnostic::new(
+                    code!("LLP2003"),
+                    "a coremodule is not part of language 2.0, whose modules lower to Bend",
+                )
+                .with_span(span_of_range(&load.path, &load.atoms, ast.data.range))]));
+            }
             // The notation is read to the module the decoder checks, so that
             // what a module means is decided in one place (§17.21.8).
             let parsed = if ast.surface {
@@ -1009,6 +1019,7 @@ fn check_project_inline(
             source: rows.clone(),
             latex: Vec::new(),
             lean: Vec::new(),
+            bend: None,
         };
         if let Err(reason) = coverage.check_source_closure(&load.path, &load.atoms) {
             return Err(err(vec![Diagnostic::new(code!("LLL1005"), reason)]));

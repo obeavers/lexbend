@@ -232,6 +232,9 @@ pub struct RenderedBuild {
     pub manifest: BuildManifest,
     /// The canonical manifest bytes.
     pub manifest_bytes: Vec<u8>,
+    /// Language 2.0: the assumption premises each theorem's Bend law takes,
+    /// by full generated name (§18.10.7).
+    pub bend_premises: BTreeMap<String, Vec<String>>,
 }
 
 fn file_row(kind: &str, path: &str, bytes: &[u8]) -> FileRow {
@@ -264,9 +267,16 @@ pub fn render_build(
     let mut report_total: u64 = 0;
     // The Bend program, from the same linked IR (I7, R8): rendered for the
     // whole project at once, in import order.
-    let (bend_emitters, bend_prelude) =
-        crate::backend::bend::render_project(&checked.modules, &checked.closure)
-            .map_err(LexLeanError::from_diagnostic)?;
+    let crate::backend::bend::RenderedBend {
+        emitters: bend_emitters,
+        uses_prelude: bend_prelude,
+        premises: bend_premises,
+    } = crate::backend::bend::render_project(
+        &project.config.language,
+        &checked.modules,
+        &checked.closure,
+    )
+    .map_err(LexLeanError::from_diagnostic)?;
     for (name, checked_module) in &checked.modules {
         let lean_emitter = crate::backend::lean::render_module(
             checked_module,
@@ -312,12 +322,23 @@ pub fn render_build(
         };
         lean_emitter.fold_into_map(&mut map, 0, 0);
         tex_emitter.fold_into_map(&mut map, 1, 0);
+        let bend_emitter = bend_emitters.get(name);
+        let bend_path = crate::backend::bend::module_path(&lean_module);
+        if let Some(emitter) = bend_emitter {
+            map.artifacts.push(MapArtifact {
+                id: 2,
+                kind: ArtifactKind::Bend,
+                path: bend_path.clone(),
+            });
+            emitter.fold_into_map(&mut map, 2, 0);
+        }
 
         let coverage = Coverage {
             module: name.clone(),
             source: checked_module.coverage_source.clone(),
             latex: tex_emitter.coverage_rows(),
             lean: lean_emitter.coverage_rows(),
+            bend: bend_emitter.map(crate::backend::Emitter::coverage_rows),
         };
         let mut declaration_names: Vec<String> = checked_module
             .document
@@ -358,6 +379,14 @@ pub fn render_build(
                 format!("generated Lean for `{name}` has incomplete output coverage: {reason}"),
             )));
         }
+        if let (Some(emitter), Some(rows)) = (bend_emitter, &coverage.bend) {
+            if let Err(reason) = crate::backend::check_output_closure(emitter.text(), rows) {
+                return Err(LexLeanError::from_diagnostic(Diagnostic::new(
+                    code!("LLB6008"),
+                    format!("generated Bend for `{name}` has incomplete output coverage: {reason}"),
+                )));
+            }
+        }
         if let Err(reason) =
             crate::backend::check_output_closure(tex_emitter.text(), &coverage.latex)
         {
@@ -386,8 +415,7 @@ pub fn render_build(
         files.push((map_path, map_bytes));
         files.push((coverage_path, coverage_bytes));
         files.push((closure_path, closure_json));
-        if let Some(bend_emitter) = bend_emitters.get(name) {
-            let bend_path = crate::backend::bend::module_path(&lean_module);
+        if let Some(bend_emitter) = bend_emitter {
             let bend_bytes = bend_emitter.text().as_bytes().to_vec();
             outputs.push(file_row("bend", &bend_path, &bend_bytes));
             files.push((bend_path, bend_bytes));
@@ -529,6 +557,7 @@ pub fn render_build(
         files,
         manifest,
         manifest_bytes,
+        bend_premises,
     })
 }
 

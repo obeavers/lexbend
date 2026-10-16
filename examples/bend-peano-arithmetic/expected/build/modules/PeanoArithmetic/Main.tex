@@ -1,0 +1,82 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage[hidelinks]{hyperref}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\begin{document}
+\begin{center}
+{\LARGE Natural number addition: consequences}
+\end{center}
+\section{Commutativity: consequences}
+\label{ll:main:consequences}
+\begin{theorem}
+\label{ll:main:comm-under-hypothesis}
+For every natural number \(x\) and natural number \(y\), if \(x = y\), then \(x + y = y + x\).
+\end{theorem}
+\begin{proof}
+Assume \(h\).
+The goal follows from \(\texttt{Addition::add-comm}(x, y)\).
+\end{proof}
+\begin{theorem}
+\label{ll:main:comm-rewrite}
+For every natural number \(x\) and natural number \(y\), if \(x = y\), then \(x + x = y + x\).
+\end{theorem}
+\begin{proof}
+Assume \(h\).
+Rewrite the goal using \(\rightarrow h\).
+\end{proof}
+\begin{theorem}
+\label{ll:main:double-divides}
+For every natural number \(n\), \(2\) divides \(\operatorname{double}(n)\).
+\end{theorem}
+\begin{proof}
+Use \(n\) as the witness.
+The goal follows from \(\operatorname{eqsymm}(\operatorname{twomul}(n))\).
+\end{proof}
+\begin{theorem}
+\label{ll:main:even-divides}
+For every natural number \(n\), if \(n\) is even, then \(2\) divides \(n\).
+\end{theorem}
+\begin{proof}
+Assume \(h\).
+Consider the cases of \(h\).
+Case \(\operatorname{existsintro}\) with \(k\), \(hk\):
+\begin{quote}
+Use \(k\) as the witness.
+Rewrite the goal using \(\rightarrow hk\).
+The goal follows from \(\operatorname{eqsymm}(\operatorname{twomul}(k))\).
+\end{quote}
+\end{proof}
+\section{Excluded middle}
+\label{ll:main:excluded-middle}
+\begin{theorem}
+\label{ll:main:even-or-not}
+For every natural number \(n\), \(n\) is even or not \(n\) is even.
+\end{theorem}
+\begin{proof}
+The goal follows from \(\operatorname{em}(\text{even}(n))\).
+\end{proof}
+\begin{theorem}
+\label{ll:main:positive-or-zero}
+For every natural number \(n\), \(n\) is positive or \(n = 0\).
+\end{theorem}
+\begin{proof}
+Consider the cases of \(n\).
+Case zero:
+\begin{quote}
+Select the right alternative.
+The goal follows by reflexivity.
+\end{quote}
+Case \(\operatorname{succ}\) with \(m\):
+\begin{quote}
+Select the left alternative.
+The goal follows from \(\texttt{Order::successor-positive}(m)\).
+\end{quote}
+\end{proof}
+\end{document}

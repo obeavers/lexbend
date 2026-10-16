@@ -411,7 +411,7 @@ pub(crate) fn run(id: &str) {
             let model = repo_model::Model::load(&root.join("model").into_std_path_buf())
                 .expect("the model loads");
             let table = spec_table();
-            assert_eq!(table.len(), 387, "§31 has 387 rows");
+            assert_eq!(table.len(), 401, "§31 has 401 rows");
             assert_eq!(model.ids.id.len(), table.len(), "register row count");
             for ((spec_id, spec_suite, spec_statement), row) in
                 table.iter().zip(model.ids.id.iter())
@@ -547,9 +547,14 @@ pub(crate) fn run(id: &str) {
             // §21.2: the older languages' IDs are the same digest over the
             // tree minus the files SPEC.md lists as introduced later. The
             // lists are read from the specification, not from the compiler.
-            let (only_1_2, only_1_1) = support::introduced_later();
-            let (ten, eleven, twelve) = support::semantics_ids(&borrowed);
-            assert_eq!(twelve, recomputed, "RP-10: the 1.2 ID");
+            let (only_2_0, only_1_2, only_1_1) = support::introduced_later();
+            let (ten, eleven, twelve, twenty) = support::semantics_ids(&borrowed);
+            assert_eq!(twenty, recomputed, "RP-10: the 2.0 ID");
+            assert_eq!(
+                twelve,
+                lexlean::compiler_semantics_id_for("1.2"),
+                "RP-10: the 1.2 ID"
+            );
             assert_eq!(
                 eleven,
                 lexlean::compiler_semantics_id_for("1.1"),
@@ -562,7 +567,7 @@ pub(crate) fn run(id: &str) {
             );
             // Every listed path exists, so a renamed file cannot silently
             // drop out of a list.
-            for item in only_1_2.iter().chain(&only_1_1) {
+            for item in only_2_0.iter().chain(&only_1_2).chain(&only_1_1) {
                 assert!(
                     borrowed
                         .iter()
@@ -575,6 +580,7 @@ pub(crate) fn run(id: &str) {
             for (example, language, id) in [
                 ("examples/nat-add-zero/lexlean.lock", "1.0", ten),
                 ("examples/semantic-1.1/lexlean.lock", "1.1", eleven),
+                ("examples/bend-nat-add-zero/lexlean.lock", "2.0", twenty),
             ] {
                 let bytes = std::fs::read(root.join(example).as_std_path()).expect("lock");
                 let lock = lexlean::api::parse_lock_bytes(example, &bytes).expect("lock parses");

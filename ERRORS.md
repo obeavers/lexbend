@@ -52,6 +52,12 @@ A GNAF certificate is not a closed `lexlean/gnaf-certificate/1` document, or a c
 
 Class: `language`. Exit code: 1.
 
+## `LLB6008` --- Bend lowering has no defined form
+
+Bend lowering has no defined form (§18.10).
+
+Class: `language`. Exit code: 1.
+
 ## `LLC0001` --- Invalid command-line usage
 
 Invalid command-line usage.
@@ -477,6 +483,30 @@ Class: `environment`. Exit code: 3.
 A child process could not be started because the host ended the live children of this process through `lexlean::verify::end_live_children` and has not re-enabled starting children.
 
 Class: `environment`. Exit code: 3.
+
+## `LLV7019` --- The pinned Bend toolchain is missing or reports another version
+
+The pinned Bend toolchain is missing or reports another version (§22.13).
+
+Class: `environment`. Exit code: 3.
+
+## `LLV7020` --- Bend refused a generated module
+
+Bend refused a generated module (§22.13).
+
+Class: `language`. Exit code: 1.
+
+## `LLV7021` --- The BendTT kernel did not accept the generated program
+
+The BendTT kernel did not accept the generated program (§22.13).
+
+Class: `language`. Exit code: 1.
+
+## `LLV7022` --- An assumption premise is not admitted by its theorem's axiom policy
+
+An assumption premise is not admitted by its theorem's axiom policy (§22.13).
+
+Class: `language`. Exit code: 1.
 
 ## `LLV7101` --- Certificate evidence does not certify the root
 

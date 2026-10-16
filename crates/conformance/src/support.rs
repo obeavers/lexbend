@@ -2316,7 +2316,7 @@ pub fn normative_rows() -> Vec<(String, Vec<u8>)> {
 ///
 /// Panics when §21.2 does not state a list.
 #[must_use]
-pub fn introduced_later() -> (Vec<String>, Vec<String>) {
+pub fn introduced_later() -> (Vec<String>, Vec<String>, Vec<String>) {
     let spec = spec_text();
     let section = spec
         .split("### 21.2 Compiler-semantics ID")
@@ -2345,7 +2345,11 @@ pub fn introduced_later() -> (Vec<String>, Vec<String>) {
     };
     (
         listed(
-            "The language-1.1 ID excludes the files introduced solely for 1.2:",
+            "The language-1.2 ID excludes the files introduced solely for 2.0:",
+            "The language-1.1 ID",
+        ),
+        listed(
+            "excludes the files introduced solely for 1.2:",
             "The language-1.0 ID",
         ),
         listed(
@@ -2366,8 +2370,9 @@ pub fn semantics_ids(
     lexlean::artifact::content_id::Sha256Digest,
     lexlean::artifact::content_id::Sha256Digest,
     lexlean::artifact::content_id::Sha256Digest,
+    lexlean::artifact::content_id::Sha256Digest,
 ) {
-    let (only_1_2, only_1_1) = introduced_later();
+    let (only_2_0, only_1_2, only_1_1) = introduced_later();
     let excluded = |path: &str, lists: &[&Vec<String>]| {
         lists.iter().any(|list| {
             list.iter().any(|item| {
@@ -2388,8 +2393,9 @@ pub fn semantics_ids(
         identity_tree_digest(&kept)
     };
     (
-        filtered(&[&only_1_2, &only_1_1]),
-        filtered(&[&only_1_2]),
+        filtered(&[&only_2_0, &only_1_2, &only_1_1]),
+        filtered(&[&only_2_0, &only_1_2]),
+        filtered(&[&only_2_0]),
         identity_tree_digest(rows),
     )
 }
@@ -2817,6 +2823,7 @@ pub fn language_schemas(
         "1.0" => ("project", "lock", "lexicon", "build-manifest"),
         "1.1" => ("project-v2", "lock-1.1", "lexicon-v2", "build-manifest-v2"),
         "1.2" => ("project-v2", "lock-v2", "lexicon-v2", "build-manifest-v2"),
+        "2.0" => ("project-v3", "lock-v3", "lexicon", "build-manifest-v3"),
         other => panic!("no schemas for language `{other}`"),
     }
 }
@@ -4145,4 +4152,136 @@ math = "(seq (slot 0) (space) (token equals) (space) (slot 1))"
     );
     project.relock();
     project
+}
+
+/// The pinned Bend executable (SPEC.md §18.10): `$BEND` when set, else the
+/// first `bend` on `PATH`, else the installer's `$HOME/.bend/bin/bend`, and
+/// only when it reports exactly the pinned version.
+#[must_use]
+pub fn bend_program() -> Option<std::path::PathBuf> {
+    let mut candidates: Vec<std::path::PathBuf> = Vec::new();
+    if let Some(explicit) = std::env::var_os("BEND") {
+        candidates.push(explicit.into());
+    }
+    if let Some(path) = std::env::var_os("PATH") {
+        for dir in std::env::split_paths(&path) {
+            candidates.push(dir.join("bend"));
+        }
+    }
+    if let Some(home) = std::env::var_os("HOME") {
+        candidates.push(std::path::PathBuf::from(home).join(".bend/bin/bend"));
+    }
+    candidates.into_iter().find(|candidate| {
+        candidate.is_file()
+            && std::process::Command::new(candidate)
+                .arg("version")
+                .output()
+                .is_ok_and(|output| {
+                    String::from_utf8_lossy(&output.stdout).trim() == lexlean::BEND_VERSION_LINE
+                })
+    })
+}
+
+/// The host gate for Bend-backed cases, the Bend counterpart of
+/// [`lean_backed`]: on the normative host the pinned Bend must be present
+/// (a vacuous pass there is dishonest, R2); elsewhere a case without it runs
+/// its platform-independent assertions and says so.
+#[must_use]
+pub fn bend_backed(id: &str) -> bool {
+    // A case may put a stand-in `bend` on PATH under the exclusive lock.
+    let found = {
+        let _guard = env_shared();
+        bend_program().is_some()
+    };
+    if found {
+        return true;
+    }
+    assert!(
+        !normative_host(),
+        "{id}: the normative host (Linux x86-64) must have {} installed; a Bend-backed case never passes vacuously here (§18.10)",
+        lexlean::BEND_TOOLCHAIN
+    );
+    eprintln!(
+        "{id}: host without the pinned Bend; only the platform-independent assertions ran (§18.10)"
+    );
+    false
+}
+
+/// Run the pinned Bend's checker on one file in its own directory, so its
+/// relative imports resolve: `(accepted, stdout and stderr)`.
+///
+/// # Panics
+///
+/// When the pinned Bend is absent; gate with [`bend_backed`] first.
+#[must_use]
+pub fn bend_check(file: &std::path::Path) -> (bool, String) {
+    // A case may put a stand-in `bend` on PATH under the exclusive lock.
+    let _guard = env_shared();
+    let program = bend_program().expect("the pinned Bend is installed");
+    let output = std::process::Command::new(program)
+        .arg(file.file_name().expect("a file"))
+        .arg("--check-only")
+        .current_dir(file.parent().expect("a directory"))
+        .output()
+        .expect("bend runs");
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    (
+        output.status.success()
+            && text == "ALL PROOFS CHECK\nUse --verdict for mathematical validity.\n",
+        text,
+    )
+}
+
+impl P {
+    /// Move this project to language 2.0 (the language-1.0 surface lowered
+    /// to Bend, SPEC.md §18.10) and relock it.
+    pub fn to_language_2_0(&self) {
+        let config = self.read("lexlean.toml");
+        let moved = config
+            .replace("language = \"1.0\"", "language = \"2.0\"")
+            .replace(
+                &format!("lean_toolchain = \"{}\"\n", lexlean::LEAN_TOOLCHAIN),
+                &format!(
+                    "lean_toolchain = \"{}\"\nbend_toolchain = \"{}\"\n",
+                    lexlean::LEAN_TOOLCHAIN,
+                    lexlean::BEND_TOOLCHAIN
+                ),
+            );
+        assert_ne!(moved, config, "a language-1.0 project moves to 2.0");
+        self.write("lexlean.toml", &moved);
+        self.relock();
+    }
+}
+
+/// Every file of a rendered build written under a fresh directory, so the
+/// Bend checker can resolve the generated modules' relative imports.
+#[must_use]
+pub fn materialize(build: &lexlean::api::RenderedBuild) -> tempfile::TempDir {
+    let dir = tempfile::Builder::new()
+        .prefix("lexlean-bend-build-")
+        .tempdir()
+        .expect("tempdir");
+    for (path, bytes) in &build.files {
+        let target = dir.path().join(path);
+        if let Some(parent) = target.parent() {
+            std::fs::create_dir_all(parent).expect("build dir");
+        }
+        std::fs::write(&target, bytes).expect("build file");
+    }
+    dir
+}
+
+/// The generated Bend of one module path (`modules/<path>.bend`) of a
+/// rendered build.
+#[must_use]
+pub fn bend_file(build: &lexlean::api::RenderedBuild, path: &str) -> Option<String> {
+    build
+        .files
+        .iter()
+        .find(|(candidate, _)| candidate == path)
+        .map(|(_, bytes)| String::from_utf8(bytes.clone()).expect("Bend is UTF-8"))
 }

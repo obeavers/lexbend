@@ -24,9 +24,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::backend::bend::engine::{
-    fail, false_term, is_false, mentions, spine, Ctx, Engine,
-};
+use crate::backend::bend::engine::{fail, false_term, is_false, mentions, spine, Ctx, Engine};
 use crate::backend::bend::syntax::{BTerm, Body, Item, Name, Param, Pattern, Quantity, Stmt, Tail};
 use crate::backend::EmitSource;
 use crate::diagnostic::Diagnostic;
@@ -35,6 +33,25 @@ use crate::ir::proof::{CaseProof, Proof, RewriteTarget};
 use crate::ir::term::{Binder, CoreRef, GlobalRef, LocalId, Term, Universe};
 use crate::lexicon::lse::BinderMode;
 use crate::source::coverage::Origin;
+
+/// One rewrite of a goal or hypothesis: the hole standing for the rewritten
+/// occurrences, its type, the motive, and the Bend equations that rewrite
+/// the goal forward (`{to == from}`) and a hypothesis back (`{from == to}`).
+struct RewriteStep {
+    hole: LocalId,
+    ty: Term,
+    motive: Term,
+    forward: BTerm,
+    back: BTerm,
+}
+
+/// A rewrite rule instantiated against its target: the equation's type,
+/// the side rewritten, its replacement, the Bend equation `%` needs, and the
+/// rule term with its quantified variables supplied.
+type RuleInstance = (Term, Term, Term, BTerm, Term);
+
+/// The arguments of a Bend call.
+type CallArgs = Vec<BTerm>;
 
 /// The proof lowering of one theorem.
 pub struct ProofLowering<'e, 'a> {
@@ -62,7 +79,11 @@ fn address(proof: &Proof) -> usize {
 
 /// Record each non-sequence node's range in pre-order, matching the
 /// linker's `steps` (§20.3).
-pub fn index_spans(proof: &Proof, steps: &[(usize, usize)], out: &mut BTreeMap<usize, (usize, usize)>) {
+pub fn index_spans(
+    proof: &Proof,
+    steps: &[(usize, usize)],
+    out: &mut BTreeMap<usize, (usize, usize)>,
+) {
     fn walk(
         proof: &Proof,
         steps: &[(usize, usize)],
@@ -207,7 +228,12 @@ impl ProofLowering<'_, '_> {
         EmitSource::File(start, end)
     }
 
-    fn lower_term(&mut self, ctx: &Ctx, term: &Term, expected: Option<&Term>) -> Result<BTerm, Diagnostic> {
+    fn lower_term(
+        &mut self,
+        ctx: &Ctx,
+        term: &Term,
+        expected: Option<&Term>,
+    ) -> Result<BTerm, Diagnostic> {
         if !self.inline.is_empty() {
             let mut map = BTreeMap::new();
             for id in self.inline.keys() {
@@ -353,7 +379,9 @@ impl ProofLowering<'_, '_> {
                     }
                 };
                 if goals.len() != branches.len() {
-                    return Err(fail("`constructor` has a branch count different from its goals"));
+                    return Err(fail(
+                        "`constructor` has a branch count different from its goals",
+                    ));
                 }
                 let mut parts = Vec::new();
                 for (sub_goal, branch) in goals.iter().zip(branches) {
@@ -363,7 +391,10 @@ impl ProofLowering<'_, '_> {
                 let mut parts = parts.into_iter();
                 let first = parts.next().expect("two goals");
                 let second = parts.next().expect("two goals");
-                Ok(Body::term(BTerm::Pair(Box::new(first), Box::new(second)), source))
+                Ok(Body::term(
+                    BTerm::Pair(Box::new(first), Box::new(second)),
+                    source,
+                ))
             }
             Proof::Have {
                 local,
@@ -394,131 +425,52 @@ impl ProofLowering<'_, '_> {
                 target: RewriteTarget::Goal,
                 rules,
             } => {
-                let mut stmts = Vec::new();
+                let mut steps = Vec::new();
                 let mut current = goal.clone();
                 for rule in rules {
-                    let (ty, from, to, equation) = self.rule(ctx, &rule.term, rule.reverse)?;
-                    let hole = self.engine.fresh.next();
-                    self.engine.names.insert(hole, "_".to_owned());
-                    let mut count = 0;
-                    let motive = replace(&current, &from, &Term::Local(hole), &mut count);
-                    if count == 0 {
-                        return Err(fail(
-                            "a rewrite rule's left side does not occur in the goal",
-                        ));
-                    }
-                    let mut hole_ctx = ctx.clone();
-                    hole_ctx.push((hole, ty.clone()));
-                    let motive_b = self.lower_term(&hole_ctx, &motive, None)?;
-                    stmts.push(Stmt::Rewrite {
-                        proof: equation,
-                        motive: motive_b,
-                        source: source.clone(),
-                    });
-                    let mut map = BTreeMap::new();
-                    map.insert(hole, to);
-                    current = subst(&motive, &map);
+                    let (step, next) = self
+                        .rewrite_step(ctx, &current, &rule.term, rule.reverse)?
+                        .ok_or_else(|| {
+                            fail("a rewrite rule's rewritten side does not occur in the goal")
+                        })?;
+                    steps.push(step);
+                    current = next;
                 }
-                let mut body = if rest.is_empty() {
-                    Body::term(BTerm::Refl, source)
-                } else {
-                    self.prove(ctx, &current, rest)?
-                };
-                stmts.append(&mut body.stmts);
-                body.stmts = stmts;
-                Ok(body)
+                self.finish_goal_rewrites(ctx, steps, &current, rest, source)
+            }
+            Proof::SimplifyOnly {
+                target: RewriteTarget::Goal,
+                rules,
+            } => {
+                let (steps, current) = self.simplify(ctx, goal, rules)?;
+                self.finish_goal_rewrites(ctx, steps, &current, rest, source)
             }
             Proof::Rewrite {
                 target: RewriteTarget::Hypothesis(hypothesis),
                 rules,
             } => {
-                let original = ctx
-                    .iter()
-                    .rev()
-                    .find(|(id, _)| id == hypothesis)
-                    .map(|(_, ty)| ty.clone())
-                    .ok_or_else(|| fail("a rewritten hypothesis is not in scope"))?;
-                // Compute the rewritten type, then an auxiliary
-                // definition whose goal is the new type, rewritten back to
-                // the old one and closed by the hypothesis.
-                let mut types = vec![original.clone()];
-                let mut equations = Vec::new();
+                let original = self.hypothesis_type(ctx, *hypothesis)?;
+                let mut steps = Vec::new();
                 let mut current = original;
                 for rule in rules {
-                    let (ty, from, to, _) = self.rule(ctx, &rule.term, rule.reverse)?;
-                    let hole = self.engine.fresh.next();
-                    self.engine.names.insert(hole, "_".to_owned());
-                    let mut count = 0;
-                    let motive = replace(&current, &from, &Term::Local(hole), &mut count);
-                    if count == 0 {
-                        return Err(fail(
-                            "a rewrite rule's left side does not occur in the hypothesis",
-                        ));
-                    }
-                    let mut map = BTreeMap::new();
-                    map.insert(hole, to.clone());
-                    let next = subst(&motive, &map);
-                    // Going back from `next` to `current` rewrites `to`
-                    // into `from`: the equation `{from == to}`.
-                    let back = self.equation(ctx, &ty, &from, &to, &rule.term, rule.reverse)?;
-                    equations.push((hole, ty, motive, back));
-                    types.push(next.clone());
+                    let (step, next) = self
+                        .rewrite_step(ctx, &current, &rule.term, rule.reverse)?
+                        .ok_or_else(|| {
+                            fail("a rewrite rule's rewritten side does not occur in the hypothesis")
+                        })?;
+                    steps.push(step);
                     current = next;
                 }
-                let new_type = current;
-                let aux_name = self.aux_name("r");
-                let (params, args) = self.context_params(ctx, &[])?;
-                let mut stmts = Vec::new();
-                for (hole, ty, motive, back) in equations.into_iter().rev() {
-                    let mut hole_ctx = ctx.clone();
-                    hole_ctx.push((hole, ty));
-                    let motive_b = self.lower_term(&hole_ctx, &motive, None)?;
-                    stmts.push(Stmt::Rewrite {
-                        proof: back,
-                        motive: motive_b,
-                        source: source.clone(),
-                    });
-                }
-                let result = self.lower_term(ctx, &new_type, None)?;
-                let hypothesis_name = self.engine.names.get(hypothesis).cloned().unwrap_or_default();
-                self.auxiliary.push(Item::Def {
-                    name: Name::synthetic(aux_name.clone()),
-                    params,
-                    result,
-                    result_source: source.clone(),
-                    body: Body {
-                        stmts,
-                        tail: Tail::Term(
-                            BTerm::Name(Name::new(
-                                hypothesis_name.clone(),
-                                Origin::Local(usize::try_from(hypothesis.0).unwrap_or(usize::MAX)),
-                            )),
-                            source.clone(),
-                        ),
-                    },
-                    source: source.clone(),
-                });
-                let mut inner = ctx.clone();
-                if let Some(entry) = inner.iter_mut().rev().find(|(id, _)| id == hypothesis) {
-                    entry.1 = new_type;
-                }
-                let mut body = self.prove(&inner, goal, rest)?;
-                body.stmts.insert(
-                    0,
-                    Stmt::Let {
-                        name: Name::new(
-                            hypothesis_name,
-                            Origin::Local(usize::try_from(hypothesis.0).unwrap_or(usize::MAX)),
-                        ),
-                        value: BTerm::Call(Name::synthetic(aux_name), args),
-                        source,
-                    },
-                );
-                Ok(body)
+                self.rewrite_hypothesis(ctx, goal, *hypothesis, steps, current, rest, source)
             }
-            Proof::SimplifyOnly { .. } => Err(fail(
-                "`simp only` has no Bend lowering in language 1.0 documents: Bend has no simplifier",
-            )),
+            Proof::SimplifyOnly {
+                target: RewriteTarget::Hypothesis(hypothesis),
+                rules,
+            } => {
+                let original = self.hypothesis_type(ctx, *hypothesis)?;
+                let (steps, current) = self.simplify(ctx, &original, rules)?;
+                self.rewrite_hypothesis(ctx, goal, *hypothesis, steps, current, rest, source)
+            }
             Proof::ApplyOne(function) => {
                 let (function_term, premises) = self.apply_premises(ctx, function, goal)?;
                 match premises.len() {
@@ -605,19 +557,194 @@ impl ProofLowering<'_, '_> {
                     let c = self.lower_term(ctx, &last, Some(&ty))?;
                     term = BTerm::Call(
                         Name::synthetic("Equal.trans"),
-                        vec![
-                            (false, ty_b.clone()),
-                            (false, a),
-                            (false, b),
-                            (false, c),
-                            (false, proofs[index].clone()),
-                            (false, term),
-                        ],
+                        vec![ty_b.clone(), a, b, c, proofs[index].clone(), term],
                     );
                 }
                 Ok(Body::term(term, source))
             }
         }
+    }
+
+    fn hypothesis_type(&self, ctx: &Ctx, hypothesis: LocalId) -> Result<Term, Diagnostic> {
+        ctx.iter()
+            .rev()
+            .find(|(id, _)| *id == hypothesis)
+            .map(|(_, ty)| ty.clone())
+            .ok_or_else(|| fail("a rewritten hypothesis is not in scope"))
+    }
+
+    /// One rewrite of `current` by `rule`: the step and the rewritten
+    /// term, or `None` when the rule's rewritten side does not occur.
+    fn rewrite_step(
+        &mut self,
+        ctx: &Ctx,
+        current: &Term,
+        rule: &Term,
+        reverse: bool,
+    ) -> Result<Option<(RewriteStep, Term)>, Diagnostic> {
+        let Some((ty, from, to, forward, instantiated)) = self.rule(ctx, rule, reverse, current)?
+        else {
+            return Ok(None);
+        };
+        let hole = self.engine.fresh.local();
+        self.engine.names.insert(hole, "_".to_owned());
+        let mut count = 0;
+        let motive = replace(current, &from, &Term::Local(hole), &mut count);
+        if count == 0 {
+            return Ok(None);
+        }
+        let back = self.equation(ctx, &ty, &from, &to, &instantiated, reverse)?;
+        let mut map = BTreeMap::new();
+        map.insert(hole, to);
+        let next = subst(&motive, &map);
+        Ok(Some((
+            RewriteStep {
+                hole,
+                ty,
+                motive,
+                forward,
+                back,
+            },
+            next,
+        )))
+    }
+
+    /// `simp only [rules]` on these rules: rewrite left to right with the
+    /// first rule that applies until none does, as Lean's simplifier
+    /// normalizes with exactly the listed equations; a rule set that never
+    /// stops is refused rather than unrolled without bound.
+    fn simplify(
+        &mut self,
+        ctx: &Ctx,
+        start: &Term,
+        rules: &[Term],
+    ) -> Result<(Vec<RewriteStep>, Term), Diagnostic> {
+        let mut steps = Vec::new();
+        let mut current = start.clone();
+        loop {
+            let mut progressed = false;
+            for rule in rules {
+                if let Some((step, next)) = self.rewrite_step(ctx, &current, rule, false)? {
+                    if crate::elaborate::expressions::unify_closed(&next, &current) {
+                        continue;
+                    }
+                    steps.push(step);
+                    current = next;
+                    progressed = true;
+                    break;
+                }
+            }
+            if !progressed {
+                break;
+            }
+            if steps.len() > 64 {
+                return Err(fail(
+                    "a `simplify` rule set does not reach a normal form within 64 rewrites",
+                ));
+            }
+        }
+        if steps.is_empty() {
+            return Err(fail(
+                "a `simplify` step rewrites nothing, as Lean's `simp only` would refuse",
+            ));
+        }
+        Ok((steps, current))
+    }
+
+    /// Emit goal rewrites, closing by `{==}` when no step follows (Lean's
+    /// `rw` and `simp only` close a goal they make reflexive).
+    fn finish_goal_rewrites(
+        &mut self,
+        ctx: &Ctx,
+        steps: Vec<RewriteStep>,
+        current: &Term,
+        rest: &[&Proof],
+        source: EmitSource,
+    ) -> Result<Body, Diagnostic> {
+        let mut stmts = Vec::new();
+        for step in steps {
+            let mut hole_ctx = ctx.clone();
+            hole_ctx.push((step.hole, step.ty.clone()));
+            let motive = self.lower_term(&hole_ctx, &step.motive, None)?;
+            stmts.push(Stmt::Rewrite {
+                proof: step.forward,
+                motive,
+                source: source.clone(),
+            });
+        }
+        let mut body = if rest.is_empty() {
+            Body::term(BTerm::Refl, source)
+        } else {
+            self.prove(ctx, current, rest)?
+        };
+        stmts.append(&mut body.stmts);
+        body.stmts = stmts;
+        Ok(body)
+    }
+
+    /// Replace a hypothesis by its rewritten form: an auxiliary definition
+    /// whose goal is the new type, rewritten back step by step to the old
+    /// one and closed by the hypothesis.
+    #[allow(clippy::too_many_arguments)]
+    fn rewrite_hypothesis(
+        &mut self,
+        ctx: &Ctx,
+        goal: &Term,
+        hypothesis: LocalId,
+        steps: Vec<RewriteStep>,
+        new_type: Term,
+        rest: &[&Proof],
+        source: EmitSource,
+    ) -> Result<Body, Diagnostic> {
+        let aux_name = self.aux_name("r");
+        let (params, args) = self.context_params(ctx, &[])?;
+        let mut stmts = Vec::new();
+        for step in steps.into_iter().rev() {
+            let mut hole_ctx = ctx.clone();
+            hole_ctx.push((step.hole, step.ty));
+            let motive = self.lower_term(&hole_ctx, &step.motive, None)?;
+            stmts.push(Stmt::Rewrite {
+                proof: step.back,
+                motive,
+                source: source.clone(),
+            });
+        }
+        let result = self.lower_term(ctx, &new_type, None)?;
+        let hypothesis_name = self
+            .engine
+            .names
+            .get(&hypothesis)
+            .cloned()
+            .unwrap_or_default();
+        let origin = Origin::Local(usize::try_from(hypothesis.0).unwrap_or(usize::MAX));
+        self.auxiliary.push(Item::Def {
+            name: Name::synthetic(aux_name.clone()),
+            params,
+            result,
+            result_source: source.clone(),
+            body: Body {
+                stmts,
+                tail: Tail::Term(
+                    BTerm::Name(Name::new(hypothesis_name.clone(), origin.clone())),
+                    source.clone(),
+                ),
+            },
+            source: source.clone(),
+        });
+        let mut inner = ctx.clone();
+        if let Some(entry) = inner.iter_mut().rev().find(|(id, _)| *id == hypothesis) {
+            entry.1 = new_type;
+        }
+        let mut body = self.prove(&inner, goal, rest)?;
+        body.stmts.insert(
+            0,
+            Stmt::Let {
+                name: Name::new(hypothesis_name, origin),
+                value: BTerm::Call(Name::synthetic(aux_name), args),
+                source,
+            },
+        );
+        Ok(body)
     }
 
     fn require_last(&self, rest: &[&Proof]) -> Result<(), Diagnostic> {
@@ -631,7 +758,7 @@ impl ProofLowering<'_, '_> {
     fn arrow(&mut self, from: Term, to: Term) -> Term {
         Term::Pi {
             binders: vec![Binder {
-                id: self.engine.fresh.next(),
+                id: self.engine.fresh.local(),
                 mode: BinderMode::Explicit,
                 ty: from,
                 spelling: String::new(),
@@ -650,7 +777,9 @@ impl ProofLowering<'_, '_> {
             return Err(fail("`intro` acts on a goal that is not a function type"));
         };
         let mut binders = binders.into_iter();
-        let first = binders.next().ok_or_else(|| fail("an empty binder group"))?;
+        let first = binders
+            .next()
+            .ok_or_else(|| fail("an empty binder group"))?;
         let remaining: Vec<Binder> = binders.collect();
         let rest = if remaining.is_empty() {
             *body
@@ -710,21 +839,83 @@ impl ProofLowering<'_, '_> {
         }
     }
 
-    /// A rewrite rule's equation type and sides: `(T, from, to, proof)` where
-    /// rewriting replaces `from` by `to` in the goal and `proof` is the
-    /// Bend equation `{to == from : T}` that `%` needs.
+    /// A rewrite rule's equation type and sides against `goal`: `(T, from,
+    /// to, proof, rule)` where rewriting replaces `from` by `to`, `proof`
+    /// is the Bend equation `{to == from : T}` that `%` needs, and `rule` is
+    /// the rule term with every binder it quantifies instantiated. A rule
+    /// that quantifies its variables is instantiated as Lean's `rw` does:
+    /// at the first subterm of the goal, in post-order, that its rewritten
+    /// side matches.
     fn rule(
         &mut self,
         ctx: &Ctx,
         term: &Term,
         reverse: bool,
-    ) -> Result<(Term, Term, Term, BTerm), Diagnostic> {
+        goal: &Term,
+    ) -> Result<Option<RuleInstance>, Diagnostic> {
         let rule_type = self.engine.infer(ctx, term)?;
+        let mut binders = Vec::new();
+        let mut body = rule_type;
+        loop {
+            match body {
+                Term::Pi {
+                    binders: group,
+                    body: inner,
+                } => {
+                    binders.extend(group);
+                    body = *inner;
+                }
+                other => {
+                    let normal = self.whnf(&other)?;
+                    if matches!(normal, Term::Pi { .. }) && !binders.is_empty() {
+                        body = normal;
+                        continue;
+                    }
+                    body = normal;
+                    break;
+                }
+            }
+        }
+        let (head, args) = spine(&body);
+        let (Term::Global(GlobalRef::Core(CoreRef::Eq), _), [left, right]) =
+            (head, args.as_slice())
+        else {
+            return Err(fail(
+                "a rewrite rule is not an equation, or a statement that quantifies one",
+            ));
+        };
+        let (left, right) = (left.clone(), right.clone());
+        let instantiated = if binders.is_empty() {
+            term.clone()
+        } else {
+            let mut metas = crate::backend::bend::engine::Metas::default();
+            for binder in &binders {
+                metas.open(binder.id);
+            }
+            let pattern = if reverse { right.clone() } else { left.clone() };
+            if !self.first_match(goal, &pattern, &mut metas) {
+                return Ok(None);
+            }
+            let mut explicit = Vec::new();
+            for binder in &binders {
+                if binder.mode == BinderMode::Explicit {
+                    let value = metas.get(binder.id).map(|value| metas.zonk(value)).ok_or_else(|| {
+                        fail("a rewrite rule's quantified variable is not determined by its match")
+                    })?;
+                    explicit.push(value);
+                }
+            }
+            let (rule_head, mut given) = spine(term);
+            given.extend(explicit);
+            app(rule_head.clone(), given)
+        };
+        let rule_type = self.engine.infer(ctx, &instantiated)?;
         let rule_type = self.whnf(&rule_type)?;
         let (head, args) = spine(&rule_type);
-        let (Term::Global(GlobalRef::Core(CoreRef::Eq), _), [left, right]) = (head, args.as_slice())
+        let (Term::Global(GlobalRef::Core(CoreRef::Eq), _), [left, right]) =
+            (head, args.as_slice())
         else {
-            return Err(fail("a rewrite rule is not an equation"));
+            return Err(fail("an instantiated rewrite rule is not an equation"));
         };
         let ty = self.engine.infer(ctx, left)?;
         let (from, to) = if reverse {
@@ -732,7 +923,7 @@ impl ProofLowering<'_, '_> {
         } else {
             (left.clone(), right.clone())
         };
-        let proof = self.lower_term(ctx, term, None)?;
+        let proof = self.lower_term(ctx, &instantiated, None)?;
         let ty_b = self.lower_term(ctx, &ty, None)?;
         let equation = if reverse {
             // rule : left == right = to == from.
@@ -742,10 +933,46 @@ impl ProofLowering<'_, '_> {
             let right_b = self.lower_term(ctx, right, Some(&ty))?;
             BTerm::Call(
                 Name::synthetic("Equal.sym"),
-                vec![(false, ty_b), (false, left_b), (false, right_b), (false, proof)],
+                vec![ty_b, left_b, right_b, proof],
             )
         };
-        Ok((ty, from, to, equation))
+        Ok(Some((ty, from, to, equation, instantiated)))
+    }
+
+    /// Match `pattern` against the subterms of `term` in post-order, left
+    /// to right, binding `metas` at the first match.
+    fn first_match(
+        &mut self,
+        term: &Term,
+        pattern: &Term,
+        metas: &mut crate::backend::bend::engine::Metas,
+    ) -> bool {
+        let children: Vec<Term> = match term {
+            Term::App {
+                function,
+                explicit_args,
+                ..
+            } => std::iter::once((**function).clone())
+                .chain(explicit_args.iter().cloned())
+                .collect(),
+            Term::Pi { binders, body } | Term::Lambda { binders, body } => binders
+                .iter()
+                .map(|binder| binder.ty.clone())
+                .chain(std::iter::once((**body).clone()))
+                .collect(),
+            _ => Vec::new(),
+        };
+        for child in &children {
+            if self.first_match(child, pattern, metas) {
+                return true;
+            }
+        }
+        let mut trial = metas.clone();
+        if crate::backend::bend::engine::syntactic_match(pattern, term, &mut trial) {
+            *metas = trial;
+            return true;
+        }
+        false
     }
 
     /// The equation `{from == to : T}` (the direction that rewrites a
@@ -767,7 +994,7 @@ impl ProofLowering<'_, '_> {
             let from_b = self.lower_term(ctx, from, Some(ty))?;
             Ok(BTerm::Call(
                 Name::synthetic("Equal.sym"),
-                vec![(false, ty_b), (false, to_b), (false, from_b), (false, proof)],
+                vec![ty_b, to_b, from_b, proof],
             ))
         } else {
             Ok(proof)
@@ -786,7 +1013,7 @@ impl ProofLowering<'_, '_> {
         &mut self,
         ctx: &Ctx,
         exclude: &[LocalId],
-    ) -> Result<(Vec<Param>, Vec<(bool, BTerm)>), Diagnostic> {
+    ) -> Result<(Vec<Param>, CallArgs), Diagnostic> {
         let mut params = Vec::new();
         let mut args = Vec::new();
         for (index, (id, ty)) in ctx.iter().enumerate() {
@@ -795,7 +1022,7 @@ impl ProofLowering<'_, '_> {
             }
             let prefix: Ctx = ctx[..index].to_vec();
             let param = self.param(&prefix, *id, ty)?;
-            args.push((false, BTerm::Name(param.name.clone())));
+            args.push(BTerm::Name(param.name.clone()));
             params.push(param);
         }
         Ok((params, args))
@@ -855,9 +1082,11 @@ impl ProofLowering<'_, '_> {
             }
             other => {
                 if induction {
-                    return Err(fail("induction is on a context variable in the Bend lowering"));
+                    return Err(fail(
+                        "induction is on a context variable in the Bend lowering",
+                    ));
                 }
-                let id = self.engine.fresh.next();
+                let id = self.engine.fresh.local();
                 let ty = self.engine.infer(ctx, other)?;
                 let name = format!("llc{}", self.named);
                 self.engine.names.insert(id, name);
@@ -888,12 +1117,12 @@ impl ProofLowering<'_, '_> {
             let param = self.param(&prefix, *id, ty)?;
             if *id == scrutinee_id {
                 if let Some(term) = &passed {
-                    call_args.push((false, self.lower_term(ctx, term, Some(&scrutinee_type))?));
+                    call_args.push(self.lower_term(ctx, term, Some(&scrutinee_type))?);
                 } else {
-                    call_args.push((false, BTerm::Name(param.name.clone())));
+                    call_args.push(BTerm::Name(param.name.clone()));
                 }
             } else {
-                call_args.push((false, BTerm::Name(param.name.clone())));
+                call_args.push(BTerm::Name(param.name.clone()));
             }
             params.push(param);
         }
@@ -911,7 +1140,10 @@ impl ProofLowering<'_, '_> {
                 .iter()
                 .map(|(id, _)| {
                     let text = self.engine.proof_binder(*id);
-                    Name::new(text, Origin::Local(usize::try_from(id.0).unwrap_or(usize::MAX)))
+                    Name::new(
+                        text,
+                        Origin::Local(usize::try_from(id.0).unwrap_or(usize::MAX)),
+                    )
                 })
                 .collect();
             let (pattern, fields, value): (Pattern, Vec<(LocalId, Term)>, Option<Term>) =
@@ -951,15 +1183,16 @@ impl ProofLowering<'_, '_> {
                     let ih_type = subst(goal, &map);
                     let mut args = Vec::new();
                     for (id, _) in &ordered {
-                        let target = if *id == scrutinee_id { recursive_id } else { *id };
+                        let target = if *id == scrutinee_id {
+                            recursive_id
+                        } else {
+                            *id
+                        };
                         let name = self.engine.names.get(&target).cloned().unwrap_or_default();
-                        args.push((
-                            false,
-                            BTerm::Name(Name::new(
-                                name,
-                                Origin::Local(usize::try_from(target.0).unwrap_or(usize::MAX)),
-                            )),
-                        ));
+                        args.push(BTerm::Name(Name::new(
+                            name,
+                            Origin::Local(usize::try_from(target.0).unwrap_or(usize::MAX)),
+                        )));
                     }
                     let ih_name = self.engine.names.get(ih_id).cloned().unwrap_or_default();
                     stmts.push(Stmt::Let {
@@ -1026,14 +1259,15 @@ impl ProofLowering<'_, '_> {
                 let [left, right] = type_args else {
                     return Err(shape_error());
                 };
-                let (left_ty, right_ty) = if matches!(head, Term::Global(GlobalRef::Core(CoreRef::Iff), _)) {
-                    (
-                        self.arrow(left.clone(), right.clone()),
-                        self.arrow(right.clone(), left.clone()),
-                    )
-                } else {
-                    (left.clone(), right.clone())
-                };
+                let (left_ty, right_ty) =
+                    if matches!(head, Term::Global(GlobalRef::Core(CoreRef::Iff), _)) {
+                        (
+                            self.arrow(left.clone(), right.clone()),
+                            self.arrow(right.clone(), left.clone()),
+                        )
+                    } else {
+                        (left.clone(), right.clone())
+                    };
                 let [a, b] = ids.as_slice() else {
                     return Err(shape_error());
                 };
@@ -1070,7 +1304,10 @@ impl ProofLowering<'_, '_> {
                     _ => return Err(shape_error()),
                 };
                 Ok((
-                    Pattern::Constructor(Name::new(constructor, core_or_origin()), vec![names[0].clone()]),
+                    Pattern::Constructor(
+                        Name::new(constructor, core_or_origin()),
+                        vec![names[0].clone()],
+                    ),
                     vec![(*h, ty)],
                     None,
                 ))
@@ -1143,13 +1380,19 @@ impl ProofLowering<'_, '_> {
         fields: &[(LocalId, Term)],
     ) -> Result<Option<LocalId>, Diagnostic> {
         let Term::Global(GlobalRef::External(external), _) = head else {
-            return Err(fail("induction is on a natural number or a list in the Bend lowering"));
+            return Err(fail(
+                "induction is on a natural number or a list in the Bend lowering",
+            ));
         };
         Ok(match (external.lean_name.as_str(), alternative(case)) {
             ("Nat", "succ") => fields.first().map(|(id, _)| *id),
             ("List", "cons") => fields.get(1).map(|(id, _)| *id),
             ("Nat", "zero") | ("List", "nil") => None,
-            _ => return Err(fail("induction is on a natural number or a list in the Bend lowering")),
+            _ => {
+                return Err(fail(
+                    "induction is on a natural number or a list in the Bend lowering",
+                ))
+            }
         })
     }
 
@@ -1159,9 +1402,17 @@ impl ProofLowering<'_, '_> {
             .project
             .closure
             .entry(&case.constructor)
-            .ok_or_else(|| fail(format!("`{}` is not in the glossary closure", case.constructor)))?;
+            .ok_or_else(|| {
+                fail(format!(
+                    "`{}` is not in the glossary closure",
+                    case.constructor
+                ))
+            })?;
         let crate::lexicon::entry::Denotation::Lean { module, name } = &entry.denotation else {
-            return Err(fail(format!("`{}` is not a Lean constructor", case.constructor)));
+            return Err(fail(format!(
+                "`{}` is not a Lean constructor",
+                case.constructor
+            )));
         };
         Ok(GlobalRef::External(crate::ir::term::ExternalConstRef {
             package: case.constructor.package.clone(),
@@ -1212,7 +1463,11 @@ impl ProofLowering<'_, '_> {
         for binder in &binders {
             metas.open(binder.id);
         }
-        let target = if is_false(goal) { false_term() } else { goal.clone() };
+        let target = if is_false(goal) {
+            false_term()
+        } else {
+            goal.clone()
+        };
         if !self.engine.unify(&rest, &target, &mut metas) {
             return Err(fail(
                 "an `apply` step's conclusion does not match the goal in the Bend lowering",
@@ -1226,7 +1481,7 @@ impl ProofLowering<'_, '_> {
             let value = match metas.get(binder.id) {
                 Some(solved) => metas.zonk(solved),
                 None => {
-                    let placeholder = self.engine.fresh.next();
+                    let placeholder = self.engine.fresh.local();
                     let name = format!("llp{}", placeholder.0 - u64::MAX / 2);
                     self.engine.names.insert(placeholder, name);
                     premises.push((placeholder, ty.clone()));
@@ -1315,12 +1570,7 @@ fn substitute_names(term: BTerm, names: &BTreeMap<String, BTerm>) -> BTerm {
     let go = |inner: BTerm| substitute_names(inner, names);
     match term {
         BTerm::Name(name) => names.get(&name.text).cloned().unwrap_or(BTerm::Name(name)),
-        BTerm::Call(head, args) => BTerm::Call(
-            head,
-            args.into_iter()
-                .map(|(template, arg)| (template, go(arg)))
-                .collect(),
-        ),
+        BTerm::Call(head, args) => BTerm::Call(head, args.into_iter().map(go).collect()),
         BTerm::Lam(name, body) => BTerm::Lam(name, Box::new(go(*body))),
         BTerm::Pi {
             name,
@@ -1353,6 +1603,8 @@ fn substitute_names(term: BTerm, names: &BTreeMap<String, BTerm>) -> BTerm {
         BTerm::Equal(a, b, t) => BTerm::Equal(Box::new(go(*a)), Box::new(go(*b)), Box::new(go(*t))),
         BTerm::Succ(inner) => BTerm::Succ(Box::new(go(*inner))),
         BTerm::Ann(a, b) => BTerm::Ann(Box::new(go(*a)), Box::new(go(*b))),
-        other @ (BTerm::Refl | BTerm::Nat(_) | BTerm::Kind(_) | BTerm::Hole | BTerm::Block(_)) => other,
+        other @ (BTerm::Refl | BTerm::Nat(_) | BTerm::Kind(_) | BTerm::Hole | BTerm::Block(_)) => {
+            other
+        }
     }
 }

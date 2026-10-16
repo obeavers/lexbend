@@ -26,7 +26,19 @@ RUN curl -sSfL https://github.com/leanprover/elan/releases/download/v4.2.3/elan-
     && /tmp/elan-bin/elan-init -y --no-modify-path --default-toolchain none \
     && rm -rf /tmp/elan.tar.gz /tmp/elan-bin \
     && elan toolchain install leanprover/lean4:v4.32.1 \
+    && elan toolchain install leanprover/lean4:v4.34.0 \
     && ln -s /usr/local/elan /root/.elan
+
+# The pinned Bend release (SPEC.md §18.10). Its proved BendTT kernel, which
+# `bend --verdict` rechecks with, is built by Lean 4.34.0 above.
+ENV BEND_HOME=/usr/local/bend \
+    PATH=/usr/local/bend/bin:$PATH
+RUN curl -sSfL https://github.com/bendlang/bend/releases/download/v2.0.37/bend-2.0.37-linux-x64.tar.gz -o /tmp/bend.tar.gz \
+    && echo "84c32465a39bc9ac315eade23f470cb8db03153dc860f89564fcfec153c3e445  /tmp/bend.tar.gz" | sha256sum -c - \
+    && mkdir -p /usr/local/bend \
+    && tar -xzf /tmp/bend.tar.gz --strip-components=1 -C /usr/local/bend \
+    && rm /tmp/bend.tar.gz \
+    && /usr/local/bend/bin/bend version
 
 RUN curl -sSfL https://github.com/casey/just/releases/download/1.57.0/just-1.57.0-x86_64-unknown-linux-musl.tar.gz -o /tmp/just.tar.gz \
     && echo "45b548094283cb9739af8f13273b8cddeee869f5b4ef2bb631b1f311cb566155  /tmp/just.tar.gz" | sha256sum -c - \

@@ -109,6 +109,18 @@ jobs:
           curl https://elan.lean-lang.org/elan-init.sh -sSf | sh -s -- -y --default-toolchain none
           echo "$HOME/.elan/bin" >> "$GITHUB_PATH"
           "$HOME/.elan/bin/elan" toolchain install "$(cat lean-toolchain)"
+      # SPEC.md §18.10, §22.13: language 2.0 is checked by the pinned Bend,
+      # by digest, and rechecked by its proved kernel, which Lean 4.34.0
+      # builds.
+      - name: Install the pinned Bend and the Lean that builds its kernel
+        run: |
+          set -euo pipefail
+          curl -sSfL https://github.com/bendlang/bend/releases/download/v2.0.37/bend-2.0.37-linux-x64.tar.gz -o "$RUNNER_TEMP/bend.tar.gz"
+          echo "84c32465a39bc9ac315eade23f470cb8db03153dc860f89564fcfec153c3e445  $RUNNER_TEMP/bend.tar.gz" | sha256sum -c -
+          mkdir -p "$HOME/.bend"
+          tar -xzf "$RUNNER_TEMP/bend.tar.gz" --strip-components=1 -C "$HOME/.bend"
+          echo "$HOME/.bend/bin" >> "$GITHUB_PATH"
+          "$HOME/.elan/bin/elan" toolchain install leanprover/lean4:v4.34.0
       - name: Reserve bounded overflow memory for native Atlas
         run: |
           set -euo pipefail

@@ -1,0 +1,1 @@
+{"argv":["Root.bend","--verdict"],"executable_sha256":"$EXECUTABLE_SHA256","exit_code":0,"stderr":"\n","stderr_sha256":"01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b","stdout":"ALL PROOFS CHECK\n","stdout_sha256":"61b73cda11b6b665b9f99f2defd3d3b57f985c865225e942a5bdaa594a503e47","tool":"bend"}

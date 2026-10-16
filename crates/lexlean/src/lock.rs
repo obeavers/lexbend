@@ -87,6 +87,7 @@ impl Lock {
         let mut out = String::new();
         let spec = match self.language.as_str() {
             "1.2" => "lexlean/lock/2",
+            "2.0" => "lexlean/lock/3",
             _ => "lexlean/lock/1",
         };
         out.push_str(&format!("spec = {}\n", toml_string(spec)));
@@ -103,6 +104,12 @@ impl Lock {
             "lean_toolchain = {}\n",
             toml_string(crate::LEAN_TOOLCHAIN)
         ));
+        if crate::lowers_to_bend(&self.language) {
+            out.push_str(&format!(
+                "bend_toolchain = {}\n",
+                toml_string(crate::BEND_TOOLCHAIN)
+            ));
+        }
         let mut workspace_files = self.workspace_files.clone();
         workspace_files.sort_by(|a, b| a.0.cmp(&b.0));
         for (path, sha256) in &workspace_files {
@@ -170,6 +177,8 @@ struct RawLock {
     compiler_semantics: String,
     project_config_sha256: String,
     lean_toolchain: String,
+    #[serde(default)]
+    bend_toolchain: Option<String>,
     #[serde(rename = "workspace_file", default)]
     workspace_files: Vec<RawWorkspaceFile>,
     #[serde(rename = "package", default)]
@@ -230,9 +239,13 @@ pub fn parse_lock(path: &str, bytes: &[u8]) -> Result<Lock, Vec<Diagnostic>> {
     let mut diagnostics = Vec::new();
     let expected_spec = match raw.language.as_str() {
         "1.2" => "lexlean/lock/2",
+        "2.0" => "lexlean/lock/3",
         _ => "lexlean/lock/1",
     };
-    if raw.spec != "lexlean/lock/1" && raw.spec != "lexlean/lock/2" {
+    if !matches!(
+        raw.spec.as_str(),
+        "lexlean/lock/1" | "lexlean/lock/2" | "lexlean/lock/3"
+    ) {
         diagnostics.push(Diagnostic::new(
             code!("LLC0103"),
             format!("{path}: unsupported lock schema `{}`", raw.spec),
@@ -256,6 +269,15 @@ pub fn parse_lock(path: &str, bytes: &[u8]) -> Result<Lock, Vec<Diagnostic>> {
         diagnostics.push(lock_error(format!(
             "{path}: lock pins `{}`, not the language-1.0 toolchain",
             raw.lean_toolchain
+        )));
+    }
+    let bend_expected = crate::lowers_to_bend(&raw.language).then_some(crate::BEND_TOOLCHAIN);
+    if raw.bend_toolchain.as_deref() != bend_expected {
+        diagnostics.push(lock_error(format!(
+            "{path}: lock pins Bend toolchain `{}`, but language `{}` requires {}",
+            raw.bend_toolchain.as_deref().unwrap_or("(none)"),
+            raw.language,
+            bend_expected.map_or_else(|| "none".to_owned(), |pin| format!("`{pin}`"))
         )));
     }
     let hex =
@@ -528,10 +550,10 @@ pub fn resolve_packages(
     let mut packages = Vec::new();
     let mut rows = Vec::new();
 
-    let bootstrap =
-        crate::lexicon::load_bootstrap_for(&project.config.language).map_err(|d| vec![d])?;
+    let surface = crate::surface_language(&project.config.language);
+    let bootstrap = crate::lexicon::load_bootstrap_for(surface).map_err(|d| vec![d])?;
     let load_ctx = LoadContext {
-        language: &project.config.language,
+        language: surface,
         forbidden_controls: &bootstrap.structural.forbidden_controls,
         max_scope_depth: project.config.limits.max_scope_depth,
     };

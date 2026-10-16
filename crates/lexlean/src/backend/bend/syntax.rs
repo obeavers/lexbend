@@ -48,8 +48,6 @@ pub enum Quantity {
     Reusable,
     /// `-`: erased, used only in types and proofs.
     Erased,
-    /// `~`: a template, substituted at compile time.
-    Template,
 }
 
 impl Quantity {
@@ -58,7 +56,6 @@ impl Quantity {
             Self::Affine => "",
             Self::Reusable => "+",
             Self::Erased => "-",
-            Self::Template => "~",
         }
     }
 }
@@ -68,8 +65,8 @@ impl Quantity {
 pub enum BTerm {
     /// A variable or a global name.
     Name(Name),
-    /// `f(a, b)`; a template argument is marked `~`.
-    Call(Name, Vec<(bool, BTerm)>),
+    /// `f(a, b)`.
+    Call(Name, Vec<BTerm>),
     /// `x => body`.
     Lam(Name, Box<BTerm>),
     /// `@x: A -> B`, `@-x: A -> B`, or `A -> B` when the name is absent.
@@ -310,13 +307,10 @@ impl Printer<'_> {
             BTerm::Call(head, args) => {
                 self.name(head);
                 self.sym("(");
-                for (index, (template, argument)) in args.iter().enumerate() {
+                for (index, argument) in args.iter().enumerate() {
                     if index > 0 {
                         self.sym(",");
                         self.ws(" ");
-                    }
-                    if *template {
-                        self.sym("~");
                     }
                     self.term(argument, matches!(argument, BTerm::Lam(..)), depth);
                 }

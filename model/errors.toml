@@ -57,6 +57,13 @@ title = "GNAF certificate malformed"
 statement = "A GNAF certificate is not a closed `lexlean/gnaf-certificate/1` document, or a certificate fixture states an identity other than its certificate's."
 
 [[error]]
+code = "LLB6008"
+class = "language"
+exit = 1
+title = "Bend lowering has no defined form"
+statement = "Bend lowering has no defined form (§18.10)."
+
+[[error]]
 code = "LLC0001"
 class = "cli-configuration"
 exit = 2
@@ -552,6 +559,34 @@ class = "environment"
 exit = 3
 title = "Child start refused after the host ended the live children"
 statement = "A child process could not be started because the host ended the live children of this process through `lexlean::verify::end_live_children` and has not re-enabled starting children."
+
+[[error]]
+code = "LLV7019"
+class = "environment"
+exit = 3
+title = "The pinned Bend toolchain is missing or reports another version"
+statement = "The pinned Bend toolchain is missing or reports another version (§22.13)."
+
+[[error]]
+code = "LLV7020"
+class = "language"
+exit = 1
+title = "Bend refused a generated module"
+statement = "Bend refused a generated module (§22.13)."
+
+[[error]]
+code = "LLV7021"
+class = "language"
+exit = 1
+title = "The BendTT kernel did not accept the generated program"
+statement = "The BendTT kernel did not accept the generated program (§22.13)."
+
+[[error]]
+code = "LLV7022"
+class = "language"
+exit = 1
+title = "An assumption premise is not admitted by its theorem's axiom policy"
+statement = "An assumption premise is not admitted by its theorem's axiom policy (§22.13)."
 
 [[error]]
 code = "LLV7101"
