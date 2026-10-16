@@ -318,15 +318,19 @@ fn theorem(
         // A premise reaches exactly the auxiliaries that use it, directly or
         // through a call: it is affine, so passing it to one that does not
         // would spend it twice.
-        let premise_texts: BTreeSet<String> =
-            premises.iter().map(|(name, _)| premise_name(name)).collect();
+        let premise_texts: BTreeSet<String> = premises
+            .iter()
+            .map(|(name, _)| premise_name(name))
+            .collect();
         let mut needing: BTreeSet<String> = BTreeSet::new();
         loop {
             let before = needing.len();
             for item in &auxiliary {
                 if let Item::Def { name, body, .. } = item {
                     if !needing.contains(&name.text)
-                        && (body_names(body).iter().any(|used| premise_texts.contains(used))
+                        && (body_names(body)
+                            .iter()
+                            .any(|used| premise_texts.contains(used))
                             || body_names(body).iter().any(|used| needing.contains(used)))
                     {
                         needing.insert(name.text.clone());
@@ -342,7 +346,10 @@ fn theorem(
             .map(|(name, _)| BTerm::Name(Name::synthetic(premise_name(name))))
             .collect();
         for item in &mut auxiliary {
-            if let Item::Def { name, params, body, .. } = item {
+            if let Item::Def {
+                name, params, body, ..
+            } = item
+            {
                 if needing.contains(&name.text) {
                     let mut with = premise_params.clone();
                     with.append(params);

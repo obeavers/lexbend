@@ -70,7 +70,9 @@ fn verdict_available(id: &str) -> bool {
             !support::normative_host(),
             "{id}: the normative host must build the BendTT kernel (Lean leanprover/lean4:v4.34.0, §22.13)"
         );
-        eprintln!("{id}: this host cannot build the BendTT kernel; the kernel half did not run (§22.13)");
+        eprintln!(
+            "{id}: this host cannot build the BendTT kernel; the kernel half did not run (§22.13)"
+        );
     }
     available
 }
@@ -80,7 +82,10 @@ pub(crate) fn run(id: &str) {
         // §22.13 stage 2: exactly the pinned Bend, its version and digest.
         "VR-24" => {
             let project = P::copy_example("bend-nat-add-zero");
-            let empty = tempfile::Builder::new().prefix("lexlean-no-bend-").tempdir().expect("tempdir");
+            let empty = tempfile::Builder::new()
+                .prefix("lexlean-no-bend-")
+                .tempdir()
+                .expect("tempdir");
             let error = verify_err_with_path(&project, &empty.path().display().to_string());
             support::expect_code(&error, "LLV7019");
             if support::posix_shell_backed(id) {
@@ -107,7 +112,11 @@ pub(crate) fn run(id: &str) {
                 });
                 assert_eq!(tool.version_output, lexlean::BEND_VERSION_LINE);
                 let bytes = std::fs::read(tool.path.as_std_path()).expect("bend");
-                assert_eq!(tool.sha256, lexlean::Sha256Digest::of(&bytes), "the recorded digest");
+                assert_eq!(
+                    tool.sha256,
+                    lexlean::Sha256Digest::of(&bytes),
+                    "the recorded digest"
+                );
             }
         }
         // §22.13 stage 3: every module checked before any Lean process; a
@@ -128,12 +137,13 @@ pub(crate) fn run(id: &str) {
                     .find(|diagnostic| diagnostic.code.as_str() == "LLV7020")
                     .expect("the refusal");
                 let span = diagnostic.primary.as_ref().expect("a remapped source span");
-                assert_eq!(span.path, "src/Main.lex.tex", "the refusal points at the source");
+                assert_eq!(
+                    span.path, "src/Main.lex.tex",
+                    "the refusal points at the source"
+                );
                 assert!(
-                    diagnostic
-                        .notes
-                        .iter()
-                        .any(|note| note.message == "generated location: modules/PropositionalLogic/Main.bend:5"),
+                    diagnostic.notes.iter().any(|note| note.message
+                        == "generated location: modules/PropositionalLogic/Main.bend:5"),
                     "{:?}",
                     diagnostic.notes
                 );
@@ -142,7 +152,10 @@ pub(crate) fn run(id: &str) {
                 let dir = bend_dir().expect("the pinned Bend");
                 let error = verify_err_with_path(&project, &path_with(&dir));
                 support::expect_code(&error, "LLV7020");
-                assert!(error.to_string().contains("consumed more than once"), "{error}");
+                assert!(
+                    error.to_string().contains("consumed more than once"),
+                    "{error}"
+                );
                 assert!(error.to_string().contains("de_morgan"), "{error}");
             }
         }
@@ -174,7 +187,9 @@ pub(crate) fn run(id: &str) {
                 std::fs::create_dir_all(&verdict_dir).expect("verdict dir");
                 std::fs::write(
                     verdict_dir.join("Root.bend"),
-                    lexlean::verify::bend::verdict_root(&["modules/LexLeanExample/Main.bend".to_owned()]),
+                    lexlean::verify::bend::verdict_root(&[
+                        "modules/LexLeanExample/Main.bend".to_owned()
+                    ]),
                 )
                 .expect("root");
                 let output = std::process::Command::new(dir.join("bend"))
@@ -199,7 +214,10 @@ pub(crate) fn run(id: &str) {
                 "\\noaxioms\n  For every natural number \\(n\\), \\(n\\) is even or not \\(n\\) is even.",
                 1,
             );
-            assert_ne!(strict, main, "the excluded-middle theorem's policy is tightened");
+            assert_ne!(
+                strict, main,
+                "the excluded-middle theorem's policy is tightened"
+            );
             project.write("src/Main.lex.tex", &strict);
             let error = support::with_env(&[], || {
                 project
@@ -213,7 +231,10 @@ pub(crate) fn run(id: &str) {
             support::expect_code(&error, "LLV7022");
             assert!(error.to_string().contains("excluded-middle"), "{error}");
             let schema = support::schema("attestation-v3");
-            assert_eq!(schema["properties"]["spec"]["const"], "lexlean/attestation/3");
+            assert_eq!(
+                schema["properties"]["spec"]["const"],
+                "lexlean/attestation/3"
+            );
             assert!(
                 schema["required"]
                     .as_array()
@@ -233,14 +254,20 @@ pub(crate) fn run(id: &str) {
             // The committed verification of the language-2.0 example holds
             // a Bend record per module and the kernel recheck's, each
             // accepted.
-            let verify = support::repo_root().join("examples/bend-peano-arithmetic/expected/verify");
+            let verify =
+                support::repo_root().join("examples/bend-peano-arithmetic/expected/verify");
             for module in ["Addition", "Divisibility", "Doubling", "Main", "Order"] {
                 let path = verify.join(format!("process/bend/PeanoArithmetic.{module}.json"));
                 let record: serde_json::Value = serde_json::from_slice(
-                    &std::fs::read(path.as_std_path()).unwrap_or_else(|_| panic!("{path} is committed")),
+                    &std::fs::read(path.as_std_path())
+                        .unwrap_or_else(|_| panic!("{path} is committed")),
                 )
                 .expect("JSON");
-                assert_eq!(record["stdout"], lexlean::verify::bend::CHECK_SUCCESS, "{module}");
+                assert_eq!(
+                    record["stdout"],
+                    lexlean::verify::bend::CHECK_SUCCESS,
+                    "{module}"
+                );
                 assert_eq!(record["exit_code"], 0, "{module}");
             }
             let verdict: serde_json::Value = serde_json::from_slice(
@@ -271,7 +298,10 @@ pub(crate) fn run(id: &str) {
                 )
                 .expect("JSON");
                 assert_eq!(attestation["spec"], "lexlean/attestation/3");
-                assert_eq!(attestation["bend"]["version_output"], lexlean::BEND_VERSION_LINE);
+                assert_eq!(
+                    attestation["bend"]["version_output"],
+                    lexlean::BEND_VERSION_LINE
+                );
                 let row = attestation["declarations"]
                     .as_array()
                     .expect("rows")

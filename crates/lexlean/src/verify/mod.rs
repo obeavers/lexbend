@@ -2342,8 +2342,10 @@ pub fn run_part(
             .modules
             .iter()
             .map(|module| crate::backend::bend::module_path(&module.lean_module))
-            .filter(|path| build.files.iter().any(|(candidate, _)| candidate == path)
-                || staging_utf8.join(path).as_std_path().is_file())
+            .filter(|path| {
+                build.files.iter().any(|(candidate, _)| candidate == path)
+                    || staging_utf8.join(path).as_std_path().is_file()
+            })
             .collect();
         write_staged(
             staging.path(),
