@@ -262,6 +262,11 @@ pub fn render_build(
         checked.modules.values().map(|module| &module.document),
     );
     let mut report_total: u64 = 0;
+    // The Bend program, from the same linked IR (I7, R8): rendered for the
+    // whole project at once, in import order.
+    let (bend_emitters, bend_prelude) =
+        crate::backend::bend::render_project(&checked.modules, &checked.closure)
+            .map_err(LexLeanError::from_diagnostic)?;
     for (name, checked_module) in &checked.modules {
         let lean_emitter = crate::backend::lean::render_module(
             checked_module,
@@ -381,6 +386,12 @@ pub fn render_build(
         files.push((map_path, map_bytes));
         files.push((coverage_path, coverage_bytes));
         files.push((closure_path, closure_json));
+        if let Some(bend_emitter) = bend_emitters.get(name) {
+            let bend_path = crate::backend::bend::module_path(&lean_module);
+            let bend_bytes = bend_emitter.text().as_bytes().to_vec();
+            outputs.push(file_row("bend", &bend_path, &bend_bytes));
+            files.push((bend_path, bend_bytes));
+        }
         // §17.13: the eligibility of every production root is a build
         // artifact, so the closure, effects, and dispositions that admitted
         // a root are content-addressed evidence beside the generated code.
@@ -428,6 +439,13 @@ pub fn render_build(
             lean_path,
             tex_path,
         });
+    }
+
+    if bend_prelude {
+        let (path, bytes) =
+            crate::backend::bend::prelude_artifact().map_err(LexLeanError::from_diagnostic)?;
+        outputs.push(file_row("bend-prelude", path, bytes));
+        files.push((path.to_owned(), bytes.to_vec()));
     }
 
     let mut inputs: Vec<FileRow> = Vec::new();

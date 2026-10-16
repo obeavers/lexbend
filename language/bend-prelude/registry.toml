@@ -1,0 +1,591 @@
+spec = "lexlean/bend-prelude/1"
+module = "LexLean.bend"
+imports = ["Base"]
+
+# Bend spellings of the core connectives. A placeholder is exactly `{NAME}`
+# for a NAME listed in `[core.holes]`; every other character is literal and
+# copied as written. Holes are parenthesised and every result is closed, so
+# templates nest without precedence analysis.
+[core]
+eq = "{({L}) == ({R}) : ({T})}"
+and = "(({A}) & ({B}))"
+or = "Either<&1, &1, ({A}), ({B})>"
+not = "(({A}) -> Empty)"
+iff = "((({A}) -> ({B})) & (({B}) -> ({A})))"
+exists = "(&{x}: ({A}) -> ({P}))"
+
+[core.holes]
+eq = ["L", "R", "T"]
+and = ["A", "B"]
+or = ["A", "B"]
+not = ["A"]
+iff = ["A", "B"]
+exists = ["x", "A", "P"]
+
+# Literal spellings. `{M}` is the alias the emitted file imports this
+# module under; a negative Int `-(k + 1)` is spelled with K = k.
+[literal]
+nat = "{N}n"
+int_nonneg = "{M}.ofNat{{N}n}"
+int_negsucc = "{M}.negSucc{{K}n}"
+
+[literal.holes]
+nat = ["N"]
+int_nonneg = ["M", "N"]
+int_negsucc = ["M", "K"]
+
+[[assumption]]
+name = "excluded-middle"
+bend_type = "Lean.Assume.excluded_middle()"
+lean = ["Classical.em"]
+
+[[assumption]]
+name = "choice"
+bend_type = "Lean.Assume.choice()"
+lean = ["Classical.choice"]
+
+[[assumption]]
+name = "propext"
+bend_type = "Lean.Assume.propext()"
+lean = ["propext"]
+
+[[assumption]]
+name = "funext"
+bend_type = "Lean.Assume.funext()"
+lean = ["funext"]
+
+[[constant]]
+lean = "And.intro"
+signature = "(pi ((implicit a (sort prop)) (implicit b (sort prop)) (explicit left (local a)) (explicit right (local b))) (app (const lexlean.core::land) (local a) (local b)))"
+bend = "Lean.And.intro"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Bool"
+signature = "(sort (type 0))"
+bend = "Bool"
+kind = "type"
+origin = "base"
+prefix = []
+
+[[constant]]
+lean = "Bool.and"
+signature = "(pi ((explicit a (const lexlean.std.bool::bool)) (explicit b (const lexlean.std.bool::bool))) (const lexlean.std.bool::bool))"
+bend = "Lean.Bool.and"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Bool.false"
+signature = "(const lexlean.std.bool::bool)"
+bend = "False{}"
+kind = "constructor"
+origin = "base"
+prefix = []
+
+[[constant]]
+lean = "Bool.not"
+signature = "(pi ((explicit a (const lexlean.std.bool::bool))) (const lexlean.std.bool::bool))"
+bend = "Lean.Bool.not"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Bool.or"
+signature = "(pi ((explicit a (const lexlean.std.bool::bool)) (explicit b (const lexlean.std.bool::bool))) (const lexlean.std.bool::bool))"
+bend = "Lean.Bool.or"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Bool.true"
+signature = "(const lexlean.std.bool::bool)"
+bend = "True{}"
+kind = "constructor"
+origin = "base"
+prefix = []
+
+[[constant]]
+lean = "Classical.em"
+signature = "(pi ((explicit p (sort prop))) (app (const lexlean.core::lor) (local p) (app (const lexlean.core::lnot) (local p))))"
+bend = "excluded-middle"
+kind = "assumption"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Eq.symm"
+signature = "(pi ((implicit a (sort (type u))) (implicit x (local a)) (implicit y (local a)) (explicit h (app (const lexlean.core::eq) (local x) (local y)))) (app (const lexlean.core::eq) (local y) (local x)))"
+bend = "Lean.Eq.symm"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Eq.trans"
+signature = "(pi ((implicit a (sort (type u))) (implicit x (local a)) (implicit y (local a)) (implicit z (local a)) (explicit h1 (app (const lexlean.core::eq) (local x) (local y))) (explicit h2 (app (const lexlean.core::eq) (local y) (local z)))) (app (const lexlean.core::eq) (local x) (local z)))"
+bend = "Lean.Eq.trans"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Exists.intro"
+signature = "(pi ((implicit a (sort (type u))) (implicit p (pi ((explicit x (local a))) (sort prop))) (explicit w (local a)) (explicit h (app (local p) (local w)))) (app (const lexlean.core::exists-op) (lam ((explicit x (local a))) (app (local p) (local x)))))"
+bend = "Lean.Exists.intro"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Iff.intro"
+signature = "(pi ((implicit a (sort prop)) (implicit b (sort prop)) (explicit mp (pi ((explicit h (local a))) (local b))) (explicit mpr (pi ((explicit h (local b))) (local a)))) (app (const lexlean.core::iff) (local a) (local b)))"
+bend = "Lean.Iff.intro"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Int"
+signature = "(sort (type 0))"
+bend = "Lean.Int"
+kind = "type"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Int.add"
+signature = "(pi ((explicit a (const lexlean.std.int::int)) (explicit b (const lexlean.std.int::int))) (const lexlean.std.int::int))"
+bend = "Lean.Int.add"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Int.ediv"
+signature = "(pi ((explicit a (const lexlean.std.int::int)) (explicit b (const lexlean.std.int::int))) (const lexlean.std.int::int))"
+bend = "Lean.Int.ediv"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Int.emod"
+signature = "(pi ((explicit a (const lexlean.std.int::int)) (explicit b (const lexlean.std.int::int))) (const lexlean.std.int::int))"
+bend = "Lean.Int.emod"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Int.le"
+signature = "(pi ((explicit a (const lexlean.std.int::int)) (explicit b (const lexlean.std.int::int))) (sort prop))"
+bend = "Lean.Int.le"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Int.lt"
+signature = "(pi ((explicit a (const lexlean.std.int::int)) (explicit b (const lexlean.std.int::int))) (sort prop))"
+bend = "Lean.Int.lt"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Int.mul"
+signature = "(pi ((explicit a (const lexlean.std.int::int)) (explicit b (const lexlean.std.int::int))) (const lexlean.std.int::int))"
+bend = "Lean.Int.mul"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Int.neg"
+signature = "(pi ((explicit a (const lexlean.std.int::int))) (const lexlean.std.int::int))"
+bend = "Lean.Int.neg"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Int.sign"
+signature = "(pi ((explicit a (const lexlean.std.int::int))) (const lexlean.std.int::int))"
+bend = "Lean.Int.sign"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Int.sub"
+signature = "(pi ((explicit a (const lexlean.std.int::int)) (explicit b (const lexlean.std.int::int))) (const lexlean.std.int::int))"
+bend = "Lean.Int.sub"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "List"
+signature = "(pi ((explicit a (sort (type 0)))) (sort (type 0)))"
+bend = "List"
+kind = "type"
+origin = "base"
+form = "list"
+template = "List<&2, ({A})>"
+prefix = []
+
+[[constant]]
+lean = "List"
+signature = "(pi ((explicit a (sort (type u)))) (sort (type u)))"
+bend = "List"
+kind = "type"
+origin = "base"
+form = "list"
+template = "List<&2, ({A})>"
+prefix = []
+
+[[constant]]
+lean = "List.Mem"
+signature = "(pi ((explicit a (const lexlean.std.nat::nat)) (explicit l (app (const lexlean.std.nat::list) (const lexlean.std.nat::nat)))) (sort prop))"
+bend = "Lean.List.Mem"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "List.Subset"
+signature = "(pi ((explicit a (app (const lexlean.std.nat::list) (const lexlean.std.nat::nat))) (explicit b (app (const lexlean.std.nat::list) (const lexlean.std.nat::nat)))) (sort prop))"
+bend = "Lean.List.Subset"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "List.append"
+signature = "(pi ((explicit a (app (const lexlean.std.nat::list) (const lexlean.std.nat::nat))) (explicit b (app (const lexlean.std.nat::list) (const lexlean.std.nat::nat)))) (app (const lexlean.std.nat::list) (const lexlean.std.nat::nat)))"
+bend = "Lean.List.append"
+kind = "def"
+origin = "prelude"
+prefix = ["Nat"]
+
+[[constant]]
+lean = "List.append"
+signature = "(pi ((implicit a (sort (type u))) (explicit xs (app (const example.list::list) (local a))) (explicit ys (app (const example.list::list) (local a)))) (app (const example.list::list) (local a)))"
+bend = "Lean.List.append"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "List.cons"
+signature = "(pi ((implicit a (sort (type u))) (explicit x (local a)) (explicit xs (app (const example.list::list) (local a)))) (app (const example.list::list) (local a)))"
+bend = "Lean.List.cons"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "List.length"
+signature = "(pi ((implicit a (sort (type u))) (explicit xs (app (const example.list::list) (local a)))) (const lexlean.std.nat::nat))"
+bend = "Lean.List.length"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "List.length_append"
+signature = "(pi ((implicit a (sort (type u))) (implicit xs (app (const example.list::list) (local a))) (implicit ys (app (const example.list::list) (local a)))) (app (const lexlean.core::eq) (app (const example.list::len) (app (const example.list::append) (local xs) (local ys))) (app (const lexlean.std.nat::add) (app (const example.list::len) (local xs)) (app (const example.list::len) (local ys)))))"
+bend = "Lean.List.length_append"
+kind = "law"
+origin = "prelude"
+prefix = []
+live = ["xs", "ys"]
+
+[[constant]]
+lean = "List.nil"
+signature = "(pi ((implicit a (sort (type u)))) (app (const example.list::list) (local a)))"
+bend = "Lean.List.nil"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "List.removeAll"
+signature = "(pi ((explicit a (app (const lexlean.std.nat::list) (const lexlean.std.nat::nat))) (explicit b (app (const lexlean.std.nat::list) (const lexlean.std.nat::nat)))) (app (const lexlean.std.nat::list) (const lexlean.std.nat::nat)))"
+bend = "Lean.List.removeAll"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat"
+signature = "(sort (type 0))"
+bend = "Nat"
+kind = "type"
+origin = "base"
+prefix = []
+
+[[constant]]
+lean = "Nat.add"
+signature = "(pi ((explicit a (const lexlean.std.nat::nat)) (explicit b (const lexlean.std.nat::nat))) (const lexlean.std.nat::nat))"
+bend = "Lean.Nat.add"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.add_assoc"
+signature = "(pi ((explicit n (const lexlean.std.nat::nat)) (explicit m (const lexlean.std.nat::nat)) (explicit k (const lexlean.std.nat::nat))) (app (const lexlean.core::eq) (app (const lexlean.std.nat::add) (app (const lexlean.std.nat::add) (local n) (local m)) (local k)) (app (const lexlean.std.nat::add) (local n) (app (const lexlean.std.nat::add) (local m) (local k)))))"
+bend = "Lean.Nat.add_assoc"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.add_comm"
+signature = "(pi ((explicit n (const lexlean.std.nat::nat)) (explicit m (const lexlean.std.nat::nat))) (app (const lexlean.core::eq) (app (const lexlean.std.nat::add) (local n) (local m)) (app (const lexlean.std.nat::add) (local m) (local n))))"
+bend = "Lean.Nat.add_comm"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.add_succ"
+signature = "(pi ((explicit n (const lexlean.std.nat::nat)) (explicit m (const lexlean.std.nat::nat))) (app (const lexlean.core::eq) (app (const lexlean.std.nat::add) (local n) (app (const lexlean.std.nat::succ) (local m))) (app (const lexlean.std.nat::succ) (app (const lexlean.std.nat::add) (local n) (local m)))))"
+bend = "Lean.Nat.add_succ"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.beq"
+signature = "(pi ((explicit a (const lexlean.std.nat::nat)) (explicit b (const lexlean.std.nat::nat))) (const lexlean.std.bool::bool))"
+bend = "Lean.Nat.beq"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.ble"
+signature = "(pi ((explicit a (const lexlean.std.nat::nat)) (explicit b (const lexlean.std.nat::nat))) (const lexlean.std.bool::bool))"
+bend = "Lean.Nat.ble"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.blt"
+signature = "(pi ((explicit a (const lexlean.std.nat::nat)) (explicit b (const lexlean.std.nat::nat))) (const lexlean.std.bool::bool))"
+bend = "Lean.Nat.blt"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.div"
+signature = "(pi ((explicit a (const lexlean.std.nat::nat)) (explicit b (const lexlean.std.nat::nat))) (const lexlean.std.nat::nat))"
+bend = "Lean.Nat.div"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.le"
+signature = "(pi ((explicit a (const lexlean.std.nat::nat)) (explicit b (const lexlean.std.nat::nat))) (sort prop))"
+bend = "Lean.Nat.le"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.le_refl"
+signature = "(pi ((explicit n (const lexlean.std.nat::nat))) (app (const lexlean.std.nat::le) (local n) (local n)))"
+bend = "Lean.Nat.le_refl"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.le_succ"
+signature = "(pi ((explicit n (const lexlean.std.nat::nat))) (app (const lexlean.std.nat::le) (local n) (app (const lexlean.std.nat::succ) (local n))))"
+bend = "Lean.Nat.le_succ"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.le_trans"
+signature = "(pi ((implicit n (const lexlean.std.nat::nat)) (implicit m (const lexlean.std.nat::nat)) (implicit k (const lexlean.std.nat::nat)) (explicit h1 (app (const lexlean.std.nat::le) (local n) (local m))) (explicit h2 (app (const lexlean.std.nat::le) (local m) (local k)))) (app (const lexlean.std.nat::le) (local n) (local k)))"
+bend = "Lean.Nat.le_trans"
+kind = "law"
+origin = "prelude"
+prefix = []
+live = ["n", "m", "k"]
+
+[[constant]]
+lean = "Nat.lt"
+signature = "(pi ((explicit a (const lexlean.std.nat::nat)) (explicit b (const lexlean.std.nat::nat))) (sort prop))"
+bend = "Lean.Nat.lt"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.mul"
+signature = "(pi ((explicit a (const lexlean.std.nat::nat)) (explicit b (const lexlean.std.nat::nat))) (const lexlean.std.nat::nat))"
+bend = "Lean.Nat.mul"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.mul_assoc"
+signature = "(pi ((explicit n (const lexlean.std.nat::nat)) (explicit m (const lexlean.std.nat::nat)) (explicit k (const lexlean.std.nat::nat))) (app (const lexlean.core::eq) (app (const lexlean.std.nat::mul) (app (const lexlean.std.nat::mul) (local n) (local m)) (local k)) (app (const lexlean.std.nat::mul) (local n) (app (const lexlean.std.nat::mul) (local m) (local k)))))"
+bend = "Lean.Nat.mul_assoc"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.mul_comm"
+signature = "(pi ((explicit n (const lexlean.std.nat::nat)) (explicit m (const lexlean.std.nat::nat))) (app (const lexlean.core::eq) (app (const lexlean.std.nat::mul) (local n) (local m)) (app (const lexlean.std.nat::mul) (local m) (local n))))"
+bend = "Lean.Nat.mul_comm"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.mul_one"
+signature = "(pi ((explicit n (const lexlean.std.nat::nat))) (app (const lexlean.core::eq) (app (const lexlean.std.nat::mul) (local n) (nat 1)) (local n)))"
+bend = "Lean.Nat.mul_one"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.one_mul"
+signature = "(pi ((explicit n (const lexlean.std.nat::nat))) (app (const lexlean.core::eq) (app (const lexlean.std.nat::mul) (nat 1) (local n)) (local n)))"
+bend = "Lean.Nat.one_mul"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.sub"
+signature = "(pi ((explicit a (const lexlean.std.nat::nat)) (explicit b (const lexlean.std.nat::nat))) (const lexlean.std.nat::nat))"
+bend = "Lean.Nat.sub"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.succ"
+signature = "(pi ((explicit n (const lexlean.std.nat::nat))) (const lexlean.std.nat::nat))"
+bend = "Lean.Nat.succ"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.succ_add"
+signature = "(pi ((explicit n (const lexlean.std.nat::nat)) (explicit m (const lexlean.std.nat::nat))) (app (const lexlean.core::eq) (app (const lexlean.std.nat::add) (app (const lexlean.std.nat::succ) (local n)) (local m)) (app (const lexlean.std.nat::succ) (app (const lexlean.std.nat::add) (local n) (local m)))))"
+bend = "Lean.Nat.succ_add"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.succ_ne_zero"
+signature = "(pi ((explicit n (const lexlean.std.nat::nat))) (app (const lexlean.std.nat::ne) (app (const lexlean.std.nat::succ) (local n)) (nat 0)))"
+bend = "Lean.Nat.succ_ne_zero"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.two_mul"
+signature = "(pi ((explicit n (const lexlean.std.nat::nat))) (app (const lexlean.core::eq) (app (const lexlean.std.nat::mul) (nat 2) (local n)) (app (const lexlean.std.nat::add) (local n) (local n))))"
+bend = "Lean.Nat.two_mul"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.zero"
+signature = "(const lexlean.std.nat::nat)"
+bend = "0n"
+kind = "constructor"
+origin = "base"
+prefix = []
+
+[[constant]]
+lean = "Nat.zero_add"
+signature = "(pi ((explicit n (const lexlean.std.nat::nat))) (app (const lexlean.core::eq) (app (const lexlean.std.nat::add) (nat 0) (local n)) (local n)))"
+bend = "Lean.Nat.zero_add"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Nat.zero_lt_succ"
+signature = "(pi ((explicit n (const lexlean.std.nat::nat))) (app (const lexlean.std.nat::lt) (nat 0) (app (const lexlean.std.nat::succ) (local n))))"
+bend = "Lean.Nat.zero_lt_succ"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Or.inl"
+signature = "(pi ((implicit a (sort prop)) (implicit b (sort prop)) (explicit h (local a))) (app (const lexlean.core::lor) (local a) (local b)))"
+bend = "Lean.Or.inl"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Or.inr"
+signature = "(pi ((implicit a (sort prop)) (implicit b (sort prop)) (explicit h (local b))) (app (const lexlean.core::lor) (local a) (local b)))"
+bend = "Lean.Or.inr"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "Prod"
+signature = "(pi ((explicit a (sort (type 0))) (explicit b (sort (type 0)))) (sort (type 0)))"
+bend = "Lean.Prod"
+kind = "type"
+origin = "prelude"
+form = "pair"
+template = "{M}.Lean.Prod(({A}), ({B}))"
+prefix = []
+
+[[constant]]
+lean = "absurd"
+signature = "(pi ((implicit a (sort prop)) (implicit b (sort (type u))) (explicit h1 (local a)) (explicit h2 (app (const lexlean.core::lnot) (local a)))) (local b))"
+bend = "Lean.absurd"
+kind = "def"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "congrArg"
+signature = "(pi ((implicit a (sort (type u))) (implicit b (sort (type v))) (implicit x (local a)) (implicit y (local a)) (explicit f (pi ((explicit z (local a))) (local b))) (explicit h (app (const lexlean.core::eq) (local x) (local y)))) (app (const lexlean.core::eq) (app (local f) (local x)) (app (local f) (local y))))"
+bend = "Lean.congrArg"
+kind = "law"
+origin = "prelude"
+prefix = []
+
+[[constant]]
+lean = "rfl"
+signature = "(pi ((implicit a (sort (type u))) (implicit x (local a))) (app (const lexlean.core::eq) (local x) (local x)))"
+bend = "Lean.rfl"
+kind = "law"
+origin = "prelude"
+prefix = []

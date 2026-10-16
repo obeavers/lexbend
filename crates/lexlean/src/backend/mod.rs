@@ -2,6 +2,7 @@
 //! one linked IR (I7), with complete output coverage and source mappings
 //! (I13). Neither backend accepts an opaque bypass (I6).
 
+pub mod bend;
 pub mod core;
 pub mod core_v2;
 pub mod latex;
