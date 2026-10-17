@@ -906,6 +906,11 @@ fn conformance_bn_18() {
 }
 
 #[test]
+fn conformance_bn_19() {
+    repo_conformance::cases::run("BN-19");
+}
+
+#[test]
 fn conformance_tx_01() {
     repo_conformance::cases::run("TX-01");
 }

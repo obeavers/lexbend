@@ -1,5 +1,5 @@
-//! The `bend-backend` suite: BN-01..BN-09 (SPEC.md §18.10); the language-2.2
-//! rows are `bend_semantic`'s.
+//! The `bend-backend` suite: BN-01..BN-09 and BN-19 (SPEC.md §18.10); the
+//! other language-2.2 rows are `bend_semantic`'s.
 
 use std::collections::BTreeSet;
 
@@ -573,6 +573,60 @@ pub(crate) fn run(id: &str) {
                     "{}",
                     results[0].2
                 );
+            }
+        }
+        // §18.10.6, §18.11.6: a numeral past Bend's largest literal lowers
+        // to its Horner form over the prelude in both languages, and Bend
+        // checks a proof that never evaluates it in full.
+        "BN-19" => {
+            let mul = |a: &str, b: &str| format!("L.Lean.Nat.mul({a}, {b})");
+            let add = |a: &str, b: &str| format!("L.Lean.Nat.add({a}, {b})");
+            // 2^32 and 2^64: zero digits under a one, so no `add`.
+            let two_32 = mul(&mul("1n", "65536n"), "65536n");
+            let two_64 = mul(&mul(&two_32, "65536n"), "65536n");
+            // 2^64 - 1, the magnitude `negSucc` carries for -2^64.
+            let mut below_64 = "65535n".to_owned();
+            for _ in 0..3 {
+                below_64 = add(&mul(&below_64, "65536n"), "65535n");
+            }
+            let two_zero = project_with(&theorem_module(
+                "For every natural number \\(n\\), \\(n + 4294967296 = n + 4294967296\\).",
+                "Close the goal by reflexivity.",
+            ));
+            two_zero.check_ok();
+            let build = support::rendered(&two_zero);
+            let text = module_bend(&build, "LexLeanExample/Main");
+            assert!(
+                text.contains(&format!("L.Lean.Nat.add(llv0, {two_32})")),
+                "language 2.0 spells 2^32 by Horner's rule: {text}"
+            );
+            let project = P::copy_example("bend-reflection");
+            let main = project.read_raw("src/Main.lex.tex");
+            let large = main.replace(
+                "\\end{semanticmodule}",
+                "definition{\n  name: largestLiteral,\n  parameters: [],\n  result: Nat,\n  body: 4294967295\n}\n\ndefinition{\n  name: wordModulus,\n  parameters: [],\n  result: Nat,\n  body: 18446744073709551616\n}\n\ndefinition{\n  name: lowestWord,\n  parameters: [],\n  result: Int,\n  body: (-18446744073709551616 : Int)\n}\n\ndefinition{\n  name: belowWord,\n  parameters: [value : Nat],\n  result: Bool,\n  body: (value <? 18446744073709551616)\n}\n\ntheorem{\n  name: zero_below_word,\n  parameters: [],\n  statement: ((belowWord 0) = true),\n  proof: reflexivity{}\n}\n\\end{semanticmodule}",
+            );
+            project.write("src/Main.lex.tex", &large);
+            let build = support::rendered(&project);
+            let text = module_bend(&build, "Reflection/Main");
+            assert!(
+                text.contains("4294967295n"),
+                "the largest literal stays one: {text}"
+            );
+            assert!(
+                text.matches(two_64.as_str()).count() >= 2,
+                "language 2.2 spells 2^64 by Horner's rule in both definitions: {text}"
+            );
+            assert!(
+                text.contains(&below_64) && text.contains("negSucc"),
+                "-2^64 is `negSucc` of 2^64 - 1: {text}"
+            );
+            if support::bend_backed(id) {
+                for build in [support::rendered(&two_zero), build] {
+                    for (path, accepted, output) in check_build(&build) {
+                        assert!(accepted, "{path}: {output}");
+                    }
+                }
             }
         }
         other => super::bend_semantic::run(other),

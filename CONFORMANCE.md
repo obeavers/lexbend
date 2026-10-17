@@ -77,6 +77,7 @@ the error registry does not sanction (R5, `ERRORS.md`).
 | `BN-16` | `build` | The language-2.2 support modules import only Base and the prelude and check under the pinned Bend, and every runtime registry row names a function, law, type, or constructor the runtime defines. |
 | `BN-17` | `build` | A language-2.2 reasoning declaration is a hard error naming the theorem it generates. |
 | `BN-18` | `build` | The generated Bend of every language-2.2 example module checks and exports under the pinned Bend with every proof accepted. |
+| `BN-19` | `build` | A language-2.0 or 2.2 numeral above 4294967295 lowers to its base-65536 Horner form over the prelude's Lean.Nat.add and Lean.Nat.mul, and the pinned Bend accepts a proof that uses it without evaluating it in full. |
 
 ## calculus
 

@@ -1089,6 +1089,12 @@ suite = "bend-backend"
 statement = "The generated Bend of every language-2.2 example module checks and exports under the pinned Bend with every proof accepted."
 
 [[id]]
+id = "BN-19"
+level = "build"
+suite = "bend-backend"
+statement = "A language-2.0 or 2.2 numeral above 4294967295 lowers to its base-65536 Horner form over the prelude's Lean.Nat.add and Lean.Nat.mul, and the pinned Bend accepts a proof that uses it without evaluating it in full."
+
+[[id]]
 id = "TX-01"
 level = "build"
 suite = "latex-pdf"

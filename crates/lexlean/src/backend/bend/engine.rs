@@ -11,6 +11,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
+use crate::backend::bend::numeral;
 use crate::backend::bend::prelude::{ConstantKind, Registry, TypeForm, PRELUDE_ALIAS};
 use crate::backend::bend::syntax::{BTerm, Name};
 use crate::code;
@@ -1308,25 +1309,15 @@ impl<'a> Engine<'a> {
         let normal = self.whnf(expected_type)?;
         let (head, _) = spine(&normal);
         if let Term::Global(GlobalRef::External(external), _) = head {
-            let row = self.require_row(external)?;
-            let value: u64 = decimal.parse().map_err(|_| {
-                fail(format!(
-                    "the numeral `{decimal}` exceeds Bend's literal range"
-                ))
-            })?;
-            if value > u64::from(u32::MAX) {
-                return Err(fail(format!(
-                    "the numeral `{decimal}` exceeds Bend's `Nat` literal range (at most 4294967295)"
-                )));
-            }
-            return match row.bend.as_str() {
-                "Nat" => Ok(BTerm::Nat(decimal.to_owned())),
+            let kind = self.require_row(external)?.bend.clone();
+            let magnitude = numeral::term(decimal, |bend| self.prelude(bend, Origin::Numeral))
+                .ok_or_else(|| fail(format!("the numeral `{decimal}` is not a natural number")));
+            return match kind.as_str() {
+                "Nat" => magnitude,
                 "Lean.Int" => {
+                    let magnitude = magnitude?;
                     let head = self.prelude("ofNat", Origin::Numeral);
-                    Ok(BTerm::Constructor(
-                        head,
-                        vec![BTerm::Nat(decimal.to_owned())],
-                    ))
+                    Ok(BTerm::Constructor(head, vec![magnitude]))
                 }
                 other => Err(fail(format!(
                     "a numeral of type `{other}` has no Bend lowering"
