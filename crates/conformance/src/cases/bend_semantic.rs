@@ -332,6 +332,19 @@ pub(crate) fn run(id: &str) {
                 text.contains("law ten_is_even:\n  {isEven(10n) == True{} : Bool}\n\ndef ten_is_even():\n  {==}\n"),
                 "`decide` on a closed goal is evaluation"
             );
+            assert!(
+                text.contains("def or_associative(a, b, c):\n  match a:\n    case True{}:\n      match b:\n        case True{}:\n          match c:\n"),
+                "`decide` matches every Boolean its statement quantifies"
+            );
+            assert!(
+                text.contains("less_next(previous, 1n+smaller))")
+                    && text.contains("less_successor.ll_ind1(previous, smaller)"),
+                "a rule over `n + 1` rewrites a successor, so the hypothesis applies"
+            );
+            assert!(
+                text.contains("any_high_join.ll_ind1(rest, back)"),
+                "a hypothesis over a generic call at a local type rewrites"
+            );
             if support::bend_backed(id) {
                 let (dir, modules) = generated_modules(&build);
                 for path in modules {
@@ -348,6 +361,16 @@ pub(crate) fn run(id: &str) {
                 assert!(
                     !accepted,
                     "an induction stepping the wrong successor is refused"
+                );
+                let (accepted, output) = check_planted(&recursion, "Recursion/Main", &|text| {
+                    let head = "def or_associative(a, b, c):\n";
+                    let start = text.find(head).expect("the decided law's proof");
+                    let end = start + text[start..].find("\n\n").expect("its end");
+                    format!("{}{head}  {{==}}{}", &text[..start], &text[end..])
+                });
+                assert!(
+                    !accepted && output.starts_with("SOME PROOFS FAIL"),
+                    "a Boolean statement left unsplit is refused: {output}"
                 );
             }
         }
@@ -703,6 +726,18 @@ pub(crate) fn run(id: &str) {
                     && main.contains("    case False{}:\n      ll_k63(Unit{})\n"),
                 "the recursive call is passed in as a function the recursing branch applies"
             );
+            assert!(
+                main.contains("def ll_match66(~ll_E_step: Data, ~step: @+ll_e: ll_E_step -> @+x: Nat -> Nat, +ll_v67: Bool, +ll_env_step: ll_E_step, +value: Nat) -> Nat:\n")
+                    && main.contains("      applyTwice(~ll_E_step, ~step, ll_env_step, value)\n")
+                    && main.contains("  ll_match66(~ll_E_step, ~step, L.Lean.Nat.beq(value, 0n), ll_env_step, value)\n"),
+                "a function parameter reaches the auxiliary as its code and environment"
+            );
+            assert!(
+                main.contains(
+                    "  +scale = L.Lean.Nat.add(factor, factor)\n  ll_match68(values, scale)\n"
+                ),
+                "a match after a `let` on a local bound before it is lifted"
+            );
             if support::bend_backed(id) {
                 let (dir, generated) = generated_modules(&build);
                 for path in generated {
@@ -721,6 +756,17 @@ pub(crate) fn run(id: &str) {
                     "a function recursing on the whole list is refused"
                 );
                 assert!(output.starts_with("SOME PROOFS FAIL"), "{output}");
+                let (accepted, output) = check_planted(&build, "Recursion/Main", &|text| {
+                    replace_one(
+                        text,
+                        "applyTwice(~ll_E_step, ~step, ll_env_step, value)",
+                        "applyTwice(~ll_E_step, ~step, ll_env_step, 0n)",
+                    )
+                });
+                assert!(
+                    !accepted && output.starts_with("SOME PROOFS FAIL"),
+                    "the passed function is the one applied: {output}"
+                );
             }
         }
         other => panic!("no language-2.2 bend-backend case is wired for {other}"),

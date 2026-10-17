@@ -104,7 +104,7 @@ Feature: bend-backend
     And every module checks, while the call passing undiminished fuel and the call passing `S.Sem.lt_succ(number)` as evidence are each refused
 
   @BN-14 @build
-  Scenario: Language-2.2 proofs lower to explicit Bend terms, including linear arithmetic, decide, congruence, and boolean reflection, and the pinned Bend refuses a reflection whose induction steps the wrong successor.
+  Scenario: Language-2.2 proofs lower to explicit Bend terms, including linear arithmetic, decide by splitting every Boolean it quantifies, simplification that matches a successor in any of its forms, congruence, and boolean reflection, and the pinned Bend refuses a reflection whose induction steps the wrong successor.
     Given the language-2.2 reflection and recursion examples
     When their generated Bend is read and the reflection module is checked, then checked with the forward induction stepping `ll_p + 2`
     Then the record reflection is `LA.sound` each way, the list reflection is a forward and a backward induction whose proposition proof is affine, and `decide` on `isEven 10` is `{==}`
@@ -162,7 +162,7 @@ Feature: bend-backend
     And every module prints exactly `ALL PROOFS CHECK`, and a planted wrong fold result is refused
 
   @BN-23 @build
-  Scenario: A language-2.2 match on a computed value, or on a local bound before one an enclosing match has opened, lowers to an auxiliary definition, each recursive call in its branches passed in as a function over a piece of the decreasing argument, and the pinned Bend checks it.
+  Scenario: A language-2.2 match on a computed value, or on a local bound before a `let` or before one an enclosing match has opened, lowers to an auxiliary definition that receives each function parameter it uses as its code and environment, each recursive call in its branches passed in as a function over a piece of the decreasing argument, and the pinned Bend checks it.
     Given the language-2.2 recursion example's `secondOfTwo`, which matches a list's second element after matching the list's tail, and `firstEven`, which matches `isEven` of a list's head and recurses on its tail in one branch
     When its generated `Main` Bend is read and checked by the pinned Bend
     Then the match on the element is an auxiliary definition that takes the element as its parameter

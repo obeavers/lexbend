@@ -38,6 +38,19 @@ pub struct Closure {
     pub env_type: BTerm,
 }
 
+impl Closure {
+    /// The name of the environment's template type, which the parameter
+    /// binds.
+    pub fn env_type_name(&self) -> Result<String, Diagnostic> {
+        match &self.env_type {
+            BTerm::Name(name) => Ok(name.text.clone()),
+            _ => Err(fail(
+                "a converted parameter's environment type is not a name",
+            )),
+        }
+    }
+}
+
 /// One converted function argument: its environment type, its closed code,
 /// and its environment value.
 pub(super) struct Converted {

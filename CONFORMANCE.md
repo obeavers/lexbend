@@ -72,7 +72,7 @@ the error registry does not sanction (R5, `ERRORS.md`).
 | `BN-11` | `build` | Language-2.2 type parameters lower to templates and function parameters are closure-converted, and a higher-order function passed as a value is a hard error. |
 | `BN-12` | `build` | A language-2.2 mutual group lowers by inlining with every member's name kept, and a well-founded definition in a mutual group is a hard error. |
 | `BN-13` | `build` | A language-2.2 well-founded definition lowers to proof-carrying fuel whose every recursive call carries its decrease evidence, and the pinned Bend refuses a call that consumes no fuel or whose evidence does not establish the decrease. |
-| `BN-14` | `build` | Language-2.2 proofs lower to explicit Bend terms, including linear arithmetic, decide, congruence, and boolean reflection, and the pinned Bend refuses a reflection whose induction steps the wrong successor. |
+| `BN-14` | `build` | Language-2.2 proofs lower to explicit Bend terms, including linear arithmetic, decide by splitting every Boolean it quantifies, simplification that matches a successor in any of its forms, congruence, and boolean reflection, and the pinned Bend refuses a reflection whose induction steps the wrong successor. |
 | `BN-15` | `build` | Every language-2.2 model cross-check restates its obligation against the Bend runtime's LexLeanModels and is proved by its discharging theorem or by evaluation, and a restatement that drifts is refused by the pinned Bend. |
 | `BN-16` | `build` | The language-2.2 support modules import only Base and the prelude and check under the pinned Bend, and every runtime registry row names a function, law, type, or constructor the runtime defines. |
 | `BN-17` | `build` | A language-2.2 reasoning declaration is a hard error naming the theorem it generates. |
@@ -81,7 +81,7 @@ the error registry does not sanction (R5, `ERRORS.md`).
 | `BN-20` | `build` | Language-2.2 equality of two orderings lowers to the Bend runtime's LexLeanRuntime.equal.Ordering, which is true exactly when both are the same ordering, as Lean's derived equality is. |
 | `BN-21` | `build` | A language-2.2 mutual group whose members recurse simultaneously over one type lowers to one Bend definition over that type and a generated selector of the member, every member keeping its name and signature, and the pinned Bend checks it. |
 | `BN-22` | `build` | A language-2.2 nested or mutual inductive that a simultaneous mutual group recurses over lowers to one Bend type indexed by its base and nested list types, each constructor carrying the equation of its index, and the pinned Bend checks the groups over it. |
-| `BN-23` | `build` | A language-2.2 match on a computed value, or on a local bound before one an enclosing match has opened, lowers to an auxiliary definition, each recursive call in its branches passed in as a function over a piece of the decreasing argument, and the pinned Bend checks it. |
+| `BN-23` | `build` | A language-2.2 match on a computed value, or on a local bound before a `let` or before one an enclosing match has opened, lowers to an auxiliary definition that receives each function parameter it uses as its code and environment, each recursive call in its branches passed in as a function over a piece of the decreasing argument, and the pinned Bend checks it. |
 
 ## calculus
 

@@ -187,4 +187,61 @@ public theorem second_of_two_zero : (secondOfTwo ((5 :: (0 :: ([] : List (Nat)))
 public theorem first_even : (firstEven ((3 :: (5 :: (8 :: (2 :: ([] : List (Nat))))))) = Option.some (8)) := by
   rfl
 
+@[expose] public def applyTwice (step : ((Nat) -> (Nat))) (value : Nat) : Nat := (step ((step (value))))
+
+@[expose] public def stepUnlessZero (step : ((Nat) -> (Nat))) (value : Nat) : Nat := (match (Nat.beq (value) (0)) with | Bool.true => 0 | Bool.false => applyTwice (step) (value))
+
+public theorem step_unless_zero : ((stepUnlessZero ((fun (n : Nat) => (n + 2))) (5) = 9) /\ (stepUnlessZero ((fun (n : Nat) => (n + 2))) (0) = 0)) := by
+  decide
+
+@[expose] public def scaledHead (values : List (Nat)) (factor : Nat) : Nat := (let scale : Nat := (factor + factor); (match values with | List.nil => scale | List.cons head _ => (head + scale)))
+
+public theorem scaled_head : ((scaledHead ((3 :: ([] : List (Nat)))) (2) = 7) /\ (scaledHead (([] : List (Nat))) (2) = 4)) := by
+  decide
+
+public theorem or_associative : (forall (a : Bool), (forall (b : Bool), (forall (c : Bool), (((a || b) || c) = (a || (b || c)))))) := by
+  decide
+
+public theorem less_next (left : Nat) (right : Nat) : ((Nat.blt ((left + 1)) ((right + 1))) = (Nat.blt (left) (right))) := by
+  rfl
+
+public theorem equal_next (left : Nat) (right : Nat) : ((Nat.beq ((left + 1)) ((right + 1))) = (Nat.beq (left) (right))) := by
+  rfl
+
+public theorem less_successor (item : Nat) (bound : Nat) : ((Nat.blt (item) ((bound + 1))) = ((Nat.blt (item) (bound)) || (Nat.beq (item) (bound)))) := by
+  induction item generalizing bound with
+  | zero =>
+    cases bound with
+    | zero =>
+      rfl
+    | succ smaller =>
+      rfl
+  | succ previous hypothesis =>
+    cases bound with
+    | zero =>
+      rfl
+    | succ smaller =>
+      simp only [equal_next, hypothesis, less_next]
+
+public inductive Signal where
+  | low
+  | high
+
+@[expose] public def isHigh (signal : Signal) : Bool := (match signal with | Signal.low => false | Signal.high => true)
+
+@[expose] public def joinAll (Item : Type) : (front : List (Item)) -> (back : List (Item)) -> List (Item)
+  | List.nil, back => back
+  | List.cons head rest, back => (head :: joinAll (Item) (rest) (back))
+
+@[expose] public def anyHigh : (signals : List (Signal)) -> Bool
+  | List.nil => false
+  | List.cons head rest => (isHigh (head) || anyHigh (rest))
+
+public theorem any_high_join (front : List (Signal)) (back : List (Signal)) : (anyHigh (joinAll (Signal) (front) (back)) = (anyHigh (front) || anyHigh (back))) := by
+  induction front with
+  | nil =>
+    rfl
+  | cons head rest hypothesis =>
+    simp only [anyHigh, hypothesis, joinAll, or_associative]
+
 end Recursion.Main

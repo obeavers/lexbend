@@ -429,5 +429,155 @@ theorem{
   statement: ((firstEven (cons 3 (cons 5 (cons 8 (cons 2 (nil Nat)))))) = (ctor Option.some [Nat] 8)),
   proof: reflexivity{}
 }
+
+definition{
+  name: applyTwice,
+  parameters: [step : (Fn (Nat) Nat), value : Nat],
+  result: Nat,
+  body: (apply step (apply step value))
+}
+
+definition{
+  name: stepUnlessZero,
+  parameters: [step : (Fn (Nat) Nat), value : Nat],
+  result: Nat,
+  body: (match (value =? 0) | Bool.true => 0 | Bool.false => (applyTwice step value))
+}
+
+theorem{
+  name: step_unless_zero,
+  parameters: [],
+  statement: (((stepUnlessZero (fun (n : Nat) => (n + 2)) 5) = 9) /\ ((stepUnlessZero (fun (n : Nat) => (n + 2)) 0) = 0)),
+  proof: decide{}
+}
+
+definition{
+  name: scaledHead,
+  parameters: [values : (List Nat), factor : Nat],
+  result: Nat,
+  body: (let scale : Nat := (factor + factor); (match values
+    | List.nil => scale
+    | List.cons head rest => (head + scale)))
+}
+
+theorem{
+  name: scaled_head,
+  parameters: [],
+  statement: (((scaledHead (cons 3 (nil Nat)) 2) = 7) /\ ((scaledHead (nil Nat) 2) = 4)),
+  proof: decide{}
+}
+
+theorem{
+  name: or_associative,
+  parameters: [],
+  statement: (forall (a : Bool), (forall (b : Bool), (forall (c : Bool), (((a || b) || c) = (a || (b || c)))))),
+  proof: decide{}
+}
+
+theorem{
+  name: less_next,
+  parameters: [left : Nat, right : Nat],
+  statement: (((left + 1) <? (right + 1)) = (left <? right)),
+  proof: reflexivity{}
+}
+
+theorem{
+  name: equal_next,
+  parameters: [left : Nat, right : Nat],
+  statement: (((left + 1) =? (right + 1)) = (left =? right)),
+  proof: reflexivity{}
+}
+
+theorem{
+  name: less_successor,
+  parameters: [item : Nat, bound : Nat],
+  statement: ((item <? (bound + 1)) = ((item <? bound) || (item =? bound))),
+  proof: induction{
+    branches: [
+      {
+        proof: cases{
+          branches: [
+            {proof: reflexivity{}, binders: [], constructor: zero},
+            {proof: reflexivity{}, binders: [smaller], constructor: succ}
+          ],
+          scrutinee: bound
+        },
+        binders: [],
+        constructor: zero
+      },
+      {
+        proof: cases{
+          branches: [
+            {proof: reflexivity{}, binders: [], constructor: zero},
+            {
+              proof: simplify{definitions: [equal_next, hypothesis, less_next]},
+              binders: [smaller],
+              constructor: succ
+            }
+          ],
+          scrutinee: bound
+        },
+        binders: [previous, hypothesis],
+        constructor: succ
+      }
+    ],
+    generalizing: [bound],
+    scrutinee: item
+  },
+  axioms: [propext]
+}
+
+inductive{
+  name: Signal,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: low, fields: []}, {name: high, fields: []}]
+}
+
+definition{
+  name: isHigh,
+  parameters: [signal : Signal],
+  result: Bool,
+  body: (match signal | Signal.low => false | Signal.high => true)
+}
+
+definition{
+  name: joinAll,
+  type_parameters: [Item],
+  parameters: [front : (List 'Item), back : (List 'Item)],
+  result: (List 'Item),
+  body: (match front
+    | List.nil => back
+    | List.cons head rest => (cons head (joinAll ['Item] rest back))),
+  recursive_argument: front
+}
+
+definition{
+  name: anyHigh,
+  parameters: [signals : (List Signal)],
+  result: Bool,
+  body: (match signals
+    | List.nil => false
+    | List.cons head rest => ((isHigh head) || (anyHigh rest))),
+  recursive_argument: signals
+}
+
+theorem{
+  name: any_high_join,
+  parameters: [front : (List Signal), back : (List Signal)],
+  statement: ((anyHigh (joinAll [Signal] front back)) = ((anyHigh front) || (anyHigh back))),
+  proof: induction{
+    branches: [
+      {proof: reflexivity{}, binders: [], constructor: nil},
+      {
+        proof: simplify{definitions: [anyHigh, hypothesis, joinAll, or_associative]},
+        binders: [head, rest, hypothesis],
+        constructor: cons
+      }
+    ],
+    scrutinee: front
+  },
+  axioms: [propext]
+}
 \end{semanticmodule}
 \end{lexlean}

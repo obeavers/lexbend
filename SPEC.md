@@ -7029,11 +7029,14 @@ inductive set some simultaneous group of the project recurses over is
 encoded this way; every other keeps its plain Bend type, which its inlined
 groups already walk. A proof that splits a value of a family is `LLB6008`.
 
-Bend matches only a parameter or a pattern variable, and only while no
-local bound after it has been matched. A match on a computed value, or on a
-local bound before one an enclosing statement match has opened, lowers to an
-auxiliary definition that takes the matched value as its parameter. The
-auxiliary lies above the definition it serves, so a recursive call in one of
+Bend matches only a parameter or a pattern variable, only while no local
+bound after it has been matched, and nothing bound before a local
+statement. A match on a computed value, or on a local bound before a `let`
+or before one an enclosing statement match has opened, lowers to an
+auxiliary definition that takes the matched value as its parameter and
+every free local after it; a function parameter it uses is passed on as it
+arrived, its environment type and code as templates and its environment as
+a value (§18.11.2). The auxiliary lies above the definition it serves, so a recursive call in one of
 its branches, of that definition or of a member of its group, is passed to
 it as a function over the callee's other arguments (over `Unit` when it has
 none), built around the call on the same decreasing argument, and the
@@ -7068,8 +7071,8 @@ term checked by Bend:
 
 | form | lowering |
 |---|---|
-| `reflexivity`, `decide` | `{==}` against the goal as stated, which Bend evaluates; a conjunction, biconditional, or implication is split, and a premise that evaluates to false refutes the goal |
-| `simplify` | the listed definitions' and rules' rewrites, each `%e : P` |
+| `reflexivity`, `decide` | `{==}` against the goal as stated, which Bend evaluates; `decide` first matches every Boolean the statement quantifies, as Lean evaluates the statement at each; a conjunction, biconditional, or implication is split, and a premise that evaluates to false refutes the goal |
+| `simplify` | the listed definitions' and rules' rewrites, each `%e : P`; a rule's `n + 1` matches `succ n` and a positive numeral, as `simp` sees them |
 | `constructor` | a pair of the branch proofs |
 | `cases`, `induction` | an auxiliary definition matching the scrutinee first; an induction hypothesis is the auxiliary's own call at the smaller field |
 | `apply` | the theorem's application |
@@ -9660,7 +9663,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `BN-11` | `bend-backend` | Language-2.2 type parameters lower to templates and function parameters are closure-converted, and a higher-order function passed as a value is a hard error. | §18.11.2 |
 | `BN-12` | `bend-backend` | A language-2.2 mutual group lowers by inlining with every member's name kept, and a well-founded definition in a mutual group is a hard error. | §18.11.3 |
 | `BN-13` | `bend-backend` | A language-2.2 well-founded definition lowers to proof-carrying fuel whose every recursive call carries its decrease evidence, and the pinned Bend refuses a call that consumes no fuel or whose evidence does not establish the decrease. | §18.11.4 |
-| `BN-14` | `bend-backend` | Language-2.2 proofs lower to explicit Bend terms, including linear arithmetic, decide, congruence, and boolean reflection, and the pinned Bend refuses a reflection whose induction steps the wrong successor. | §18.11.5 |
+| `BN-14` | `bend-backend` | Language-2.2 proofs lower to explicit Bend terms, including linear arithmetic, decide by splitting every Boolean it quantifies, simplification that matches a successor in any of its forms, congruence, and boolean reflection, and the pinned Bend refuses a reflection whose induction steps the wrong successor. | §18.11.5 |
 | `BN-15` | `bend-backend` | Every language-2.2 model cross-check restates its obligation against the Bend runtime's LexLeanModels and is proved by its discharging theorem or by evaluation, and a restatement that drifts is refused by the pinned Bend. | §18.11.7 |
 | `BN-16` | `bend-backend` | The language-2.2 support modules import only Base and the prelude and check under the pinned Bend, and every runtime registry row names a function, law, type, or constructor the runtime defines. | §18.11.6 |
 | `BN-17` | `bend-backend` | A language-2.2 reasoning declaration is a hard error naming the theorem it generates. | §18.11.8 |
@@ -9669,7 +9672,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `BN-20` | `bend-backend` | Language-2.2 equality of two orderings lowers to the Bend runtime's LexLeanRuntime.equal.Ordering, which is true exactly when both are the same ordering, as Lean's derived equality is. | §18.11.6 |
 | `BN-21` | `bend-backend` | A language-2.2 mutual group whose members recurse simultaneously over one type lowers to one Bend definition over that type and a generated selector of the member, every member keeping its name and signature, and the pinned Bend checks it. | §18.11.3 |
 | `BN-22` | `bend-backend` | A language-2.2 nested or mutual inductive that a simultaneous mutual group recurses over lowers to one Bend type indexed by its base and nested list types, each constructor carrying the equation of its index, and the pinned Bend checks the groups over it. | §18.11.3 |
-| `BN-23` | `bend-backend` | A language-2.2 match on a computed value, or on a local bound before one an enclosing match has opened, lowers to an auxiliary definition, each recursive call in its branches passed in as a function over a piece of the decreasing argument, and the pinned Bend checks it. | §18.11.3 |
+| `BN-23` | `bend-backend` | A language-2.2 match on a computed value, or on a local bound before a `let` or before one an enclosing match has opened, lowers to an auxiliary definition that receives each function parameter it uses as its code and environment, each recursive call in its branches passed in as a function over a piece of the decreasing argument, and the pinned Bend checks it. | §18.11.3 |
 | `TX-01` | `latex-pdf` | Canonical LaTeX is rendered solely from linked IR and never copies source text or controls. | §19.1 |
 | `TX-02` | `latex-pdf` | Every module uses the exact canonical LaTeX preamble and no host or timestamp metadata. | §19.2 |
 | `TX-03` | `latex-pdf` | Statements use only canonical controlled proposition and definition renderings. | §19.3, §19.4 |

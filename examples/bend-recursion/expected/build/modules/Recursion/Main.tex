@@ -238,4 +238,77 @@
 \noindent Kind: \texttt{theorem}.\par
 \noindent Statement: \texttt{(firstEven ((3 :: (5 :: (8 :: (2 :: ([] : List (Nat))))))) = Option.some (8))}.\par
 \noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{applyTwice}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(step : ((Nat) -> (Nat))) (value : Nat)}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(step ((step (value))))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{stepUnlessZero}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(step : ((Nat) -> (Nat))) (value : Nat)}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(match (Nat.beq (value) (0)) with | Bool.true => 0 | Bool.false => applyTwice (step) (value))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{step\_unless\_zero}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{((stepUnlessZero ((fun (n : Nat) => (n + 2))) (5) = 9) /\textbackslash{} (stepUnlessZero ((fun (n : Nat) => (n + 2))) (0) = 0))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{scaledHead}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(values : List (Nat)) (factor : Nat)}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(let scale : Nat := (factor + factor); (match values with | List.nil => scale | List.cons head \_ => (head + scale)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{scaled\_head}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{((scaledHead ((3 :: ([] : List (Nat)))) (2) = 7) /\textbackslash{} (scaledHead (([] : List (Nat))) (2) = 4))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{or\_associative}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(forall (a : Bool), (forall (b : Bool), (forall (c : Bool), (((a || b) || c) = (a || (b || c))))))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{less\_next}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(left : Nat) (right : Nat)}.\par
+\noindent Statement: \texttt{((Nat.blt ((left + 1)) ((right + 1))) = (Nat.blt (left) (right)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{equal\_next}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(left : Nat) (right : Nat)}.\par
+\noindent Statement: \texttt{((Nat.beq ((left + 1)) ((right + 1))) = (Nat.beq (left) (right)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{less\_successor}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(item : Nat) (bound : Nat)}.\par
+\noindent Statement: \texttt{((Nat.blt (item) ((bound + 1))) = ((Nat.blt (item) (bound)) || (Nat.beq (item) (bound))))}.\par
+\noindent Axiom policy: \texttt{exact [propext]}.\par
+\subsection*{\texttt{Signal}}
+\noindent Kind: \texttt{inductive}.\par
+\noindent Constructor \texttt{low}: \texttt{()}.\par
+\noindent Constructor \texttt{high}: \texttt{()}.\par
+\subsection*{\texttt{isHigh}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(signal : Signal)}.\par
+\noindent Type: \texttt{Bool}.\par
+\noindent Definition: \texttt{(match signal with | Signal.low => false | Signal.high => true)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{joinAll}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Type parameters: \texttt{(Item)}.\par
+\noindent Parameters: \texttt{(front : List (Item)) (back : List (Item))}.\par
+\noindent Type: \texttt{List (Item)}.\par
+\noindent Definition: \texttt{(match front with | List.nil => back | List.cons head rest => (head :: joinAll (Item) (rest) (back)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{anyHigh}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(signals : List (Signal))}.\par
+\noindent Type: \texttt{Bool}.\par
+\noindent Definition: \texttt{(match signals with | List.nil => false | List.cons head rest => (isHigh (head) || anyHigh (rest)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{any\_high\_join}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(front : List (Signal)) (back : List (Signal))}.\par
+\noindent Statement: \texttt{(anyHigh (joinAll (Signal) (front) (back)) = (anyHigh (front) || anyHigh (back)))}.\par
+\noindent Axiom policy: \texttt{exact [propext]}.\par
 \end{document}
