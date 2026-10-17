@@ -2824,6 +2824,7 @@ pub fn language_schemas(
         "1.1" => ("project-v2", "lock-1.1", "lexicon-v2", "build-manifest-v2"),
         "1.2" => ("project-v2", "lock-v2", "lexicon-v2", "build-manifest-v2"),
         "2.0" => ("project-v3", "lock-v3", "lexicon", "build-manifest-v3"),
+        "2.2" => ("project-v4", "lock-v4", "lexicon-v2", "build-manifest-v4"),
         other => panic!("no schemas for language `{other}`"),
     }
 }
@@ -4236,7 +4237,55 @@ pub fn bend_check(file: &std::path::Path) -> (bool, String) {
     )
 }
 
+/// Run the pinned Bend's kernel export on one file in its own directory:
+/// `(accepted, stdout and stderr)`. The export is what the BendTT recheck
+/// reads (SPEC.md §22.13); success is exit 0 and no output at all.
+///
+/// # Panics
+///
+/// When the pinned Bend is absent; gate with [`bend_backed`] first.
+pub fn bend_export(file: &std::path::Path) -> (bool, String) {
+    let _guard = env_shared();
+    let program = bend_program().expect("the pinned Bend is installed");
+    let target = tempfile::Builder::new()
+        .prefix("lexlean-bend-export-")
+        .tempdir()
+        .expect("tempdir");
+    let output = std::process::Command::new(program)
+        .arg(file.file_name().expect("a file"))
+        .arg("-o")
+        .arg(target.path().join("export.bendtt"))
+        .current_dir(file.parent().expect("a directory"))
+        .output()
+        .expect("bend runs");
+    let text = format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+    (output.status.success() && text.is_empty(), text)
+}
+
 impl P {
+    /// Move this project to language 2.2 (the language-1.2 surface lowered
+    /// to Bend, SPEC.md §18.11) and relock it.
+    pub fn to_language_2_2(&self) {
+        let config = self.read("lexlean.toml");
+        let moved = config
+            .replace("language = \"1.2\"", "language = \"2.2\"")
+            .replace(
+                &format!("lean_toolchain = \"{}\"\n", lexlean::LEAN_TOOLCHAIN),
+                &format!(
+                    "lean_toolchain = \"{}\"\nbend_toolchain = \"{}\"\n",
+                    lexlean::LEAN_TOOLCHAIN,
+                    lexlean::BEND_TOOLCHAIN
+                ),
+            );
+        assert_ne!(moved, config, "a language-1.2 project moves to 2.2");
+        self.write("lexlean.toml", &moved);
+        self.relock();
+    }
+
     /// Move this project to language 2.0 (the language-1.0 surface lowered
     /// to Bend, SPEC.md §18.10) and relock it.
     pub fn to_language_2_0(&self) {

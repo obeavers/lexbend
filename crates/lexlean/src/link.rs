@@ -703,12 +703,16 @@ fn check_project_inline(
         scopes.pop_frame();
 
         let core = if let Some(ast) = &load.ast.core {
-            // Language 2.0 lowers document modules to Bend (§18.10); a
-            // native core module is Lean kernel data with no Bend form.
+            // Languages 2.0 and 2.2 lower their modules to Bend (§18.10,
+            // §18.11); a native core module is Lean kernel data with no Bend
+            // form.
             if crate::lowers_to_bend(&project.config.language) {
                 return Err(err(vec![Diagnostic::new(
                     code!("LLP2003"),
-                    "a coremodule is not part of language 2.0, whose modules lower to Bend",
+                    format!(
+                        "a coremodule is not part of language {}, whose modules lower to Bend",
+                        project.config.language
+                    ),
                 )
                 .with_span(span_of_range(&load.path, &load.atoms, ast.data.range))]));
             }

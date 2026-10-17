@@ -43,6 +43,7 @@ use crate::backend::bend::syntax::{
     print_module, BTerm, Body, Import, Item, Module, Name, Param, Quantity, Tail,
 };
 use crate::backend::{EmitSource, Emitter};
+use crate::code;
 use crate::diagnostic::Diagnostic;
 use crate::elaborate::expressions::subst;
 use crate::ir::declaration::{DeclBody, Declaration};
@@ -100,6 +101,35 @@ pub(crate) fn relative(from: &str, to: &str) -> String {
 
 fn origin_source(range: (usize, usize)) -> EmitSource {
     EmitSource::File(range.0, range.1)
+}
+
+/// The stack a semantic module's lowering runs on. The lowering and the
+/// normalizer recurse over terms and certificates whose depth the source,
+/// not the host, decides, so they do not run on whatever stack the caller
+/// happens to have (a test thread has 2 MiB); the reservation is virtual.
+const LOWERING_STACK: usize = 256 << 20;
+
+/// Run `work` on a thread with [`LOWERING_STACK`] bytes of stack.
+fn on_lowering_stack<T: Send>(work: impl FnOnce() -> T + Send) -> Result<T, Diagnostic> {
+    std::thread::scope(|scope| {
+        let handle = std::thread::Builder::new()
+            .stack_size(LOWERING_STACK)
+            .spawn_scoped(scope, work)
+            .map_err(|error| {
+                Diagnostic::new(
+                    code!("LLS8002"),
+                    format!(
+                        "a stack of {LOWERING_STACK} bytes for lowering a semantic module to Bend could not be reserved: {error}"
+                    ),
+                )
+            })?;
+        handle.join().map_err(|_| {
+            Diagnostic::new(
+                code!("LLI9001"),
+                "phase render: the Bend lowering of a semantic module panicked",
+            )
+        })
+    })
 }
 
 /// Render one language-1.0 module's canonical `.bend` (§18 as amended for
@@ -668,8 +698,9 @@ pub fn render_project(
         // lowering (§18.11); a document module lowers as in language 2.0.
         if let Some(module) = &checked.document.semantic {
             if crate::is_surface_1_2(language) {
-                let (emitter, uses_prelude, used) =
-                    semantic::render_module(checked, module, &semantic_project, name)?;
+                let (emitter, uses_prelude, used) = on_lowering_stack(|| {
+                    semantic::render_module(checked, module, &semantic_project, name)
+                })??;
                 any_prelude |= uses_prelude;
                 supports.extend(used);
                 out.insert(name.clone(), emitter);

@@ -3006,10 +3006,14 @@ pub fn run_part(
     let mut body_fields = vec![
         // Language 1.2 routes to its own attestation schema, which records
         // the compiler input; the 1.0 and 1.1 shape is frozen (§22.9).
+        // Language 2.2 carries both the 1.2 records and the Bend record, so
+        // it is tested first: it is also a 1.2 surface.
         (
             "spec",
             Json::Str(
-                if crate::is_surface_1_2(&project.config.language) {
+                if project.config.language == crate::LANGUAGE_2_2 {
+                    "lexlean/attestation/4"
+                } else if crate::is_surface_1_2(&project.config.language) {
                     "lexlean/attestation/2"
                 } else if crate::lowers_to_bend(&project.config.language) {
                     "lexlean/attestation/3"

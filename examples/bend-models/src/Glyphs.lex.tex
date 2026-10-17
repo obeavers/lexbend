@@ -1,0 +1,117 @@
+\begin{lexlean}{Glyphs}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{models.titles@1.0.0}
+\title{Glyphs}
+\begin{semanticmodule}
+inductive{
+  name: Glyph,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: g0, fields: []},
+    {name: g1, fields: []},
+    {name: g2, fields: []},
+    {name: g3, fields: []},
+    {name: g4, fields: []},
+    {name: g5, fields: []},
+    {name: g6, fields: []},
+    {name: g7, fields: []},
+    {name: g8, fields: []},
+    {name: g9, fields: []}
+  ]
+}
+
+definition{
+  name: encode,
+  parameters: [glyph : Glyph],
+  result: (List Int),
+  body: (match glyph
+    | Glyph.g0 => (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (cons (0 : Int) (nil Int))))))))
+    | Glyph.g1 => (cons (0 : Int) (cons (1 : Int) (cons (1 : Int) (cons (0 : Int) (cons (0 : Int) (cons (0 : Int) (cons (0 : Int) (nil Int))))))))
+    | Glyph.g2 => (cons (1 : Int) (cons (1 : Int) (cons (0 : Int) (cons (1 : Int) (cons (1 : Int) (cons (0 : Int) (cons (1 : Int) (nil Int))))))))
+    | Glyph.g3 => (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (cons (0 : Int) (cons (0 : Int) (cons (1 : Int) (nil Int))))))))
+    | Glyph.g4 => (cons (0 : Int) (cons (1 : Int) (cons (1 : Int) (cons (0 : Int) (cons (0 : Int) (cons (1 : Int) (cons (1 : Int) (nil Int))))))))
+    | Glyph.g5 => (cons (1 : Int) (cons (0 : Int) (cons (1 : Int) (cons (1 : Int) (cons (0 : Int) (cons (1 : Int) (cons (1 : Int) (nil Int))))))))
+    | Glyph.g6 => (cons (1 : Int) (cons (0 : Int) (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (nil Int))))))))
+    | Glyph.g7 => (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (cons (0 : Int) (cons (0 : Int) (cons (0 : Int) (cons (0 : Int) (nil Int))))))))
+    | Glyph.g8 => (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (nil Int))))))))
+    | Glyph.g9 => (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (cons (0 : Int) (cons (1 : Int) (cons (1 : Int) (nil Int))))))))),
+  executable: true
+}
+
+definition{
+  name: digitOf,
+  parameters: [glyph : Glyph],
+  result: Nat,
+  body: (match glyph
+    | Glyph.g0 => 0
+    | Glyph.g1 => 1
+    | Glyph.g2 => 2
+    | Glyph.g3 => 3
+    | Glyph.g4 => 4
+    | Glyph.g5 => 5
+    | Glyph.g6 => 6
+    | Glyph.g7 => 7
+    | Glyph.g8 => 8
+    | Glyph.g9 => 9),
+  executable: true
+}
+
+definition{
+  name: segmentCount,
+  parameters: [glyph : Glyph],
+  result: Nat,
+  body: (match glyph
+    | Glyph.g0 => 6
+    | Glyph.g1 => 2
+    | Glyph.g2 => 5
+    | Glyph.g3 => 5
+    | Glyph.g4 => 4
+    | Glyph.g5 => 5
+    | Glyph.g6 => 6
+    | Glyph.g7 => 3
+    | Glyph.g8 => 7
+    | Glyph.g9 => 6),
+  executable: true
+}
+
+definition{
+  name: isEight,
+  parameters: [glyph : Glyph],
+  result: Bool,
+  body: (match glyph
+    | Glyph.g0 => false
+    | Glyph.g1 => false
+    | Glyph.g2 => false
+    | Glyph.g3 => false
+    | Glyph.g4 => false
+    | Glyph.g5 => false
+    | Glyph.g6 => false
+    | Glyph.g7 => false
+    | Glyph.g8 => true
+    | Glyph.g9 => false),
+  executable: true
+}
+
+theorem{
+  name: encode_width,
+  parameters: [glyph : Glyph],
+  statement: ((prim length (encode glyph) : Nat) = 7),
+  proof: cases{
+    branches: [
+      {proof: reflexivity{}, binders: [], constructor: g0},
+      {proof: reflexivity{}, binders: [], constructor: g1},
+      {proof: reflexivity{}, binders: [], constructor: g2},
+      {proof: reflexivity{}, binders: [], constructor: g3},
+      {proof: reflexivity{}, binders: [], constructor: g4},
+      {proof: reflexivity{}, binders: [], constructor: g5},
+      {proof: reflexivity{}, binders: [], constructor: g6},
+      {proof: reflexivity{}, binders: [], constructor: g7},
+      {proof: reflexivity{}, binders: [], constructor: g8},
+      {proof: reflexivity{}, binders: [], constructor: g9}
+    ],
+    scrutinee: glyph
+  }
+}
+\end{semanticmodule}
+\end{lexlean}

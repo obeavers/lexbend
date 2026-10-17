@@ -1,4 +1,4 @@
-//! The Bend half of the `verification` suite: VR-24..VR-27 (SPEC.md
+//! The Bend half of the `verification` suite: VR-24..VR-28 (SPEC.md
 //! §22.13). The Bend stages run before any Lean process, so each case
 //! reaches its stage on every host; a case that needs the pinned Bend (or,
 //! for the kernel recheck, the Lean that builds the kernel) gates that half.
@@ -208,7 +208,7 @@ pub(crate) fn run(id: &str) {
         // §22.13 stage 1 and the attestation: premises against policies.
         "VR-27" => {
             let project = P::copy_example("bend-peano-arithmetic");
-            let main = project.read("src/Main.lex.tex");
+            let main = project.read_raw("src/Main.lex.tex");
             let strict = main.replacen(
                 "\\exactaxioms{Classical.choice;Quot.sound;propext}\n  For every natural number \\(n\\), \\(n\\) is even or not \\(n\\) is even.",
                 "\\noaxioms\n  For every natural number \\(n\\), \\(n\\) is even or not \\(n\\) is even.",
@@ -309,6 +309,101 @@ pub(crate) fn run(id: &str) {
                     .find(|row| row["name"] == "PeanoArithmetic.Main.even_or_not")
                     .expect("the theorem's row");
                 assert_eq!(row["premises"], serde_json::json!(["excluded-middle"]));
+            }
+        }
+        // §22.13: a language-2.2 project is verified by Bend first, then by
+        // the language-1.2 Lean stages, under attestation schema v4.
+        "VR-28" => {
+            let schema = support::schema("attestation-v4");
+            assert_eq!(
+                schema["properties"]["spec"]["const"],
+                "lexlean/attestation/4"
+            );
+            let required = schema["required"].as_array().expect("required");
+            assert!(
+                required.iter().any(|field| field == "bend"),
+                "a version-4 attestation records the Bend toolchain"
+            );
+            for record in ["compiler_input", "preservation"] {
+                assert!(
+                    schema["properties"].get(record).is_some(),
+                    "and may carry the language-1.2 `{record}` record"
+                );
+            }
+            assert!(
+                schema["properties"]["declarations"]["items"]["required"]
+                    .as_array()
+                    .expect("required")
+                    .iter()
+                    .any(|field| field == "premises"),
+                "and each declaration's premises"
+            );
+            // The Bend stages run before any Lean process: a false theorem
+            // is refused by Bend whether or not Lean is installed.
+            if support::bend_backed(id) {
+                let project = P::copy_example("bend-reflection");
+                let main = project.read_raw("src/Main.lex.tex");
+                project.write(
+                    "src/Main.lex.tex",
+                    &main.replace(
+                        "\\end{semanticmodule}",
+                        "theorem{\n  name: off_by_one,\n  parameters: [value : Nat],\n  statement: ((value + 1) = value),\n  proof: reflexivity{}\n}\n\\end{semanticmodule}",
+                    ),
+                );
+                let path = path_with(&bend_dir().expect("the pinned Bend"));
+                let error = verify_err_with_path(&project, &path);
+                support::expect_code(&error, "LLV7020");
+            }
+            // The committed verification of the language-2.2 example holds an
+            // accepted Bend record for its module and the kernel recheck's.
+            let verify = support::repo_root().join("examples/bend-semantic/expected/verify");
+            let record: serde_json::Value = serde_json::from_slice(
+                &std::fs::read(
+                    verify
+                        .join("process/bend/LanguageTwelve.Main.json")
+                        .as_std_path(),
+                )
+                .expect("the module's Bend record is committed"),
+            )
+            .expect("JSON");
+            assert_eq!(record["stdout"], lexlean::verify::bend::CHECK_SUCCESS);
+            assert_eq!(record["exit_code"], 0);
+            let verdict: serde_json::Value = serde_json::from_slice(
+                &std::fs::read(verify.join("process/bend/verdict.json").as_std_path())
+                    .expect("the kernel recheck's record is committed"),
+            )
+            .expect("JSON");
+            assert_eq!(verdict["stdout"], lexlean::verify::bend::VERDICT_SUCCESS);
+            if support::lean_backed(id) && support::bend_backed(id) {
+                let fresh = P::copy_example("bend-semantic");
+                let path = path_with(&bend_dir().expect("the pinned Bend"));
+                let verified = support::with_env(&[("PATH", Some(&path))], || {
+                    fresh
+                        .engine()
+                        .verify(VerifyRequest {
+                            selection: Selection::Entrypoints,
+                        })
+                        .expect("the example verifies")
+                });
+                let attestation_path = verified.root.join("attestation.json");
+                support::assert_json_file_schema("attestation-v4", &attestation_path);
+                let attestation: serde_json::Value = serde_json::from_slice(
+                    &std::fs::read(attestation_path.as_std_path()).expect("attestation"),
+                )
+                .expect("JSON");
+                assert_eq!(attestation["spec"], "lexlean/attestation/4");
+                assert_eq!(
+                    attestation["bend"]["version_output"],
+                    lexlean::BEND_VERSION_LINE
+                );
+                assert!(
+                    attestation["declarations"]
+                        .as_array()
+                        .expect("rows")
+                        .iter()
+                        .all(|row| row["premises"].is_array()),
+                    "every row records its premises"
+                );
             }
         }
         other => panic!("no Bend verification case is wired for {other}"),

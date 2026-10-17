@@ -1,0 +1,26 @@
+\begin{lexlean}{Main}
+\useglossary{lexlean.std.nat@1.2.0}
+\title{Natural number addition}
+\begin{semanticmodule}
+definition{
+  name: doubledSuccessor,
+  parameters: [n : Nat],
+  result: Nat,
+  body: (let doubled : Nat := (n + n); (doubled + 1))
+}
+
+theorem{
+  name: doubled_successor_two,
+  parameters: [],
+  statement: ((doubledSuccessor 2) = 5),
+  proof: reflexivity{}
+}
+
+theorem{
+  name: let_statement_unfolds,
+  parameters: [],
+  statement: (let three : Nat := 3; ((three + three) = 6)),
+  proof: reflexivity{}
+}
+\end{semanticmodule}
+\end{lexlean}

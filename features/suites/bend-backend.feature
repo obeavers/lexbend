@@ -1,6 +1,6 @@
 Feature: bend-backend
 
-  Prose-free Bend 2 generation for language 2.0 (§18.10).
+  Prose-free Bend 2 generation for language 2.0 (§18.10) and language 2.2 (§18.11).
 
   @BN-01 @build
   Scenario: Every language-1.0 document module renders one byte-deterministic Bend file from the same linked IR, beside its Lean and LaTeX, with the exact import structure.
@@ -64,4 +64,69 @@ Feature: bend-backend
     Given the four language-2.0 examples and a project whose theorem is false
     When every generated module is checked by the pinned Bend
     Then all eight example modules print exactly `ALL PROOFS CHECK`
+    And the false theorem prints `SOME PROOFS FAIL`
+
+  @BN-10 @build
+  Scenario: Every language-2.2 semantic module renders one byte-deterministic Bend file from the same linked IR, beside its Lean and LaTeX, importing Base, the prelude, the support modules it uses, and its imported modules, with every non-whitespace token covered and mapped.
+    Given the four language-2.2 examples, the semantic example rendered twice
+    When the build files are compared and every generated module, its imports, coverage, and mappings are read
+    Then both builds are byte-identical and hold the module's `.bend`, `.lean`, and `.tex`
+    And the models `Main` imports Base, the prelude as `L`, `S` and `R`, then its seven imported modules in sorted order by relative path
+    And each build publishes exactly the support modules its modules import, and every covered Bend byte range is mapped
+
+  @BN-11 @build
+  Scenario: Language-2.2 type parameters lower to templates and function parameters are closure-converted, and a higher-order function passed as a value is a hard error.
+    Given the language-1.2 higher-order example moved to language 2.2
+    When its generated Bend is read and checked by the pinned Bend, and a definition passing `twiceOf` to a function parameter is added
+    Then `mapList` takes its type parameters, its code, and its environment type as templates and its environment as data
+    And a capturing lambda passes `offset` as its environment, a function reference passes `Unit{}`, and every module checks
+    And the added definition fails its build with LLB6008 naming `twiceOf`
+
+  @BN-12 @build
+  Scenario: A language-2.2 mutual group lowers by inlining with every member's name kept, and a group that recurses simultaneously is a hard error.
+    Given the language-2.2 recursion example and the language-1.2 recursion example moved to language 2.2
+    When the generated `Main` Bend is read and the moved example is built
+    Then `forestSize` precedes `roseSize` with `roseSize` inlined into it, and `isEven` holds `isOdd` inlined
+    And the moved example fails its build with LLB6008 naming the group `SyntaxSize` and its three members
+
+  @BN-13 @build
+  Scenario: A language-2.2 well-founded definition lowers to proof-carrying fuel whose every recursive call carries its decrease evidence, and the pinned Bend refuses a call that consumes no fuel or whose evidence does not establish the decrease.
+    Given the language-2.2 recursion example
+    When its generated `Main` Bend is read, checked, and checked again with each of two planted defects
+    Then `countdown.ll_go` takes fuel and a bound, its recursive call passes the predecessor fuel with `S.Sem.lt_fuel` over `countdown_decreases`, and the wrapper supplies `1n+number`
+    And every module checks, while the call passing undiminished fuel and the call passing `S.Sem.lt_succ(number)` as evidence are each refused
+
+  @BN-14 @build
+  Scenario: Language-2.2 proofs lower to explicit Bend terms, including linear arithmetic, decide, congruence, and boolean reflection, and the pinned Bend refuses a reflection whose induction steps the wrong successor.
+    Given the language-2.2 reflection and recursion examples
+    When their generated Bend is read and the reflection module is checked, then checked with the forward induction stepping `ll_p + 2`
+    Then the record reflection is `LA.sound` each way, the list reflection is a forward and a backward induction whose proposition proof is affine, and `decide` on `isEven 10` is `{==}`
+    And the module checks, and the planted induction is refused
+
+  @BN-15 @build
+  Scenario: Every language-2.2 model cross-check restates its obligation against the Bend runtime's LexLeanModels and is proved by its discharging theorem or by evaluation, and a restatement that drifts is refused by the pinned Bend.
+    Given the language-2.2 models example
+    When its generated Bend is read and checked, then checked with the `FlowContract` invariant restated over `Within` and the `triageBias` shape changed to 4
+    Then `FlowContract.invariant_sound` restates `LexLeanModels.Sound1` and is proved by `flow_capped_sound`, and the `triageBias` check decodes its values from its bytes with its shape
+    And every module checks, and each planted restatement is refused
+
+  @BN-16 @build
+  Scenario: The language-2.2 support modules import only Base and the prelude and check under the pinned Bend, and every runtime registry row names a function, law, type, or constructor the runtime defines.
+    Given the shipped `Semantic.bend`, `Runtime.bend`, and `LinArith.bend`, and the runtime registry
+    When each module's imports are read, every registry row is resolved in the runtime, and each module is checked as a build publishes it
+    Then each imports exactly `Base` and the prelude as `L`
+    And every registry name is a definition, law, type, or constructor of the runtime, or one of Base's own types
+    And each module checks under the pinned Bend
+
+  @BN-17 @build
+  Scenario: A language-2.2 reasoning declaration is a hard error naming the theorem it generates.
+    Given the language-1.2 reasoning example moved to language 2.2
+    When it is built
+    Then the build fails with LLB6008 naming `Tick.apply_sound` as the theorem whose proof has no Bend lowering
+
+  @BN-18 @build
+  Scenario: The generated Bend of every language-2.2 example module checks and exports under the pinned Bend with every proof accepted.
+    Given the four language-2.2 examples, the recursive-data, higher-order, and collections examples moved to language 2.2, and a reflection project with a false theorem
+    When every generated module is checked and exported by the pinned Bend
+    Then all twenty modules print exactly `ALL PROOFS CHECK` and export with no output
     And the false theorem prints `SOME PROOFS FAIL`

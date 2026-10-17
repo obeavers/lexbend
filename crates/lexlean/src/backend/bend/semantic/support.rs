@@ -61,7 +61,8 @@ impl Support {
             .find(|(candidate, _)| *candidate == path)
             .map(|(_, bytes)| *bytes)
             .ok_or_else(|| fail(format!("`{path}` is not embedded")))?;
-        let text = std::str::from_utf8(bytes).map_err(|_| fail(format!("`{path}` is not UTF-8")))?;
+        let text =
+            std::str::from_utf8(bytes).map_err(|_| fail(format!("`{path}` is not UTF-8")))?;
         let published = text.replace(
             "import ./LexLean.bend as L\n",
             "import ./LexLeanPrelude.bend as L\n",

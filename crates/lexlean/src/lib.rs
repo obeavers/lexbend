@@ -225,6 +225,7 @@ fn is_v2_2_file(path: &str) -> bool {
         || path == "schemas/lock-v4.schema.json"
         || path == "schemas/build-manifest-v4.schema.json"
         || path == "schemas/semantic-snapshot-v3.schema.json"
+        || path == "schemas/attestation-v4.schema.json"
         || path == "language/bend-prelude/Runtime.bend"
         || path == "language/bend-prelude/runtime-registry.toml"
         || path == "language/bend-prelude/LinArith.bend"

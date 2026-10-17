@@ -380,9 +380,17 @@ impl Prover<'_, '_, '_> {
                 var(hypothesis)
             } else {
                 let ty = self.lower.ty(&ty)?;
-                let local_term = self.lower.term(&SemanticTerm::Var { name: local.clone() }, &ctx.scope)?;
+                let local_term = self.lower.term(
+                    &SemanticTerm::Var {
+                        name: local.clone(),
+                    },
+                    &ctx.scope,
+                )?;
                 let value_term = self.lower.term(&value, &ctx.scope)?;
-                call("Equal.sym", vec![ty, local_term, value_term, var(hypothesis)])
+                call(
+                    "Equal.sym",
+                    vec![ty, local_term, value_term, var(hypothesis)],
+                )
             };
             stmts.push(Stmt::Rewrite {
                 proof,

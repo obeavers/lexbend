@@ -51,7 +51,11 @@ fn defined() -> Result<&'static BTreeSet<String>, Diagnostic> {
                 .ok_or_else(|| format!("`{REGISTRY_PATH}` is not embedded"))?;
             let text = std::str::from_utf8(bytes).map_err(|error| error.to_string())?;
             let raw: RawRegistry = toml::from_str(text).map_err(|error| error.to_string())?;
-            Ok(raw.constant.into_iter().map(|constant| constant.bend).collect())
+            Ok(raw
+                .constant
+                .into_iter()
+                .map(|constant| constant.bend)
+                .collect())
         })
         .as_ref()
         .map_err(|message| fail(format!("the Bend runtime registry is unusable: {message}")))
@@ -142,10 +146,15 @@ impl Lower<'_, '_> {
             .parse()
             .map_err(|_| fail(format!("the literal `{value}` has no Bend spelling")))?;
         let literal = match u32::try_from(magnitude) {
-            Ok(small) => call(self.runtime(&format!("Lean.{name}.lit"))?, vec![BTerm::U32(small)]),
+            Ok(small) => call(
+                self.runtime(&format!("Lean.{name}.lit"))?,
+                vec![BTerm::U32(small)],
+            ),
             Err(_) => {
-                let high = u32::try_from(magnitude >> 32).map_err(|_| fail("a literal overflows"))?;
-                let low = u32::try_from(magnitude & 0xffff_ffff).map_err(|_| fail("a literal overflows"))?;
+                let high =
+                    u32::try_from(magnitude >> 32).map_err(|_| fail("a literal overflows"))?;
+                let low = u32::try_from(magnitude & 0xffff_ffff)
+                    .map_err(|_| fail("a literal overflows"))?;
                 call(
                     self.runtime(&format!("Lean.{name}.lit2"))?,
                     vec![BTerm::U32(high), BTerm::U32(low)],
@@ -153,7 +162,10 @@ impl Lower<'_, '_> {
             }
         };
         if negative {
-            Ok(call(self.runtime(&format!("Lean.{name}.neg"))?, vec![literal]))
+            Ok(call(
+                self.runtime(&format!("Lean.{name}.neg"))?,
+                vec![literal],
+            ))
         } else {
             Ok(literal)
         }
@@ -163,9 +175,14 @@ impl Lower<'_, '_> {
     pub(super) fn bytes_literal(&mut self, hex: &str) -> Result<BTerm, Diagnostic> {
         let mut bytes = Vec::new();
         for pair in hex.as_bytes().chunks(2) {
-            let text = std::str::from_utf8(pair).map_err(|_| fail("a byte literal is not ASCII"))?;
-            let value = u32::from_str_radix(text, 16).map_err(|_| fail("a byte literal is not hexadecimal"))?;
-            bytes.push(call(self.runtime("Lean.UInt8.lit")?, vec![BTerm::U32(value)]));
+            let text =
+                std::str::from_utf8(pair).map_err(|_| fail("a byte literal is not ASCII"))?;
+            let value = u32::from_str_radix(text, 16)
+                .map_err(|_| fail("a byte literal is not hexadecimal"))?;
+            bytes.push(call(
+                self.runtime("Lean.UInt8.lit")?,
+                vec![BTerm::U32(value)],
+            ));
         }
         let mut list = BTerm::Constructor(synthetic("Nil"), Vec::new());
         for byte in bytes.into_iter().rev() {
@@ -186,7 +203,11 @@ impl Lower<'_, '_> {
         }
         let name = instance(key)
             .filter(|name| !matches!(*name, "ByteArray" | "List"))
-            .ok_or_else(|| fail(format!("`{key:?}` is not an ordered key type of the Bend runtime")))?;
+            .ok_or_else(|| {
+                fail(format!(
+                    "`{key:?}` is not an ordered key type of the Bend runtime"
+                ))
+            })?;
         Ok(BTerm::Constructor(
             synthetic(self.runtime(&format!("LexLeanCollections.Key.{name}"))?),
             Vec::new(),
@@ -217,7 +238,9 @@ impl Lower<'_, '_> {
             }
             atomic => {
                 let name = instance(atomic).ok_or_else(|| {
-                    fail(format!("`{atomic:?}` is not an ordered key type of the Bend runtime"))
+                    fail(format!(
+                        "`{atomic:?}` is not an ordered key type of the Bend runtime"
+                    ))
                 })?;
                 self.runtime(&format!("{base}.{name}"))?
             }
@@ -248,7 +271,11 @@ impl Lower<'_, '_> {
         }
         let lowered = self.arguments(arguments, scope)?;
         let named = |what: Option<&'static str>| {
-            what.ok_or_else(|| fail(format!("the primitive `{operation:?}` has no Bend lowering at these types")))
+            what.ok_or_else(|| {
+                fail(format!(
+                    "the primitive `{operation:?}` has no Bend lowering at these types"
+                ))
+            })
         };
         let simple = |lower: &mut Self, name: String, types: Vec<BTerm>, lowered: Vec<BTerm>| {
             let head = lower.runtime(&name)?;
@@ -265,9 +292,18 @@ impl Lower<'_, '_> {
                     P::Quotient => "quotient",
                     _ => "remainder",
                 };
-                simple(self, format!("LexLeanRuntime.{base}.{}", named(instance(&result))?), Vec::new(), lowered)
+                simple(
+                    self,
+                    format!("LexLeanRuntime.{base}.{}", named(instance(&result))?),
+                    Vec::new(),
+                    lowered,
+                )
             }
-            P::CheckedAdd | P::CheckedSubtract | P::CheckedMultiply | P::CheckedNegate | P::CheckedQuotient => {
+            P::CheckedAdd
+            | P::CheckedSubtract
+            | P::CheckedMultiply
+            | P::CheckedNegate
+            | P::CheckedQuotient => {
                 let base = match operation {
                     P::CheckedAdd => "checkedAdd",
                     P::CheckedSubtract => "checkedSubtract",
@@ -276,12 +312,22 @@ impl Lower<'_, '_> {
                     _ => "checkedQuotient",
                 };
                 let target = named(option_value(&result).and_then(fixed))?;
-                simple(self, format!("LexLeanRuntime.{base}.{target}"), Vec::new(), lowered)
+                simple(
+                    self,
+                    format!("LexLeanRuntime.{base}.{target}"),
+                    Vec::new(),
+                    lowered,
+                )
             }
             P::CheckedConvert => {
                 let source = named(instance(&first))?;
                 let target = named(option_value(&result).and_then(instance))?;
-                simple(self, format!("LexLeanRuntime.checkedConvert.{source}.{target}"), Vec::new(), lowered)
+                simple(
+                    self,
+                    format!("LexLeanRuntime.checkedConvert.{source}.{target}"),
+                    Vec::new(),
+                    lowered,
+                )
             }
             P::BitAnd | P::BitOr | P::BitXor | P::BitNot | P::ShiftLeft | P::ShiftRight => {
                 let base = match operation {
@@ -292,7 +338,12 @@ impl Lower<'_, '_> {
                     P::ShiftLeft => "shiftLeft",
                     _ => "shiftRight",
                 };
-                simple(self, format!("LexLeanRuntime.{base}.{}", named(fixed(&first))?), Vec::new(), lowered)
+                simple(
+                    self,
+                    format!("LexLeanRuntime.{base}.{}", named(fixed(&first))?),
+                    Vec::new(),
+                    lowered,
+                )
             }
             P::Append | P::Length | P::Index | P::Slice => {
                 let base = match operation {
@@ -305,7 +356,12 @@ impl Lower<'_, '_> {
                     SemanticType::List { element } => vec![self.ty(element)?],
                     _ => Vec::new(),
                 };
-                simple(self, format!("LexLeanRuntime.{base}.{}", named(instance(&first))?), generic, lowered)
+                simple(
+                    self,
+                    format!("LexLeanRuntime.{base}.{}", named(instance(&first))?),
+                    generic,
+                    lowered,
+                )
             }
             P::Utf8Encode | P::Utf8Decode | P::CompareBytes | P::SplitExact | P::Join => {
                 let base = match operation {
@@ -317,12 +373,27 @@ impl Lower<'_, '_> {
                 };
                 simple(self, format!("LexLeanRuntime.{base}"), Vec::new(), lowered)
             }
-            P::Equal => simple(self, format!("LexLeanRuntime.equal.{}", named(instance(&first))?), Vec::new(), lowered),
+            P::Equal => simple(
+                self,
+                format!("LexLeanRuntime.equal.{}", named(instance(&first))?),
+                Vec::new(),
+                lowered,
+            ),
             P::ParseDecimal => {
                 let target = named(option_value(&result).and_then(instance))?;
-                simple(self, format!("LexLeanRuntime.parseDecimal.{target}"), Vec::new(), lowered)
+                simple(
+                    self,
+                    format!("LexLeanRuntime.parseDecimal.{target}"),
+                    Vec::new(),
+                    lowered,
+                )
             }
-            P::FormatDecimal => simple(self, format!("LexLeanRuntime.formatDecimal.{}", named(instance(&first))?), Vec::new(), lowered),
+            P::FormatDecimal => simple(
+                self,
+                format!("LexLeanRuntime.formatDecimal.{}", named(instance(&first))?),
+                Vec::new(),
+                lowered,
+            ),
             P::MapInsert | P::MapRemove | P::MapLookup | P::MapContains => {
                 let SemanticType::Map { key, value } = &first else {
                     return Err(fail("a map primitive on a non-map"));
@@ -334,7 +405,12 @@ impl Lower<'_, '_> {
                     _ => "mapContains",
                 };
                 let value = self.ty(value)?;
-                self.keyed(&format!("LexLeanCollections.{base}"), key, vec![value], lowered)
+                self.keyed(
+                    &format!("LexLeanCollections.{base}"),
+                    key,
+                    vec![value],
+                    lowered,
+                )
             }
             P::MapSize | P::MapKeys | P::MapValues | P::MapEntries => {
                 let SemanticType::Map { key, value } = &first else {
@@ -349,7 +425,12 @@ impl Lower<'_, '_> {
                 let generic = vec![self.ty(key)?, self.ty(value)?];
                 simple(self, format!("LexLeanCollections.{base}"), generic, lowered)
             }
-            P::SetInsert | P::SetRemove | P::SetContains | P::SetUnion | P::SetIntersection | P::SetDifference => {
+            P::SetInsert
+            | P::SetRemove
+            | P::SetContains
+            | P::SetUnion
+            | P::SetIntersection
+            | P::SetDifference => {
                 let SemanticType::Set { element } = &first else {
                     return Err(fail("a set primitive on a non-set"));
                 };
@@ -361,13 +442,22 @@ impl Lower<'_, '_> {
                     P::SetIntersection => "setIntersection",
                     _ => "setDifference",
                 };
-                self.keyed(&format!("LexLeanCollections.{base}"), element, Vec::new(), lowered)
+                self.keyed(
+                    &format!("LexLeanCollections.{base}"),
+                    element,
+                    Vec::new(),
+                    lowered,
+                )
             }
             P::SetSize | P::SetElements => {
                 let SemanticType::Set { element } = &first else {
                     return Err(fail("a set primitive on a non-set"));
                 };
-                let base = if operation == P::SetSize { "setSize" } else { "setElements" };
+                let base = if operation == P::SetSize {
+                    "setSize"
+                } else {
+                    "setElements"
+                };
                 let generic = vec![self.ty(element)?];
                 simple(self, format!("LexLeanCollections.{base}"), generic, lowered)
             }
@@ -380,7 +470,12 @@ impl Lower<'_, '_> {
                     P::GraphReachable => "graphReachable",
                     _ => "graphTopological",
                 };
-                self.keyed(&format!("LexLeanCollections.{base}"), key, Vec::new(), lowered)
+                self.keyed(
+                    &format!("LexLeanCollections.{base}"),
+                    key,
+                    Vec::new(),
+                    lowered,
+                )
             }
             P::LessThan => self.keyed("LexLeanCollections.lessThan", &first, Vec::new(), lowered),
             P::ListFold | P::SetFold | P::MapFold | P::Iterate | P::IterateUntil => {
@@ -399,7 +494,10 @@ impl Lower<'_, '_> {
         result: &SemanticType,
         scope: &Scope,
     ) -> Result<Option<BTerm>, Diagnostic> {
-        if !matches!(operation, P::ListFold | P::SetFold | P::MapFold | P::Iterate | P::IterateUntil) {
+        if !matches!(
+            operation,
+            P::ListFold | P::SetFold | P::MapFold | P::Iterate | P::IterateUntil
+        ) {
             return Ok(None);
         }
         let [step, middle, last] = arguments else {
@@ -418,7 +516,8 @@ impl Lower<'_, '_> {
         let mut args = Vec::new();
         let head = match operation {
             P::ListFold | P::SetFold => {
-                let (SemanticType::List { element } | SemanticType::Set { element }) = &types[2] else {
+                let (SemanticType::List { element } | SemanticType::Set { element }) = &types[2]
+                else {
                     return Err(fail("a fold over a non-list"));
                 };
                 args.push(template(self.ty(element)?));

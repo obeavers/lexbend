@@ -1,0 +1,148 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\begin{document}
+\section*{Semantic declarations}
+\subsection*{\texttt{roseSize}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Type parameters: \texttt{(Item)}.\par
+\noindent Mutual recursion group \texttt{RoseSize}, decreasing on \texttt{rose}.\par
+\noindent Parameters: \texttt{(rose : Recursion.Syntax.Rose (Item))}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(match rose with | Recursion.Syntax.Rose.node \_ children => (1 + forestSize (Item) (children)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{forestSize}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Type parameters: \texttt{(Item)}.\par
+\noindent Mutual recursion group \texttt{RoseSize}, decreasing on \texttt{forest}.\par
+\noindent Parameters: \texttt{(forest : List (Recursion.Syntax.Rose (Item)))}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(match forest with | List.nil => 0 | List.cons head tail => (roseSize (Item) (head) + forestSize (Item) (tail)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{isEven}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Mutual recursion group \texttt{Parity}, decreasing on \texttt{number}.\par
+\noindent Parameters: \texttt{(number : Nat)}.\par
+\noindent Type: \texttt{Bool}.\par
+\noindent Definition: \texttt{(match number with | Nat.zero => true | Nat.succ previous => isOdd (previous))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{isOdd}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Mutual recursion group \texttt{Parity}, decreasing on \texttt{number}.\par
+\noindent Parameters: \texttt{(number : Nat)}.\par
+\noindent Type: \texttt{Bool}.\par
+\noindent Definition: \texttt{(match number with | Nat.zero => false | Nat.succ previous => isEven (previous))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{countdown\_decreases}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(number : Nat) (steps : Nat)}.\par
+\noindent Statement: \texttt{(((Nat.blt (number) (2)) = false) -> ((LexLeanRuntime.subtract (number) (2) : Nat) < number))}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{countdown}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Well-founded measure: \texttt{number}; decrease evidence per call: \texttt{countdown\_decreases}.\par
+\noindent Parameters: \texttt{(number : Nat) (steps : Nat)}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(if (Nat.blt (number) (2)) then steps else countdown ((LexLeanRuntime.subtract (number) (2) : Nat)) ((steps + 1)))}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{reduce\_decreases}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(value : Nat) (bound : Nat)}.\par
+\noindent Statement: \texttt{(((Nat.beq (bound) (0)) = false) -> (((Nat.blt (value) (bound)) = false) -> ((LexLeanRuntime.subtract (value) (bound) : Nat) < value)))}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{reduce}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Well-founded measure: \texttt{value}; decrease evidence per call: \texttt{reduce\_decreases}.\par
+\noindent Parameters: \texttt{(value : Nat) (bound : Nat)}.\par
+\noindent Execution: executable, non-escaping closures only.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(if (Nat.beq (bound) (0)) then value else (if (Nat.blt (value) (bound)) then value else reduce ((LexLeanRuntime.subtract (value) (bound) : Nat)) (bound)))}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{search\_decreases}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(target : Nat) (low : Nat) (high : Nat)}.\par
+\noindent Statement: \texttt{(((Nat.blt (low) (high)) = true) -> (((Nat.ble (target) ((low + low))) = false) -> ((LexLeanRuntime.subtract (high) ((low + 1)) : Nat) < (LexLeanRuntime.subtract (high) (low) : Nat))))}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{search}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Well-founded measure: \texttt{(LexLeanRuntime.subtract (high) (low) : Nat)}; decrease evidence per call: \texttt{search\_decreases}.\par
+\noindent Parameters: \texttt{(target : Nat) (low : Nat) (high : Nat)}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(if (Nat.blt (low) (high)) then (if (Nat.ble (target) ((low + low))) then low else search (target) ((low + 1)) (high)) else high)}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{rose\_size}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(roseSize (Nat) (Recursion.Syntax.Rose.node (1) ((Recursion.Syntax.Rose.node (2) (([] : List (Recursion.Syntax.Rose (Nat)))) :: (Recursion.Syntax.Rose.node (3) (([] : List (Recursion.Syntax.Rose (Nat)))) :: ([] : List (Recursion.Syntax.Rose (Nat))))))) = 3)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{ten\_is\_even}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(isEven (10) = true)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{countdown\_nine}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(countdown (9) (0) = 4)}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{reduce\_twenty\_three}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(reduce (23) (5) = 3)}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{search\_first}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(search (7) (0) (10) = 4)}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{weight}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(term : Recursion.Syntax.Term)}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(match term with | Recursion.Syntax.Term.literal \_ => 1 | Recursion.Syntax.Term.plus left right => (((weight (left) + weight (left)) + weight (right)) + 1))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{reassociate\_literal}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(term : Recursion.Syntax.Term) (left : Recursion.Syntax.Term) (right : Recursion.Syntax.Term) (value : Nat)}.\par
+\noindent Statement: \texttt{((term = Recursion.Syntax.Term.plus (left) (right)) -> ((left = Recursion.Syntax.Term.literal (value)) -> (weight (right) < weight (term))))}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{reassociate\_plus}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(term : Recursion.Syntax.Term) (left : Recursion.Syntax.Term) (right : Recursion.Syntax.Term) (inner : Recursion.Syntax.Term) (rest : Recursion.Syntax.Term)}.\par
+\noindent Statement: \texttt{((term = Recursion.Syntax.Term.plus (left) (right)) -> ((left = Recursion.Syntax.Term.plus (inner) (rest)) -> (weight (Recursion.Syntax.Term.plus (inner) (Recursion.Syntax.Term.plus (rest) (right))) < weight (term))))}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{reassociate}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Well-founded measure: \texttt{weight (term)}; decrease evidence per call: \texttt{reassociate\_literal, reassociate\_plus}.\par
+\noindent Parameters: \texttt{(term : Recursion.Syntax.Term)}.\par
+\noindent Execution: executable, non-escaping closures only.\par
+\noindent Type: \texttt{Recursion.Syntax.Term}.\par
+\noindent Definition: \texttt{(match term with | Recursion.Syntax.Term.literal value => Recursion.Syntax.Term.literal (value) | Recursion.Syntax.Term.plus left right => (match left with | Recursion.Syntax.Term.literal value => Recursion.Syntax.Term.plus (Recursion.Syntax.Term.literal (value)) (reassociate (right)) | Recursion.Syntax.Term.plus inner rest => reassociate (Recursion.Syntax.Term.plus (inner) (Recursion.Syntax.Term.plus (rest) (right)))))}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{reassociate\_weight}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(weight (reassociate (Recursion.Syntax.Term.plus (Recursion.Syntax.Term.plus (Recursion.Syntax.Term.literal (1)) (Recursion.Syntax.Term.literal (2))) (Recursion.Syntax.Term.literal (3)))) = 7)}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{prune\_plus}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(term : Recursion.Syntax.Term) (left : Recursion.Syntax.Term) (right : Recursion.Syntax.Term) (inner : Recursion.Syntax.Term) (rest : Recursion.Syntax.Term)}.\par
+\noindent Statement: \texttt{((term = Recursion.Syntax.Term.plus (left) (right)) -> ((left = Recursion.Syntax.Term.plus (inner) (rest)) -> (weight (Recursion.Syntax.Term.plus (inner) (right)) < weight (term))))}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{prune}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Well-founded measure: \texttt{weight (term)}; decrease evidence per call: \texttt{reassociate\_literal, prune\_plus}.\par
+\noindent Parameters: \texttt{(term : Recursion.Syntax.Term)}.\par
+\noindent Execution: executable, non-escaping closures only.\par
+\noindent Type: \texttt{Recursion.Syntax.Term}.\par
+\noindent Definition: \texttt{(match term with | Recursion.Syntax.Term.literal value => Recursion.Syntax.Term.literal (value) | Recursion.Syntax.Term.plus left right => (match left with | Recursion.Syntax.Term.literal \_ => prune (right) | Recursion.Syntax.Term.plus inner \_ => prune (Recursion.Syntax.Term.plus (inner) (right))))}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{prune\_result}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(weight (prune (Recursion.Syntax.Term.plus (Recursion.Syntax.Term.plus (Recursion.Syntax.Term.literal (1)) (Recursion.Syntax.Term.literal (2))) (Recursion.Syntax.Term.literal (3)))) = 1)}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{ping\_to\_pong}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(number : Nat)}.\par
+\noindent Statement: \texttt{(((Nat.beq (number) (0)) = false) -> ((number + number) < ((number + number) + 1)))}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\subsection*{\texttt{pong\_to\_ping}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(number : Nat)}.\par
+\noindent Statement: \texttt{(((Nat.beq (number) (0)) = false) -> ((((LexLeanRuntime.subtract (number) (1) : Nat) + (LexLeanRuntime.subtract (number) (1) : Nat)) + 1) < (number + number)))}.\par
+\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\end{document}

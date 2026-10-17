@@ -1,0 +1,238 @@
+\begin{lexlean}{Main}
+\useglossary{lexlean.std.nat@1.2.0}
+\importmodule{Syntax}
+\title{Natural number addition}
+\begin{semanticmodule}
+definition{
+  name: roseSize,
+  type_parameters: [Item],
+  parameters: [rose : (Syntax::Rose 'Item)],
+  result: Nat,
+  body: (match rose | Syntax::Rose.node label children => (1 + (forestSize ['Item] children))),
+  mutual: RoseSize,
+  recursive_argument: rose
+}
+
+definition{
+  name: forestSize,
+  type_parameters: [Item],
+  parameters: [forest : (List (Syntax::Rose 'Item))],
+  result: Nat,
+  body: (match forest
+    | List.nil => 0
+    | List.cons head tail => ((roseSize ['Item] head) + (forestSize ['Item] tail))),
+  mutual: RoseSize,
+  recursive_argument: forest
+}
+
+definition{
+  name: isEven,
+  parameters: [number : Nat],
+  result: Bool,
+  body: (match number | Nat.zero => true | Nat.succ previous => (isOdd previous)),
+  mutual: Parity,
+  recursive_argument: number
+}
+
+definition{
+  name: isOdd,
+  parameters: [number : Nat],
+  result: Bool,
+  body: (match number | Nat.zero => false | Nat.succ previous => (isEven previous)),
+  mutual: Parity,
+  recursive_argument: number
+}
+
+theorem{
+  name: countdown_decreases,
+  parameters: [number : Nat, steps : Nat],
+  statement: (((number <? 2) = false) -> ((prim subtract number 2 : Nat) < number)),
+  proof: linear_arithmetic{},
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: countdown,
+  parameters: [number : Nat, steps : Nat],
+  result: Nat,
+  body: (if (number <? 2) then steps else (countdown (prim subtract number 2 : Nat) (steps + 1))),
+  axioms: [Quot.sound, propext],
+  termination: {evidence: [countdown_decreases], measure: number}
+}
+
+theorem{
+  name: reduce_decreases,
+  parameters: [value : Nat, bound : Nat],
+  statement: (((bound =? 0) = false) -> (((value <? bound) = false) -> ((prim subtract value bound : Nat) < value))),
+  proof: linear_arithmetic{},
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: reduce,
+  parameters: [value : Nat, bound : Nat],
+  result: Nat,
+  body: (if (bound =? 0) then value else (if (value <? bound) then value else (reduce (prim subtract value bound : Nat) bound))),
+  axioms: [Quot.sound, propext],
+  executable: true,
+  termination: {evidence: [reduce_decreases], measure: value}
+}
+
+theorem{
+  name: search_decreases,
+  parameters: [target : Nat, low : Nat, high : Nat],
+  statement: (((low <? high) = true) -> (((target <=? (low + low)) = false) -> ((prim subtract high (low + 1) : Nat) < (prim subtract high low : Nat)))),
+  proof: linear_arithmetic{},
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: search,
+  parameters: [target : Nat, low : Nat, high : Nat],
+  result: Nat,
+  body: (if (low <? high) then (if (target <=? (low + low)) then low else (search target (low + 1) high)) else high),
+  axioms: [Quot.sound, propext],
+  termination: {evidence: [search_decreases], measure: (prim subtract high low : Nat)}
+}
+
+theorem{
+  name: rose_size,
+  parameters: [],
+  statement: ((roseSize [Nat] (ctor Syntax::Rose.node [Nat] 1 (cons (ctor Syntax::Rose.node [Nat] 2 (nil (Syntax::Rose Nat))) (cons (ctor Syntax::Rose.node [Nat] 3 (nil (Syntax::Rose Nat))) (nil (Syntax::Rose Nat)))))) = 3),
+  proof: reflexivity{}
+}
+
+theorem{name: ten_is_even, parameters: [], statement: ((isEven 10) = true), proof: decide{}}
+
+theorem{
+  name: countdown_nine,
+  parameters: [],
+  statement: ((countdown 9 0) = 4),
+  proof: decide{},
+  axioms: [Quot.sound, propext]
+}
+
+theorem{
+  name: reduce_twenty_three,
+  parameters: [],
+  statement: ((reduce 23 5) = 3),
+  proof: decide{},
+  axioms: [Quot.sound, propext]
+}
+
+theorem{
+  name: search_first,
+  parameters: [],
+  statement: ((search 7 0 10) = 4),
+  proof: decide{},
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: weight,
+  parameters: [term : Syntax::Term],
+  result: Nat,
+  body: (match term
+    | Syntax::Term.literal value => 1
+    | Syntax::Term.plus left right => ((((weight left) + (weight left)) + (weight right)) + 1)),
+  recursive_argument: term
+}
+
+theorem{
+  name: reassociate_literal,
+  parameters: [term : Syntax::Term, left : Syntax::Term, right : Syntax::Term, value : Nat],
+  statement: ((term = (ctor Syntax::Term.plus left right)) -> ((left = (ctor Syntax::Term.literal value)) -> ((weight right) < (weight term)))),
+  proof: linear_arithmetic{definitions: [weight]},
+  axioms: [Quot.sound, propext]
+}
+
+theorem{
+  name: reassociate_plus,
+  parameters: [
+    term : Syntax::Term,
+    left : Syntax::Term,
+    right : Syntax::Term,
+    inner : Syntax::Term,
+    rest : Syntax::Term
+  ],
+  statement: ((term = (ctor Syntax::Term.plus left right)) -> ((left = (ctor Syntax::Term.plus inner rest)) -> ((weight (ctor Syntax::Term.plus inner (ctor Syntax::Term.plus rest right))) < (weight term)))),
+  proof: linear_arithmetic{definitions: [weight]},
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: reassociate,
+  parameters: [term : Syntax::Term],
+  result: Syntax::Term,
+  body: (match term
+    | Syntax::Term.literal value => (ctor Syntax::Term.literal value)
+    | Syntax::Term.plus left right => (match left
+      | Syntax::Term.literal value => (ctor Syntax::Term.plus (ctor Syntax::Term.literal value) (reassociate right))
+      | Syntax::Term.plus inner rest => (reassociate (ctor Syntax::Term.plus inner (ctor Syntax::Term.plus rest right))))),
+  axioms: [Quot.sound, propext],
+  executable: true,
+  termination: {evidence: [reassociate_literal, reassociate_plus], measure: (weight term)}
+}
+
+theorem{
+  name: reassociate_weight,
+  parameters: [],
+  statement: ((weight (reassociate (ctor Syntax::Term.plus (ctor Syntax::Term.plus (ctor Syntax::Term.literal 1) (ctor Syntax::Term.literal 2)) (ctor Syntax::Term.literal 3)))) = 7),
+  proof: decide{},
+  axioms: [Quot.sound, propext]
+}
+
+theorem{
+  name: prune_plus,
+  parameters: [
+    term : Syntax::Term,
+    left : Syntax::Term,
+    right : Syntax::Term,
+    inner : Syntax::Term,
+    rest : Syntax::Term
+  ],
+  statement: ((term = (ctor Syntax::Term.plus left right)) -> ((left = (ctor Syntax::Term.plus inner rest)) -> ((weight (ctor Syntax::Term.plus inner right)) < (weight term)))),
+  proof: linear_arithmetic{definitions: [weight]},
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: prune,
+  parameters: [term : Syntax::Term],
+  result: Syntax::Term,
+  body: (match term
+    | Syntax::Term.literal value => (ctor Syntax::Term.literal value)
+    | Syntax::Term.plus left right => (match left
+      | Syntax::Term.literal value => (prune right)
+      | Syntax::Term.plus inner rest => (prune (ctor Syntax::Term.plus inner right)))),
+  axioms: [Quot.sound, propext],
+  executable: true,
+  termination: {evidence: [reassociate_literal, prune_plus], measure: (weight term)}
+}
+
+theorem{
+  name: prune_result,
+  parameters: [],
+  statement: ((weight (prune (ctor Syntax::Term.plus (ctor Syntax::Term.plus (ctor Syntax::Term.literal 1) (ctor Syntax::Term.literal 2)) (ctor Syntax::Term.literal 3)))) = 1),
+  proof: decide{},
+  axioms: [Quot.sound, propext]
+}
+
+theorem{
+  name: ping_to_pong,
+  parameters: [number : Nat],
+  statement: (((number =? 0) = false) -> ((number + number) < ((number + number) + 1))),
+  proof: linear_arithmetic{},
+  axioms: [Quot.sound, propext]
+}
+
+theorem{
+  name: pong_to_ping,
+  parameters: [number : Nat],
+  statement: (((number =? 0) = false) -> ((((prim subtract number 1 : Nat) + (prim subtract number 1 : Nat)) + 1) < (number + number))),
+  proof: linear_arithmetic{},
+  axioms: [Quot.sound, propext]
+}
+
+\end{semanticmodule}
+\end{lexlean}

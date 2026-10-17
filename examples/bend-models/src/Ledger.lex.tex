@@ -1,0 +1,539 @@
+\begin{lexlean}{Ledger}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{models.titles@1.0.0}
+\title{Ledger contracts}
+\begin{semanticmodule}
+definition{name: Capped, parameters: [s : Nat], result: Prop, body: (s <= 100)}
+
+definition{
+  name: cappedCheck,
+  parameters: [s : Nat],
+  result: Bool,
+  body: (s <=? 100),
+  executable: true
+}
+
+theorem{
+  name: capped_check_sound,
+  parameters: [s : Nat],
+  statement: (((cappedCheck s) = true) -> (Capped s)),
+  proof: linear_arithmetic{definitions: [Capped, cappedCheck]},
+  axioms: [propext]
+}
+
+theorem{
+  name: capped_check_complete,
+  parameters: [s : Nat],
+  statement: ((Capped s) -> ((cappedCheck s) = true)),
+  proof: linear_arithmetic{definitions: [Capped, cappedCheck]},
+  axioms: [propext]
+}
+
+definition{name: Small, parameters: [s : Nat, x : Nat], result: Prop, body: (x <= 10)}
+
+definition{
+  name: smallCheck,
+  parameters: [s : Nat, x : Nat],
+  result: Bool,
+  body: (x <=? 10),
+  executable: true
+}
+
+theorem{
+  name: small_check_sound,
+  parameters: [s : Nat, x : Nat],
+  statement: (((smallCheck s x) = true) -> (Small s x)),
+  proof: linear_arithmetic{definitions: [Small, smallCheck]},
+  axioms: [propext]
+}
+
+definition{
+  name: Grows,
+  parameters: [s : Nat, x : Nat, t : Nat, y : Nat],
+  result: Prop,
+  body: (s <= t)
+}
+
+definition{
+  name: growsCheck,
+  parameters: [s : Nat, x : Nat, t : Nat, y : Nat],
+  result: Bool,
+  body: (s <=? t),
+  executable: true
+}
+
+theorem{
+  name: grows_check_sound,
+  parameters: [s : Nat, x : Nat, t : Nat, y : Nat],
+  statement: (((growsCheck s x t y) = true) -> (Grows s x t y)),
+  proof: linear_arithmetic{definitions: [Grows, growsCheck]},
+  axioms: [propext]
+}
+
+theorem{
+  name: grows_check_complete,
+  parameters: [s : Nat, x : Nat, t : Nat, y : Nat],
+  statement: ((Grows s x t y) -> ((growsCheck s x t y) = true)),
+  proof: linear_arithmetic{definitions: [Grows, growsCheck]},
+  axioms: [propext]
+}
+
+contract{
+  name: LedgerContract,
+  axioms: [propext],
+  input: {name: x, type: Nat},
+  invariant: Capped,
+  output: {name: y, type: Nat},
+  postcondition: Grows,
+  precondition: Small,
+  state: {name: s, type: Nat, next: t},
+  validators: [
+    {
+      complete: capped_check_complete,
+      predicate: invariant,
+      sound: capped_check_sound,
+      validator: cappedCheck
+    },
+    {
+      complete: grows_check_complete,
+      predicate: postcondition,
+      sound: grows_check_sound,
+      validator: growsCheck
+    },
+    {predicate: precondition, sound: small_check_sound, validator: smallCheck}
+  ]
+}
+
+realization{
+  name: Spill,
+  descriptor: deterministic{body: ((s + x), x)},
+  executable: true,
+  input: {name: x, type: Nat},
+  output: Nat,
+  state: {name: s, type: Nat, initial: 0}
+}
+
+definition{
+  name: spillRef,
+  parameters: [s : Nat, x : Nat],
+  result: (Nat * Nat),
+  body: ((s + x), x),
+  executable: true
+}
+
+theorem{
+  name: spill_grows,
+  parameters: [s : Nat, x : Nat],
+  statement: ((Capped s) -> ((Small s x) -> (Grows s x (first (Spill s x)) (second (Spill s x))))),
+  proof: linear_arithmetic{definitions: [Capped, Grows, Small, Spill]},
+  axioms: [Quot.sound, propext]
+}
+
+theorem{
+  name: spill_reference,
+  parameters: [s : Nat, x : Nat],
+  statement: ((Capped s) -> ((Small s x) -> ((Spill s x) = (spillRef s x)))),
+  proof: linear_arithmetic{definitions: [Spill, spillRef]},
+  axioms: [propext]
+}
+
+evidence{
+  name: SpillEvidence,
+  axioms: [Quot.sound, propext],
+  claims: [satisfies_contract{theorem: spill_grows}],
+  contract: {member: LedgerContract},
+  realization: {member: Spill}
+}
+
+model{
+  name: SpillModel,
+  contract: {member: LedgerContract},
+  evidence: [{member: SpillEvidence}],
+  realization: {member: Spill}
+}
+
+evidence{
+  name: SpillReference,
+  axioms: [propext],
+  claims: [equivalent_to{reference: {member: spillRef}, theorem: spill_reference}],
+  contract: {member: LedgerContract},
+  realization: {member: Spill}
+}
+
+model{
+  name: SpillRawModel,
+  contract: {member: LedgerContract},
+  evidence: [{member: SpillReference}],
+  realization: {member: Spill}
+}
+
+contract{
+  name: TallyContract,
+  axioms: [propext],
+  input: {name: x, type: Nat},
+  output: {name: y, type: Nat},
+  postcondition: Grows,
+  precondition: Small,
+  state: {name: s, type: Nat, next: t},
+  validators: [
+    {predicate: postcondition, sound: grows_check_sound, validator: growsCheck},
+    {predicate: precondition, sound: small_check_sound, validator: smallCheck}
+  ]
+}
+
+realization{
+  name: Tally,
+  descriptor: deterministic{body: ((s + x), s)},
+  executable: true,
+  input: {name: x, type: Nat},
+  output: Nat,
+  state: {name: s, type: Nat, initial: 0}
+}
+
+definition{
+  name: tallyRef,
+  parameters: [s : Nat, x : Nat],
+  result: (Nat * Nat),
+  body: ((s + x), s),
+  executable: true
+}
+
+theorem{
+  name: tally_grows,
+  parameters: [s : Nat, x : Nat],
+  statement: ((Small s x) -> (Grows s x (first (Tally s x)) (second (Tally s x)))),
+  proof: linear_arithmetic{definitions: [Grows, Small, Tally]},
+  axioms: [Quot.sound, propext]
+}
+
+theorem{
+  name: tally_reference,
+  parameters: [s : Nat, x : Nat],
+  statement: ((Small s x) -> ((Tally s x) = (tallyRef s x))),
+  proof: linear_arithmetic{definitions: [Tally, tallyRef]},
+  axioms: [propext]
+}
+
+evidence{
+  name: TallyEvidence,
+  axioms: [Quot.sound, propext],
+  claims: [
+    equivalent_to{reference: {member: tallyRef}, theorem: tally_reference},
+    satisfies_contract{theorem: tally_grows}
+  ],
+  contract: {member: TallyContract},
+  realization: {member: Tally}
+}
+
+model{
+  name: TallyModel,
+  contract: {member: TallyContract},
+  evidence: [{member: TallyEvidence}],
+  realization: {member: Tally}
+}
+
+contract{
+  name: CapContract,
+  axioms: [propext],
+  input: {name: x, type: Nat},
+  invariant: Capped,
+  output: {name: y, type: Nat},
+  postcondition: Grows,
+  state: {name: s, type: Nat, next: t},
+  validators: [
+    {
+      complete: capped_check_complete,
+      predicate: invariant,
+      sound: capped_check_sound,
+      validator: cappedCheck
+    },
+    {predicate: postcondition, sound: grows_check_sound, validator: growsCheck}
+  ]
+}
+
+realization{
+  name: Clamp,
+  descriptor: deterministic{
+    body: (let total : Nat := (s + x); ((prim subtract total (prim subtract total 100 : Nat) : Nat), (prim subtract total (prim subtract total 100 : Nat) : Nat)))
+  },
+  executable: true,
+  input: {name: x, type: Nat},
+  output: Nat,
+  state: {name: s, type: Nat, initial: 0}
+}
+
+definition{
+  name: clampRef,
+  parameters: [s : Nat, x : Nat],
+  result: (Nat * Nat),
+  body: (let total : Nat := (s + x); ((prim subtract total (prim subtract total 100 : Nat) : Nat), (prim subtract total (prim subtract total 100 : Nat) : Nat))),
+  executable: true
+}
+
+theorem{name: clamp_initial, parameters: [], statement: (Capped (Clamp.initial)), proof: decide{}}
+
+theorem{
+  name: clamp_preserves,
+  parameters: [s : Nat, x : Nat],
+  statement: ((Capped s) -> (Capped (first (Clamp s x)))),
+  proof: linear_arithmetic{definitions: [Capped, Clamp]},
+  axioms: [Quot.sound, propext]
+}
+
+theorem{
+  name: clamp_grows,
+  parameters: [s : Nat, x : Nat],
+  statement: ((Capped s) -> (Grows s x (first (Clamp s x)) (second (Clamp s x)))),
+  proof: linear_arithmetic{definitions: [Capped, Clamp, Grows]},
+  axioms: [Quot.sound, propext]
+}
+
+theorem{
+  name: clamp_reference,
+  parameters: [s : Nat, x : Nat],
+  statement: ((Capped s) -> ((Clamp s x) = (clampRef s x))),
+  proof: linear_arithmetic{definitions: [Clamp, clampRef]},
+  axioms: [propext]
+}
+
+evidence{
+  name: ClampEvidence,
+  axioms: [Quot.sound, propext],
+  claims: [
+    equivalent_to{reference: {member: clampRef}, theorem: clamp_reference},
+    initial_invariant{theorem: clamp_initial},
+    preserves_invariant{theorem: clamp_preserves},
+    satisfies_contract{theorem: clamp_grows}
+  ],
+  contract: {member: CapContract},
+  realization: {member: Clamp}
+}
+
+model{
+  name: ClampModel,
+  contract: {member: CapContract},
+  evidence: [{member: ClampEvidence}],
+  realization: {member: Clamp}
+}
+
+contract{
+  name: FreeContract,
+  axioms: [propext],
+  input: {name: x, type: Nat},
+  output: {name: y, type: Nat},
+  postcondition: Grows,
+  state: {name: s, type: Nat, next: t},
+  validators: [{predicate: postcondition, sound: grows_check_sound, validator: growsCheck}]
+}
+
+theorem{
+  name: tally_free_grows,
+  parameters: [s : Nat, x : Nat],
+  statement: (Grows s x (first (Tally s x)) (second (Tally s x))),
+  proof: linear_arithmetic{definitions: [Grows, Tally]},
+  axioms: [Quot.sound, propext]
+}
+
+theorem{
+  name: tally_free_reference,
+  parameters: [s : Nat, x : Nat],
+  statement: ((Tally s x) = (tallyRef s x)),
+  proof: linear_arithmetic{definitions: [Tally, tallyRef]},
+  axioms: [propext]
+}
+
+evidence{
+  name: FreeEvidence,
+  axioms: [Quot.sound, propext],
+  claims: [
+    equivalent_to{reference: {member: tallyRef}, theorem: tally_free_reference},
+    satisfies_contract{theorem: tally_free_grows}
+  ],
+  contract: {member: FreeContract},
+  realization: {member: Tally}
+}
+
+model{
+  name: FreeModel,
+  contract: {member: FreeContract},
+  evidence: [{member: FreeEvidence}],
+  realization: {member: Tally}
+}
+
+definition{name: Within, parameters: [x : Nat], result: Prop, body: (x <= 10)}
+
+definition{
+  name: withinCheck,
+  parameters: [x : Nat],
+  result: Bool,
+  body: (x <=? 10),
+  executable: true
+}
+
+theorem{
+  name: within_check_sound,
+  parameters: [x : Nat],
+  statement: (((withinCheck x) = true) -> (Within x)),
+  proof: linear_arithmetic{definitions: [Within, withinCheck]},
+  axioms: [propext]
+}
+
+theorem{
+  name: within_check_complete,
+  parameters: [x : Nat],
+  statement: ((Within x) -> ((withinCheck x) = true)),
+  proof: linear_arithmetic{definitions: [Within, withinCheck]},
+  axioms: [propext]
+}
+
+definition{name: Below, parameters: [x : Nat, y : Nat], result: Prop, body: (y <= x)}
+
+definition{
+  name: belowCheck,
+  parameters: [x : Nat, y : Nat],
+  result: Bool,
+  body: (y <=? x),
+  executable: true
+}
+
+theorem{
+  name: below_check_sound,
+  parameters: [x : Nat, y : Nat],
+  statement: (((belowCheck x y) = true) -> (Below x y)),
+  proof: linear_arithmetic{definitions: [Below, belowCheck]},
+  axioms: [propext]
+}
+
+contract{
+  name: GuessContract,
+  axioms: [propext],
+  input: {name: x, type: Nat},
+  output: {name: y, type: Nat},
+  postcondition: Below,
+  precondition: Within,
+  validators: [
+    {predicate: postcondition, sound: below_check_sound, validator: belowCheck},
+    {
+      complete: within_check_complete,
+      predicate: precondition,
+      sound: within_check_sound,
+      validator: withinCheck
+    }
+  ]
+}
+
+realization{
+  name: Guess,
+  descriptor: deterministic{body: (prim subtract x 1 : Nat)},
+  executable: true,
+  input: {name: x, type: Nat},
+  output: Nat
+}
+
+definition{
+  name: guessRef,
+  parameters: [x : Nat],
+  result: Nat,
+  body: (prim subtract x 1 : Nat),
+  executable: true
+}
+
+theorem{
+  name: guess_reference,
+  parameters: [x : Nat],
+  statement: ((Within x) -> ((Guess x) = (guessRef x))),
+  proof: linear_arithmetic{definitions: [Guess, guessRef]},
+  axioms: [propext]
+}
+
+definition{
+  name: guessSamples,
+  parameters: [],
+  result: (List (Nat * Nat)),
+  body: (cons (0, 0) (cons (1, 0) (cons (2, 1) (cons (5, 4) (cons (9, 9) (nil (Nat * Nat)))))))
+}
+
+definition{
+  name: sameNat,
+  parameters: [expected : Nat, observed : Nat],
+  result: Bool,
+  body: (expected =? observed),
+  executable: true
+}
+
+theorem{
+  name: same_nat_sound,
+  parameters: [expected : Nat, observed : Nat],
+  statement: (((sameNat expected observed) = true) -> (expected = observed)),
+  proof: linear_arithmetic{definitions: [sameNat]},
+  axioms: [propext]
+}
+
+theorem{
+  name: guess_agreement,
+  parameters: [],
+  statement: (((prim length (guessSamples) : Nat) = 5) /\ ((prim list_fold (fun (count : Nat) (example : (Nat * Nat)) => (if (sameNat (Guess (first example)) (second example)) then (count + 1) else count)) 0 (guessSamples) : Nat) = 4)),
+  proof: decide{}
+}
+
+evidence{
+  name: GuessSample,
+  claims: [
+    dataset_agreement{
+      agreements: 4,
+      comparison: sameNat,
+      comparison_sound: same_nat_sound,
+      dataset: guessSamples,
+      examples: 5,
+      theorem: guess_agreement
+    }
+  ],
+  contract: {member: GuessContract},
+  realization: {member: Guess}
+}
+
+model{
+  name: GuessModel,
+  contract: {member: GuessContract},
+  evidence: [{member: GuessSample}],
+  realization: {member: Guess}
+}
+
+evidence{
+  name: GuessEquivalence,
+  axioms: [propext],
+  claims: [equivalent_to{reference: {member: guessRef}, theorem: guess_reference}],
+  contract: {member: GuessContract},
+  realization: {member: Guess}
+}
+
+model{
+  name: GuessExactModel,
+  contract: {member: GuessContract},
+  evidence: [{member: GuessEquivalence}],
+  realization: {member: Guess}
+}
+
+realization{
+  name: Overshoot,
+  descriptor: deterministic{body: (x + 1)},
+  executable: true,
+  input: {name: x, type: Nat},
+  output: Nat
+}
+
+model{name: OvershootModel, contract: {member: GuessContract}, realization: {member: Overshoot}}
+
+definition{
+  name: violationCode,
+  parameters: [violation : ContractViolation],
+  result: Nat,
+  body: (match violation
+    | ContractViolation.precondition => 1
+    | ContractViolation.input_invariant => 2
+    | ContractViolation.postcondition => 3
+    | ContractViolation.output_invariant => 4),
+  executable: true
+}
+\end{semanticmodule}
+\end{lexlean}

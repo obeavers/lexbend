@@ -24,7 +24,11 @@ impl Prover<'_, '_, '_> {
     /// `congr 1`: both sides apply the same head; each argument pair that
     /// differs is rewritten by a premise equating it, and Bend checks that
     /// what remains holds by reflexivity.
-    pub(super) fn congruence(&mut self, ctx: &Ctx, goal: &SemanticTerm) -> Result<Body, Diagnostic> {
+    pub(super) fn congruence(
+        &mut self,
+        ctx: &Ctx,
+        goal: &SemanticTerm,
+    ) -> Result<Body, Diagnostic> {
         let SemanticTerm::Eq { left, right } = goal else {
             return Err(fail("`congruence` proves an equation"));
         };
@@ -228,9 +232,15 @@ impl Prover<'_, '_, '_> {
             ),
             SemanticReflectionComparison::NatBlt => (call(blt, vec![var(v), var(p)]), var(p)),
         };
-        let rest_validate = self.lower.call_of(boolean, &[], vec![next.clone(), var(rest)])?;
-        let validate_all = self.lower.call_of(boolean, &[], vec![var(p), var(values)])?;
-        let valid_all = self.lower.call_of(proposition, &[], vec![var(p), var(values)])?;
+        let rest_validate = self
+            .lower
+            .call_of(boolean, &[], vec![next.clone(), var(rest)])?;
+        let validate_all = self
+            .lower
+            .call_of(boolean, &[], vec![var(p), var(values)])?;
+        let valid_all = self
+            .lower
+            .call_of(proposition, &[], vec![var(p), var(values)])?;
         let param = |quantity, name: &str, ty| Param {
             quantity,
             name: synthetic(name),

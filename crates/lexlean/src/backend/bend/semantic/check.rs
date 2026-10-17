@@ -242,7 +242,10 @@ impl Lower<'_, '_> {
         let element_type = self.ty(&nested(depth - 1))?;
         checks.push(call(
             beq.clone(),
-            vec![call(length.clone(), vec![element_type, value.clone()]), nat(shape[0])?],
+            vec![
+                call(length.clone(), vec![element_type, value.clone()]),
+                nat(shape[0])?,
+            ],
         ));
         let mut level = value;
         let mut rows: u64 = 1;
@@ -277,7 +280,9 @@ impl Lower<'_, '_> {
         );
         // `tensorMatches && (c1 && (c2 && ..))`: the same conjunction as
         // the Lean check, which Bend evaluates to `true` either way.
-        let mut shapes = checks.pop().ok_or_else(|| fail("a tensor check is empty"))?;
+        let mut shapes = checks
+            .pop()
+            .ok_or_else(|| fail("a tensor check is empty"))?;
         while let Some(check) = checks.pop() {
             shapes = call(and.clone(), vec![check, shapes]);
         }

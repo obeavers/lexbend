@@ -1,9 +1,9 @@
 //! Language 2.2: semantic modules lowered to Bend 2 (SPEC.md §18.11).
 //!
-//! A semantic module is closed, first-order data whose every type is
-//! explicit, so this lowering needs no inference engine: types are read
-//! off the declarations, and every argument Bend cannot infer (an erased
-//! type argument, an equation's type) is computed from them.
+//! A semantic module is closed data whose every type is explicit, so this
+//! lowering needs no inference engine: types are read off the declarations,
+//! and every argument Bend cannot infer (an erased type argument, an
+//! equation's type) is computed from them.
 //!
 //! Disclosed lowering decisions:
 //!
@@ -13,14 +13,28 @@
 //!   matches its one constructor, exactly as Lean's projection reduces.
 //! - **Kinds.** Values are `Data` unless they hold a function, so a value
 //!   may be used as often as Lean uses it; a `Prop` lowers to a Bend type
-//!   of kind `Data` when it is built from equations (`Sem.le`, `{a == b}`
-//!   and pairs of those), so a hypothesis may be reused too.
+//!   of kind `Data` when it is built from equations, `Nat` orders, and
+//!   conjunctions of those, or calls a definition so built, so a
+//!   hypothesis may be reused too.
+//! - **Type parameters** are templates (`~T: Data`): Bend copies a template
+//!   at each use, so a generic definition is checked at every type it is
+//!   used at.
+//! - **Function parameters** are closure-converted (`closure.rs`): a code
+//!   template over a template environment type, and the environment as
+//!   data, because Bend shares a function value only as a closed template.
 //! - **Recursion.** A structurally recursive definition takes its
-//!   decreasing parameter first, as Bend's termination check requires, and
-//!   every call passes its arguments in that order.
+//!   decreasing parameter first, as Bend's termination check requires; a
+//!   mutual group is inlined into self-recursive members (`mutual.rs`),
+//!   since Bend has no forward reference; a well-founded definition runs
+//!   on proof-carrying fuel (`wellfounded.rs`).
+//! - **Support.** What the semantic surface lowers through but Lean's
+//!   prelude does not define lives in the shipped support modules
+//!   (`support.rs`): the semantic forms, the ported runtime, and the
+//!   linear-arithmetic checker. A build publishes those its modules import.
 //! - **Proofs.** Every proof is an explicit term (`proof.rs`), checked by
 //!   Bend; a goal the lowering cannot discharge is refused with `LLB6008`
-//!   rather than emitted with a guess.
+//!   rather than emitted with a guess, and a reasoning declaration, whose
+//!   proofs are tactic scripts over the runtime, is refused whole.
 
 pub mod check;
 pub mod closure;
@@ -1240,10 +1254,9 @@ impl<'p, 'a> Lower<'p, 'a> {
                 }
             }
             SemanticTerm::String { value } => BTerm::Str(names::string_literal(value)),
-            SemanticTerm::Bool { value } => BTerm::Constructor(
-                synthetic(if *value { "True" } else { "False" }),
-                Vec::new(),
-            ),
+            SemanticTerm::Bool { value } => {
+                BTerm::Constructor(synthetic(if *value { "True" } else { "False" }), Vec::new())
+            }
             SemanticTerm::Unit => BTerm::Constructor(synthetic("Unit"), Vec::new()),
             SemanticTerm::Nil { .. } => BTerm::Constructor(synthetic("Nil"), Vec::new()),
             SemanticTerm::Cons { head, tail } => BTerm::Constructor(
@@ -1393,12 +1406,17 @@ impl<'p, 'a> Lower<'p, 'a> {
                 let less = matches!(term, SemanticTerm::Lt { .. });
                 let head = match ty {
                     SemanticType::Nat => self.support(if less { "lt" } else { "le" }),
-                    SemanticType::Int => self.prelude(if less { "Lean.Int.lt" } else { "Lean.Int.le" }),
+                    SemanticType::Int => {
+                        self.prelude(if less { "Lean.Int.lt" } else { "Lean.Int.le" })
+                    }
                     other => {
                         return Err(fail(format!("no Bend order on `{other:?}`")));
                     }
                 };
-                call(head, vec![self.term(left, scope)?, self.term(right, scope)?])
+                call(
+                    head,
+                    vec![self.term(left, scope)?, self.term(right, scope)?],
+                )
             }
             SemanticTerm::Add { left, right } => {
                 let ty = self.infer_operands(left, right, scope)?;
@@ -1407,7 +1425,10 @@ impl<'p, 'a> Lower<'p, 'a> {
                     SemanticType::Int => self.prelude("Lean.Int.add"),
                     other => return Err(fail(format!("no Bend addition on `{other:?}`"))),
                 };
-                call(head, vec![self.term(left, scope)?, self.term(right, scope)?])
+                call(
+                    head,
+                    vec![self.term(left, scope)?, self.term(right, scope)?],
+                )
             }
             SemanticTerm::Beq { left, right }
             | SemanticTerm::Ble { left, right }
@@ -1417,7 +1438,10 @@ impl<'p, 'a> Lower<'p, 'a> {
                     SemanticTerm::Ble { .. } => "Lean.Nat.ble",
                     _ => "Lean.Nat.blt",
                 });
-                call(head, vec![self.term(left, scope)?, self.term(right, scope)?])
+                call(
+                    head,
+                    vec![self.term(left, scope)?, self.term(right, scope)?],
+                )
             }
             SemanticTerm::And { left, right } | SemanticTerm::Or { left, right } => {
                 let head = self.prelude(if matches!(term, SemanticTerm::And { .. }) {
@@ -1425,7 +1449,10 @@ impl<'p, 'a> Lower<'p, 'a> {
                 } else {
                     "Lean.Bool.or"
                 });
-                call(head, vec![self.term(left, scope)?, self.term(right, scope)?])
+                call(
+                    head,
+                    vec![self.term(left, scope)?, self.term(right, scope)?],
+                )
             }
             SemanticTerm::Not { value } => {
                 let head = self.prelude("Lean.Bool.not");
@@ -1566,10 +1593,8 @@ impl<'p, 'a> Lower<'p, 'a> {
             SemanticTerm::SetLiteral { elements, .. } => {
                 let mut out = BTerm::Constructor(synthetic("Nil"), Vec::new());
                 for element in elements.iter().rev() {
-                    out = BTerm::Constructor(
-                        synthetic("Con"),
-                        vec![self.term(element, scope)?, out],
-                    );
+                    out =
+                        BTerm::Constructor(synthetic("Con"), vec![self.term(element, scope)?, out]);
                 }
                 out
             }
@@ -1583,8 +1608,7 @@ impl<'p, 'a> Lower<'p, 'a> {
                             vec![self.term(&edge.target, scope)?, targets],
                         );
                     }
-                    let pair =
-                        BTerm::Pair(Box::new(self.term(source, scope)?), Box::new(targets));
+                    let pair = BTerm::Pair(Box::new(self.term(source, scope)?), Box::new(targets));
                     out = BTerm::Constructor(synthetic("Con"), vec![pair, out]);
                 }
                 out
@@ -1593,7 +1617,10 @@ impl<'p, 'a> Lower<'p, 'a> {
                 operation,
                 arguments,
                 result,
-            } if self.arithmetic(*operation, &self.canonical(result)).is_some() => {
+            } if self
+                .arithmetic(*operation, &self.canonical(result))
+                .is_some() =>
+            {
                 let head = self
                     .arithmetic(*operation, &self.canonical(result))
                     .ok_or_else(|| fail("an arithmetic primitive lost its head"))?;
@@ -1930,9 +1957,7 @@ impl<'p, 'a> Lower<'p, 'a> {
             SemanticDeclaration::Definition {
                 mutual: Some(key), ..
             } => self.mutual_group(key)?,
-            SemanticDeclaration::Definition { body, .. } => {
-                self.definition(declaration, body)?
-            }
+            SemanticDeclaration::Definition { body, .. } => self.definition(declaration, body)?,
             SemanticDeclaration::Theorem { .. } => proof::theorem(self, declaration)?,
             other => {
                 return Err(fail(format!(
@@ -2232,7 +2257,6 @@ impl<'p, 'a> Lower<'p, 'a> {
             source: here(),
         }])
     }
-
 }
 
 /// The source span of a byte range of a module's normalized source.
@@ -2240,7 +2264,10 @@ fn source_span(checked: &CheckedModule, (start, end): (usize, usize)) -> crate::
     let position = |byte: usize| {
         let prefix = &checked.normalized[..byte.min(checked.normalized.len())];
         let line = prefix.matches('\n').count() + 1;
-        let column = prefix.rsplit('\n').next().map_or(1, |tail| tail.chars().count() + 1);
+        let column = prefix
+            .rsplit('\n')
+            .next()
+            .map_or(1, |tail| tail.chars().count() + 1);
         (line, column)
     };
     let (line_start, column_start) = position(start);
@@ -2270,8 +2297,14 @@ pub fn render_module(
 ) -> Result<(Emitter, bool, BTreeSet<Support>), Diagnostic> {
     let mut lower = Lower::new(project, name);
     let mut chunks: Vec<String> = Vec::new();
-    let spans = crate::backend::semantic::notation_declaration_spans(&checked.normalized, "semanticmodule")
-        .or_else(|| crate::backend::semantic::declaration_spans_in(&checked.normalized, "\\semanticdata{"));
+    let spans =
+        crate::backend::semantic::notation_declaration_spans(&checked.normalized, "semanticmodule")
+            .or_else(|| {
+                crate::backend::semantic::declaration_spans_in(
+                    &checked.normalized,
+                    "\\semanticdata{",
+                )
+            });
     for (index, source) in module.declarations.iter().enumerate() {
         let declarations: Vec<&SemanticDeclaration> = match module.elaborated(index) {
             Some(elaborated) => elaborated.iter().collect(),

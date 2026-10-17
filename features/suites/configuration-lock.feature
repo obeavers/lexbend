@@ -139,3 +139,11 @@ Feature: configuration-lock
     Then the 2.0 configuration and `lexlean/lock/3` lock carry `bend_toolchain = "bend 2.0.37"`, pass `lock --check`, and validate against `project-v3` and `lock-v3`
     And a 2.0 configuration without the pin or with another release, and a 1.0 configuration with one, fail with LLC0101
     And a 2.0 lock without the pin or under schema v1, and a 1.0 lock with a pin, fail to parse
+
+  @CF-20 @build
+  Scenario: Language 2.2 reads the language-1.2 configuration with bend_toolchain bend 2.0.37 required, its lock is schema v4 pinning that toolchain, and init creates a language-2.0 or language-2.2 project.
+    Given the language-2.2 semantic and models examples and two empty directories
+    When their configurations and locks are checked, the semantic configuration drops its Bend pin, and `init --language 2.0` and `init --language 2.2` run
+    Then the 2.2 configuration and `lexlean/lock/4` lock carry `bend_toolchain = "bend 2.0.37"`, pass `lock --check`, and validate against `project-v4` and `lock-v4`, model artifacts included
+    And the configuration without the pin fails with LLC0101, and a 2.2 lock under schema v3 fails to parse
+    And each initialized project validates against its language's schemas, keeps its surface's host module or none, and builds

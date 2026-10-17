@@ -1,0 +1,20 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\begin{document}
+\section*{Semantic declarations}
+\subsection*{\texttt{doubledSuccessor}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(n : Nat)}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(let doubled : Nat := (n + n); (doubled + 1))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{doubled\_successor\_two}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(doubledSuccessor (2) = 5)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{let\_statement\_unfolds}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(let three : Nat := 3; ((three + three) = 6))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\end{document}

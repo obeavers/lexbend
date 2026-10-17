@@ -1,0 +1,489 @@
+\begin{lexlean}{Flows}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{models.titles@1.0.0}
+\importmodule{Ledger}
+\title{Checked flows}
+\begin{semanticmodule}
+theorem{
+  name: flow_capped_sound,
+  parameters: [s : Nat],
+  statement: (((Ledger::cappedCheck s) = true) -> (Ledger::Capped s)),
+  proof: apply{arguments: [s], theorem: Ledger::capped_check_sound},
+  axioms: [propext]
+}
+
+contract{
+  name: FlowContract,
+  axioms: [propext],
+  input: {name: x, type: Nat},
+  invariant: Ledger::Capped,
+  output: {name: r, type: (Result Nat ContractViolation)},
+  state: {name: s, type: Nat, next: t},
+  validators: [{predicate: invariant, sound: flow_capped_sound, validator: Ledger::cappedCheck}]
+}
+
+realization{
+  name: ClampGuess,
+  descriptor: composite{
+    form: sequence{
+      junctions: [checked{}],
+      stages: [{member: Ledger::ClampModel}, {member: Ledger::GuessModel}]
+    }
+  },
+  executable: true,
+  input: {name: x, type: Nat},
+  output: (Result Nat ContractViolation),
+  state: {name: s, type: Nat, initial: 0}
+}
+
+theorem{
+  name: flow_entry,
+  parameters: [s : Nat, x : Nat],
+  statement: ((Ledger::Capped s) -> (Ledger::Capped s)),
+  proof: linear_arithmetic{definitions: [Ledger::Capped]}
+}
+
+model{
+  name: FlowModel,
+  contract: {member: FlowContract},
+  entry: [flow_entry],
+  realization: {member: ClampGuess}
+}
+
+theorem{
+  name: pair_within_sound,
+  parameters: [x : Nat],
+  statement: (((Ledger::withinCheck x) = true) -> (Ledger::Within x)),
+  proof: apply{arguments: [x], theorem: Ledger::within_check_sound},
+  axioms: [propext]
+}
+
+contract{
+  name: PairGuessContract,
+  axioms: [propext],
+  input: {name: x, type: Nat},
+  output: {name: r, type: (Result (Nat * Nat) ContractViolation)},
+  precondition: Ledger::Within,
+  validators: [{predicate: precondition, sound: pair_within_sound, validator: Ledger::withinCheck}]
+}
+
+realization{
+  name: GuessTwice,
+  descriptor: composite{
+    form: fanout{left: {member: Ledger::GuessModel}, right: {member: Ledger::GuessExactModel}}
+  },
+  executable: true,
+  input: {name: x, type: Nat},
+  output: (Result (Nat * Nat) ContractViolation)
+}
+
+theorem{
+  name: pair_entry_left,
+  parameters: [x : Nat],
+  statement: ((Ledger::Within x) -> (Ledger::Within x)),
+  proof: linear_arithmetic{definitions: [Ledger::Within]}
+}
+
+theorem{
+  name: pair_entry_right,
+  parameters: [x : Nat],
+  statement: ((Ledger::Within x) -> (Ledger::Within x)),
+  proof: linear_arithmetic{definitions: [Ledger::Within]}
+}
+
+model{
+  name: PairGuessModel,
+  contract: {member: PairGuessContract},
+  entry: [pair_entry_left, pair_entry_right],
+  realization: {member: GuessTwice}
+}
+
+realization{
+  name: GuessOvershoot,
+  descriptor: composite{
+    form: fanout{left: {member: Ledger::GuessModel}, right: {member: Ledger::OvershootModel}}
+  },
+  executable: true,
+  input: {name: x, type: Nat},
+  output: (Result (Nat * Nat) ContractViolation)
+}
+
+model{
+  name: OvershootPairModel,
+  contract: {member: PairGuessContract},
+  entry: [pair_entry_left, pair_entry_right],
+  realization: {member: GuessOvershoot}
+}
+
+definition{
+  name: Few,
+  parameters: [xs : (List Nat)],
+  result: Prop,
+  body: ((prim length xs : Nat) <= 100)
+}
+
+definition{
+  name: fewCheck,
+  parameters: [xs : (List Nat)],
+  result: Bool,
+  body: ((prim length xs : Nat) <=? 100),
+  executable: true
+}
+
+theorem{
+  name: few_check_sound,
+  parameters: [xs : (List Nat)],
+  statement: (((fewCheck xs) = true) -> (Few xs)),
+  proof: linear_arithmetic{definitions: [Few, fewCheck]},
+  axioms: [propext]
+}
+
+contract{
+  name: SpillStreamContract,
+  axioms: [propext],
+  input: {name: xs, type: (List Nat)},
+  output: {name: r, type: (Result (List Nat) ContractViolation)},
+  precondition: Few,
+  validators: [{predicate: precondition, sound: few_check_sound, validator: fewCheck}]
+}
+
+realization{
+  name: SpillStream,
+  descriptor: composite{form: scan{junction: checked{}, stage: {member: Ledger::SpillModel}}},
+  executable: true,
+  input: {name: xs, type: (List Nat)},
+  output: (Result (List Nat) ContractViolation)
+}
+
+model{
+  name: SpillStreamModel,
+  contract: {member: SpillStreamContract},
+  realization: {member: SpillStream}
+}
+
+definition{
+  name: TwinCapped,
+  parameters: [s : (Nat * Nat)],
+  result: Prop,
+  body: (Ledger::Capped (first s))
+}
+
+definition{
+  name: twinCappedCheck,
+  parameters: [s : (Nat * Nat)],
+  result: Bool,
+  body: (Ledger::cappedCheck (first s)),
+  executable: true
+}
+
+theorem{
+  name: twin_capped_check_sound,
+  parameters: [s : (Nat * Nat)],
+  statement: (((twinCappedCheck s) = true) -> (TwinCapped s)),
+  proof: linear_arithmetic{
+    definitions: [Ledger::Capped, Ledger::cappedCheck, TwinCapped, twinCappedCheck]
+  },
+  axioms: [propext]
+}
+
+definition{name: TwinSmall, parameters: [s : (Nat * Nat), x : Nat], result: Prop, body: (x <= 10)}
+
+definition{
+  name: twinSmallCheck,
+  parameters: [s : (Nat * Nat), x : Nat],
+  result: Bool,
+  body: (x <=? 10),
+  executable: true
+}
+
+theorem{
+  name: twin_small_check_sound,
+  parameters: [s : (Nat * Nat), x : Nat],
+  statement: (((twinSmallCheck s x) = true) -> (TwinSmall s x)),
+  proof: linear_arithmetic{definitions: [TwinSmall, twinSmallCheck]},
+  axioms: [propext]
+}
+
+contract{
+  name: TwinContract,
+  axioms: [propext],
+  input: {name: x, type: Nat},
+  invariant: TwinCapped,
+  output: {name: y, type: (Nat * Nat)},
+  precondition: TwinSmall,
+  state: {name: s, type: (Nat * Nat), next: t},
+  validators: [
+    {predicate: invariant, sound: twin_capped_check_sound, validator: twinCappedCheck},
+    {predicate: precondition, sound: twin_small_check_sound, validator: twinSmallCheck}
+  ]
+}
+
+realization{
+  name: ClampTally,
+  descriptor: composite{
+    form: fanout{left: {member: Ledger::ClampModel}, right: {member: Ledger::TallyModel}}
+  },
+  executable: true,
+  input: {name: x, type: Nat},
+  output: (Nat * Nat),
+  state: {name: s, type: (Nat * Nat), initial: (0, 0)}
+}
+
+theorem{
+  name: twin_entry_left,
+  parameters: [s : (Nat * Nat), x : Nat],
+  statement: ((TwinCapped s) -> ((TwinSmall s x) -> (Ledger::Capped (first s)))),
+  proof: linear_arithmetic{definitions: [Ledger::Capped, TwinCapped, TwinSmall]}
+}
+
+theorem{
+  name: twin_entry_right,
+  parameters: [s : (Nat * Nat), x : Nat],
+  statement: ((TwinCapped s) -> ((TwinSmall s x) -> (Ledger::Small (second s) x))),
+  proof: linear_arithmetic{definitions: [Ledger::Small, TwinCapped, TwinSmall]}
+}
+
+model{
+  name: TwinModel,
+  contract: {member: TwinContract},
+  entry: [twin_entry_left, twin_entry_right],
+  realization: {member: ClampTally}
+}
+
+definition{
+  name: BothCapped,
+  parameters: [s : (Nat * Nat)],
+  result: Prop,
+  body: ((Ledger::Capped (first s)) /\ (Ledger::Capped (second s)))
+}
+
+definition{
+  name: bothCappedCheck,
+  parameters: [s : (Nat * Nat)],
+  result: Bool,
+  body: (((prim subtract (first s) 100 : Nat) + (prim subtract (second s) 100 : Nat)) <=? 0),
+  executable: true
+}
+
+theorem{
+  name: both_capped_check_sound,
+  parameters: [s : (Nat * Nat)],
+  statement: (((bothCappedCheck s) = true) -> (BothCapped s)),
+  proof: linear_arithmetic{definitions: [BothCapped, Ledger::Capped, bothCappedCheck]},
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+contract{
+  name: PairClampContract,
+  axioms: [Classical.choice, Quot.sound, propext],
+  input: {name: x, type: (Nat * Nat)},
+  invariant: BothCapped,
+  output: {name: y, type: (Nat * Nat)},
+  state: {name: s, type: (Nat * Nat), next: t},
+  validators: [{predicate: invariant, sound: both_capped_check_sound, validator: bothCappedCheck}]
+}
+
+realization{
+  name: ClampBoth,
+  descriptor: composite{
+    form: product{left: {member: Ledger::ClampModel}, right: {member: Ledger::ClampModel}}
+  },
+  executable: true,
+  input: {name: x, type: (Nat * Nat)},
+  output: (Nat * Nat),
+  state: {name: s, type: (Nat * Nat), initial: (0, 0)}
+}
+
+theorem{
+  name: both_entry_left,
+  parameters: [s : (Nat * Nat), x : (Nat * Nat)],
+  statement: ((BothCapped s) -> (Ledger::Capped (first s))),
+  proof: linear_arithmetic{definitions: [BothCapped, Ledger::Capped]},
+  axioms: [Quot.sound, propext]
+}
+
+theorem{
+  name: both_entry_right,
+  parameters: [s : (Nat * Nat), x : (Nat * Nat)],
+  statement: ((BothCapped s) -> (Ledger::Capped (second s))),
+  proof: linear_arithmetic{definitions: [BothCapped, Ledger::Capped]},
+  axioms: [Quot.sound, propext]
+}
+
+model{
+  name: PairClampModel,
+  contract: {member: PairClampContract},
+  entry: [both_entry_left, both_entry_right],
+  realization: {member: ClampBoth}
+}
+
+contract{
+  name: BranchContract,
+  axioms: [propext],
+  input: {name: x, type: Nat},
+  invariant: TwinCapped,
+  output: {name: y, type: Nat},
+  precondition: TwinSmall,
+  state: {name: s, type: (Nat * Nat), next: t},
+  validators: [
+    {predicate: invariant, sound: twin_capped_check_sound, validator: twinCappedCheck},
+    {predicate: precondition, sound: twin_small_check_sound, validator: twinSmallCheck}
+  ]
+}
+
+realization{
+  name: ClampOrTally,
+  descriptor: composite{
+    form: branch{
+      else: {member: Ledger::TallyModel},
+      guard: (x <=? 5),
+      then: {member: Ledger::ClampModel}
+    }
+  },
+  executable: true,
+  input: {name: x, type: Nat},
+  output: Nat,
+  state: {name: s, type: (Nat * Nat), initial: (0, 0)}
+}
+
+theorem{
+  name: branch_entry_then,
+  parameters: [s : (Nat * Nat), x : Nat],
+  statement: ((TwinCapped s) -> ((TwinSmall s x) -> (((x <=? 5) = true) -> (Ledger::Capped (first s))))),
+  proof: linear_arithmetic{definitions: [Ledger::Capped, TwinCapped, TwinSmall]}
+}
+
+theorem{
+  name: branch_entry_else,
+  parameters: [s : (Nat * Nat), x : Nat],
+  statement: ((TwinCapped s) -> ((TwinSmall s x) -> (((x <=? 5) = false) -> (Ledger::Small (second s) x)))),
+  proof: linear_arithmetic{definitions: [Ledger::Small, TwinCapped, TwinSmall]}
+}
+
+model{
+  name: BranchModel,
+  contract: {member: BranchContract},
+  entry: [branch_entry_then, branch_entry_else],
+  realization: {member: ClampOrTally}
+}
+
+contract{
+  name: ChainContract,
+  axioms: [propext],
+  input: {name: x, type: Nat},
+  invariant: TwinCapped,
+  output: {name: y, type: (Result Nat ContractViolation)},
+  precondition: TwinSmall,
+  state: {name: s, type: (Nat * Nat), next: t},
+  validators: [
+    {predicate: invariant, sound: twin_capped_check_sound, validator: twinCappedCheck},
+    {predicate: precondition, sound: twin_small_check_sound, validator: twinSmallCheck}
+  ]
+}
+
+theorem{
+  name: spill_tally,
+  parameters: [s : (Nat * Nat), x : Nat],
+  statement: ((Ledger::Capped (first s)) -> ((Ledger::Small (first s) x) -> (Ledger::Small (second s) (second (Ledger::SpillModel (first s) x))))),
+  proof: linear_arithmetic{
+    definitions: [Ledger::Capped, Ledger::Small, Ledger::Spill, Ledger::SpillModel]
+  }
+}
+
+realization{
+  name: SpillTally,
+  descriptor: composite{
+    form: sequence{
+      junctions: [proved{evidence: spill_tally}],
+      stages: [{member: Ledger::SpillModel}, {member: Ledger::TallyModel}]
+    }
+  },
+  executable: true,
+  input: {name: x, type: Nat},
+  output: (Result Nat ContractViolation),
+  state: {name: s, type: (Nat * Nat), initial: (0, 0)}
+}
+
+theorem{
+  name: chain_entry_invariant,
+  parameters: [s : (Nat * Nat), x : Nat],
+  statement: ((TwinCapped s) -> ((TwinSmall s x) -> (Ledger::Capped (first s)))),
+  proof: linear_arithmetic{definitions: [Ledger::Capped, TwinCapped, TwinSmall]}
+}
+
+theorem{
+  name: chain_entry_precondition,
+  parameters: [s : (Nat * Nat), x : Nat],
+  statement: ((TwinCapped s) -> ((TwinSmall s x) -> (Ledger::Small (first s) x))),
+  proof: linear_arithmetic{definitions: [Ledger::Small, TwinCapped, TwinSmall]}
+}
+
+model{
+  name: ChainModel,
+  contract: {member: ChainContract},
+  entry: [chain_entry_invariant, chain_entry_precondition],
+  realization: {member: SpillTally}
+}
+
+contract{
+  name: RawChainContract,
+  axioms: [propext],
+  input: {name: x, type: Nat},
+  invariant: TwinCapped,
+  output: {name: y, type: (Result Nat ContractViolation)},
+  state: {name: s, type: (Nat * Nat), next: t},
+  validators: [{predicate: invariant, sound: twin_capped_check_sound, validator: twinCappedCheck}]
+}
+
+realization{
+  name: TallySpillRaw,
+  descriptor: composite{
+    form: sequence{
+      junctions: [checked{}],
+      stages: [{member: Ledger::FreeModel}, {member: Ledger::SpillRawModel}]
+    }
+  },
+  executable: true,
+  input: {name: x, type: Nat},
+  output: (Result Nat ContractViolation),
+  state: {name: s, type: (Nat * Nat), initial: (0, 0)}
+}
+
+model{
+  name: RawChainModel,
+  contract: {member: RawChainContract},
+  realization: {member: TallySpillRaw}
+}
+
+realization{
+  name: Drain,
+  descriptor: deterministic{body: ((prim subtract s x : Nat), x)},
+  executable: true,
+  input: {name: x, type: Nat},
+  output: Nat,
+  state: {name: s, type: Nat, initial: 0}
+}
+
+model{name: DrainModel, contract: {member: Ledger::FreeContract}, realization: {member: Drain}}
+
+realization{
+  name: TallyDrain,
+  descriptor: composite{
+    form: sequence{
+      junctions: [unconditional{}],
+      stages: [{member: Ledger::FreeModel}, {member: DrainModel}]
+    }
+  },
+  executable: true,
+  input: {name: x, type: Nat},
+  output: (Result Nat ContractViolation),
+  state: {name: s, type: (Nat * Nat), initial: (0, 0)}
+}
+
+model{
+  name: DrainChainModel,
+  contract: {member: RawChainContract},
+  realization: {member: TallyDrain}
+}
+\end{semanticmodule}
+\end{lexlean}

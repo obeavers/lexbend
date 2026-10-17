@@ -50,11 +50,11 @@ impl Reifier<'_, '_, '_> {
 
     fn term(&mut self, term: &SemanticTerm) -> Result<Term, Diagnostic> {
         Ok(match term {
-            SemanticTerm::Nat { value } => Term::Lit(
-                value
-                    .parse()
-                    .map_err(|_| fail(format!("the numeral {value} exceeds what `linear_arithmetic` reifies in Bend")))?,
-            ),
+            SemanticTerm::Nat { value } => Term::Lit(value.parse().map_err(|_| {
+                fail(format!(
+                    "the numeral {value} exceeds what `linear_arithmetic` reifies in Bend"
+                ))
+            })?),
             SemanticTerm::Add { left, right } => Term::plus(self.term(left)?, self.term(right)?),
             SemanticTerm::Primitive {
                 operation: SemanticPrimitive::Multiply,
@@ -97,10 +97,12 @@ impl Reifier<'_, '_, '_> {
             SemanticTerm::Beq { left, right } if self.is_nat(left)? => {
                 BExp::Eq(self.term(left)?, self.term(right)?)
             }
-            SemanticTerm::And { left, right } => match (self.boolean(left)?, self.boolean(right)?) {
-                (Some(a), Some(b)) => BExp::And(Box::new(a), Box::new(b)),
-                _ => return Ok(None),
-            },
+            SemanticTerm::And { left, right } => {
+                match (self.boolean(left)?, self.boolean(right)?) {
+                    (Some(a), Some(b)) => BExp::And(Box::new(a), Box::new(b)),
+                    _ => return Ok(None),
+                }
+            }
             SemanticTerm::Or { left, right } => match (self.boolean(left)?, self.boolean(right)?) {
                 (Some(a), Some(b)) => BExp::Or(Box::new(a), Box::new(b)),
                 _ => return Ok(None),
@@ -153,7 +155,10 @@ impl Reifier<'_, '_, '_> {
             return Ok(None);
         }
         let fact = Fact::Eq(self.term(x)?, self.term(y)?);
-        let (x, y) = (self.lower.term(x, self.scope)?, self.lower.term(y, self.scope)?);
+        let (x, y) = (
+            self.lower.term(x, self.scope)?,
+            self.lower.term(y, self.scope)?,
+        );
         let head = self.lower.support("Sem.some_inj");
         Ok(Some((
             fact,
@@ -218,7 +223,10 @@ fn conjunction(
     }
     let first = lower.support("fst");
     let second = lower.support("snd");
-    let left_proof = super::call(first, vec![left_type.clone(), right_type.clone(), proof.clone()]);
+    let left_proof = super::call(
+        first,
+        vec![left_type.clone(), right_type.clone(), proof.clone()],
+    );
     let right_proof = super::call(second, vec![left_type, right_type, proof]);
     Ok(BTerm::Pair(
         Box::new(conjunction(lower, scope, left, left_proof)?),
@@ -281,6 +289,12 @@ pub fn prove(
     }
     lower.uses_prelude = true;
     lower.supports.insert(Support::LinArith);
-    linarith::proof_bterm(Support::LinArith.alias(), env, Some(&goal_fact), &proof, &given)
-        .ok_or_else(|| fail("a certificate needs a hypothesis with no proof"))
+    linarith::proof_bterm(
+        Support::LinArith.alias(),
+        env,
+        Some(&goal_fact),
+        &proof,
+        &given,
+    )
+    .ok_or_else(|| fail("a certificate needs a hypothesis with no proof"))
 }

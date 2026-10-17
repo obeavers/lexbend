@@ -1,0 +1,133 @@
+\begin{lexlean}{Policy}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{models.titles@1.0.0}
+\importmodule{Triage}
+\title{Escalation policy}
+\begin{semanticmodule}
+definition{
+  name: isUrgent,
+  parameters: [level : Triage::Level],
+  result: Bool,
+  body: (match level
+    | Triage::Level.routine => false
+    | Triage::Level.urgent => true
+    | Triage::Level.emergency => false),
+  executable: true
+}
+
+definition{
+  name: Actionable,
+  parameters: [level : Triage::Level],
+  result: Prop,
+  body: ((Triage::isRoutine level) = false)
+}
+
+definition{
+  name: actionableCheck,
+  parameters: [level : Triage::Level],
+  result: Bool,
+  body: (not (Triage::isRoutine level)),
+  executable: true
+}
+
+theorem{
+  name: actionable_check_sound,
+  parameters: [level : Triage::Level],
+  statement: (((actionableCheck level) = true) -> (Actionable level)),
+  proof: cases{
+    branches: [
+      {proof: decide{}, binders: [], constructor: routine},
+      {proof: decide{}, binders: [], constructor: urgent},
+      {proof: decide{}, binders: [], constructor: emergency}
+    ],
+    scrutinee: level
+  }
+}
+
+theorem{
+  name: actionable_check_complete,
+  parameters: [level : Triage::Level],
+  statement: ((Actionable level) -> ((actionableCheck level) = true)),
+  proof: cases{
+    branches: [
+      {proof: decide{}, binders: [], constructor: routine},
+      {proof: decide{}, binders: [], constructor: urgent},
+      {proof: decide{}, binders: [], constructor: emergency}
+    ],
+    scrutinee: level
+  }
+}
+
+definition{
+  name: Escalates,
+  parameters: [level : Triage::Level, action : Nat],
+  result: Prop,
+  body: (1 <= action)
+}
+
+contract{
+  name: PolicyContract,
+  input: {name: level, type: Triage::Level},
+  output: {name: action, type: Nat},
+  postcondition: Escalates,
+  precondition: Actionable,
+  validators: [
+    {
+      complete: actionable_check_complete,
+      predicate: precondition,
+      sound: actionable_check_sound,
+      validator: actionableCheck
+    }
+  ]
+}
+
+realization{
+  name: PolicyRules,
+  descriptor: rule{
+    default: 0,
+    rules: [
+      {name: dispatch, action: 2, guard: (Triage::isEmergency level)},
+      {name: page, action: 1, guard: (isUrgent level)}
+    ]
+  },
+  executable: true,
+  input: {name: level, type: Triage::Level},
+  output: Nat
+}
+
+theorem{
+  name: policy_escalates,
+  parameters: [level : Triage::Level],
+  statement: ((Actionable level) -> (Escalates level (PolicyRules level))),
+  proof: cases{
+    branches: [
+      {proof: decide{}, binders: [], constructor: routine},
+      {proof: decide{}, binders: [], constructor: urgent},
+      {proof: decide{}, binders: [], constructor: emergency}
+    ],
+    scrutinee: level
+  }
+}
+
+theorem{
+  name: emergency_dispatches,
+  parameters: [],
+  statement: ((PolicyRules.selected (ctor Triage::Level.emergency)) = 0),
+  proof: decide{}
+}
+
+evidence{
+  name: PolicyEvidence,
+  claims: [satisfies_contract{theorem: policy_escalates}],
+  contract: {member: PolicyContract},
+  realization: {member: PolicyRules}
+}
+
+model{
+  name: PolicyModel,
+  contract: {member: PolicyContract},
+  evidence: [{member: PolicyEvidence}],
+  realization: {member: PolicyRules}
+}
+\end{semanticmodule}
+\end{lexlean}

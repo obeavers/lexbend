@@ -135,8 +135,13 @@ impl Lower<'_, '_> {
             )));
         }
         let group = std::iter::once(name.clone()).collect();
-        let plan = crate::ir::semantic::well_founded_plan(name, &group, type_parameters, parameters, body)
-            .map_err(|reason| fail(format!("the well-founded definition `{name}` has no plan: {reason}")))?;
+        let plan =
+            crate::ir::semantic::well_founded_plan(name, &group, type_parameters, parameters, body)
+                .map_err(|reason| {
+                    fail(format!(
+                        "the well-founded definition `{name}` has no plan: {reason}"
+                    ))
+                })?;
         if plan.sites.len() != termination.evidence.len() {
             return Err(fail(format!(
                 "the well-founded definition `{name}` has {} recursive calls and {} evidence theorems",
@@ -148,9 +153,16 @@ impl Lower<'_, '_> {
             (Step::If { polarity, .. }, PlannedNode::If { condition }) => {
                 Ok(Key::If((*condition).clone(), *polarity))
             }
-            (Step::Match { branch, .. }, PlannedNode::Match { scrutinee, branches }) => Ok(
-                Key::Match((*scrutinee).clone(), branches[*branch].constructor.name.clone()),
-            ),
+            (
+                Step::Match { branch, .. },
+                PlannedNode::Match {
+                    scrutinee,
+                    branches,
+                },
+            ) => Ok(Key::Match(
+                (*scrutinee).clone(),
+                branches[*branch].constructor.name.clone(),
+            )),
             _ => Err(fail("a planned step names the wrong kind of node")),
         };
         let mut sites = Vec::new();
@@ -218,7 +230,10 @@ impl Lower<'_, '_> {
                     (
                         Pattern::Zero,
                         Body::term(
-                            call(absurd, vec![result_bend.clone(), measure.clone(), var(bound)]),
+                            call(
+                                absurd,
+                                vec![result_bend.clone(), measure.clone(), var(bound)],
+                            ),
                             here(),
                         ),
                     ),
@@ -379,7 +394,10 @@ impl Lower<'_, '_> {
         let Some(recursion) = &self.recursion else {
             return Ok(None);
         };
-        let local = function.module.as_deref().is_none_or(|home| home == self.module);
+        let local = function
+            .module
+            .as_deref()
+            .is_none_or(|home| home == self.module);
         if !local || function.name != recursion.name {
             return Ok(None);
         }
@@ -396,7 +414,11 @@ impl Lower<'_, '_> {
         };
         let evidence = site.evidence.clone();
         let binders = site.binders.clone();
-        let hypotheses: Vec<BTerm> = recursion.path.iter().map(|(_, proof)| proof.clone()).collect();
+        let hypotheses: Vec<BTerm> = recursion
+            .path
+            .iter()
+            .map(|(_, proof)| proof.clone())
+            .collect();
         let parameters = recursion.parameters.clone();
         let type_arguments: Vec<SemanticType> = recursion
             .type_parameters
@@ -425,7 +447,10 @@ impl Lower<'_, '_> {
         let smaller = self.term(&normal::substitute_all(&measure, &substitution), scope)?;
         let current = self.term(&measure, scope)?;
         let step = self.support("lt_fuel");
-        let proof = call(step, vec![smaller, current, var(pred.clone()), decreases, var(bound)]);
+        let proof = call(
+            step,
+            vec![smaller, current, var(pred.clone()), decreases, var(bound)],
+        );
 
         let mut out: Vec<BTerm> = Vec::new();
         for ty in &type_arguments {

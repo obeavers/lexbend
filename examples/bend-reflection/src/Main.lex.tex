@@ -1,0 +1,94 @@
+\begin{lexlean}{Main}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\title{Boolean}
+\begin{semanticmodule}
+structure{
+  name: Pair,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: left, type: Nat}, {name: right, type: Nat}]
+}
+
+definition{
+  name: validatePair,
+  parameters: [pair : Pair],
+  result: Bool,
+  body: (((project pair left) =? 0) && ((project pair right) =? 1))
+}
+
+definition{
+  name: PairValid,
+  parameters: [pair : Pair],
+  result: Prop,
+  body: (((project pair left) = 0) /\ ((project pair right) = 1))
+}
+
+theorem{
+  name: pair_reflects,
+  parameters: [pair : Pair],
+  statement: (((validatePair pair) = true) <-> (PairValid pair)),
+  proof: boolean_reflection{reflection: record{boolean_definition: validatePair, fields: [{expected: "0", field: left}, {expected: "1", field: right}], proposition_definition: PairValid, record: pair}}
+}
+
+definition{
+  name: countsFrom,
+  parameters: [start : Nat, values : (List Nat)],
+  result: Bool,
+  body: (match values | List.nil => true | List.cons head tail => ((start =? head) && (countsFrom (start + 1) tail))),
+  recursive_argument: values
+}
+
+definition{
+  name: CountsFrom,
+  parameters: [start : Nat, values : (List Nat)],
+  result: Prop,
+  body: (match values | List.nil => (0 = 0) | List.cons head tail => ((start = head) /\ (CountsFrom (start + 1) tail))),
+  recursive_argument: values
+}
+
+theorem{
+  name: counts_reflects,
+  parameters: [start : Nat, values : (List Nat)],
+  statement: (((countsFrom start values) = true) <-> (CountsFrom start values)),
+  proof: boolean_reflection{reflection: list{boolean_definition: countsFrom, comparison: nat_beq, parameter: start, proposition_definition: CountsFrom, values: values}}
+}
+
+definition{
+  name: allBelow,
+  parameters: [bound : Nat, values : (List Nat)],
+  result: Bool,
+  body: (match values | List.nil => true | List.cons head tail => ((head <? bound) && (allBelow bound tail))),
+  recursive_argument: values
+}
+
+definition{
+  name: AllBelow,
+  parameters: [bound : Nat, values : (List Nat)],
+  result: Prop,
+  body: (match values | List.nil => (0 = 0) | List.cons head tail => ((head < bound) /\ (AllBelow bound tail))),
+  recursive_argument: values
+}
+
+theorem{
+  name: below_reflects,
+  parameters: [bound : Nat, values : (List Nat)],
+  statement: (((allBelow bound values) = true) <-> (AllBelow bound values)),
+  proof: boolean_reflection{reflection: list{boolean_definition: allBelow, comparison: nat_blt, parameter: bound, proposition_definition: AllBelow, values: values}}
+}
+
+theorem{
+  name: congruence_refl,
+  parameters: [value : Nat],
+  statement: ((value + 0) = (value + 0)),
+  proof: congruence{}
+}
+
+theorem{
+  name: congruence_premise,
+  parameters: [a : Nat, b : Nat],
+  statement: ((a = b) -> ((a + 3) = (b + 3))),
+  proof: congruence{}
+}
+\end{semanticmodule}
+\end{lexlean}
