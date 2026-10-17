@@ -73,10 +73,10 @@ enum CommandKind {
         /// The Lean module prefix.
         #[arg(long)]
         module_prefix: String,
-        /// Fixed source-language version. Languages 1.1 and 1.2 create a
-        /// source-free Lake workspace; 1.0 retains the historical
-        /// host-module skeleton.
-        #[arg(long, default_value = "1.0", value_parser = ["1.0", "1.1", "1.2"])]
+        /// Fixed source-language version. Languages 1.1, 1.2, and 2.2
+        /// create a source-free Lake workspace; 1.0 and 2.0, which reads the
+        /// 1.0 surface, retain the historical host-module skeleton.
+        #[arg(long, default_value = "1.0", value_parser = ["1.0", "1.1", "1.2", "2.0", "2.2"])]
         language: String,
     },
     /// Update or check the lock file.
@@ -789,12 +789,15 @@ fn init_project(
         limits: INIT_LIMITS,
         pdf: None,
     };
-    let builtin_version = match language {
+    // A Bend language reads the surface of the Lean language it extends,
+    // so its skeleton is that language's.
+    let surface = crate::surface_language(language);
+    let builtin_version = match surface {
         "1.2" => "1.2.0",
         "1.1" => "1.1.0",
         _ => "1.0.0",
     };
-    let lakefile = if language == "1.1" || language == "1.2" {
+    let lakefile = if surface == "1.1" || surface == "1.2" {
         format!("name = \"{lake_name}\"\nversion = \"0.1.0\"\n")
     } else {
         format!(
@@ -821,7 +824,7 @@ fn init_project(
         ),
         (".gitignore".to_owned(), b"/.lexlean/\n/.lake/\n".to_vec()),
     ];
-    if language == "1.0" {
+    if surface == "1.0" {
         files.push((
             format!("{host_lib}.lean"),
             b"module\nimport Init\n".to_vec(),

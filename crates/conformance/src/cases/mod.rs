@@ -17,6 +17,7 @@ mod examples;
 mod extraction;
 pub use extraction::{compare_with_oracle, counter_independence, ne_04_lean_half, oracle_records};
 mod bend_backend;
+mod bend_semantic;
 mod bend_verification;
 mod gnaf;
 mod grammar;

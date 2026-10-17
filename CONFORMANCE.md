@@ -68,6 +68,15 @@ the error registry does not sanction (R5, `ERRORS.md`).
 | `BN-07` | `build` | A theorem that uses or cites an assumption takes it as a leading premise and passes it to every theorem it cites, and a definition that uses one is a hard error. |
 | `BN-08` | `build` | Every non-whitespace generated Bend token has exactly one coverage row and a source map mapping. |
 | `BN-09` | `build` | The generated Bend of every language-1.0 example document module checks under the pinned Bend with every proof accepted. |
+| `BN-10` | `build` | Every language-2.2 semantic module renders one byte-deterministic Bend file from the same linked IR, beside its Lean and LaTeX, importing Base, the prelude, the support modules it uses, and its imported modules, with every non-whitespace token covered and mapped. |
+| `BN-11` | `build` | Language-2.2 type parameters lower to templates and function parameters are closure-converted, and a higher-order function passed as a value is a hard error. |
+| `BN-12` | `build` | A language-2.2 mutual group lowers by inlining with every member's name kept, and a group that recurses simultaneously is a hard error. |
+| `BN-13` | `build` | A language-2.2 well-founded definition lowers to proof-carrying fuel whose every recursive call carries its decrease evidence, and the pinned Bend refuses a call that consumes no fuel or whose evidence does not establish the decrease. |
+| `BN-14` | `build` | Language-2.2 proofs lower to explicit Bend terms, including linear arithmetic, decide, congruence, and boolean reflection, and the pinned Bend refuses a reflection whose induction steps the wrong successor. |
+| `BN-15` | `build` | Every language-2.2 model cross-check restates its obligation against the Bend runtime's LexLeanModels and is proved by its discharging theorem or by evaluation, and a restatement that drifts is refused by the pinned Bend. |
+| `BN-16` | `build` | The language-2.2 support modules import only Base and the prelude and check under the pinned Bend, and every runtime registry row names a function, law, type, or constructor the runtime defines. |
+| `BN-17` | `build` | A language-2.2 reasoning declaration is a hard error naming the theorem it generates. |
+| `BN-18` | `build` | The generated Bend of every language-2.2 example module checks and exports under the pinned Bend with every proof accepted. |
 
 ## calculus
 
@@ -132,6 +141,7 @@ the error registry does not sanction (R5, `ERRORS.md`).
 | `CF-17` | `build` | Language 1.2 declaration support accepts language 1.2 and rejects unsupported or malformed language versions. |
 | `CF-18` | `build` | Lockfile v2 schema migration validates 1.2 locks while preserving exact byte-stability for language 1.0 and 1.1 projects. |
 | `CF-19` | `build` | Language 2.0 requires exactly bend_toolchain bend 2.0.37, every other language rejects the field, and its lock is schema v3 pinning that toolchain. |
+| `CF-20` | `build` | Language 2.2 reads the language-1.2 configuration with bend_toolchain bend 2.0.37 required, its lock is schema v4 pinning that toolchain, and init creates a language-2.0 or language-2.2 project. |
 
 ## declarations
 
@@ -569,6 +579,7 @@ the error registry does not sanction (R5, `ERRORS.md`).
 | `VR-25` | `build` | Language-2.0 verification checks every generated Bend module with the pinned Bend before any Lean process runs, and a refusal is LLV7020 remapped to its source span with the generated location as a note. |
 | `VR-26` | `build` | Language-2.0 verification rechecks the generated program with the proved BendTT kernel through a root importing every module and requires its exact success verdict, or fails with LLV7021. |
 | `VR-27` | `build` | A language-2.0 theorem's assumption premises must be admitted by its axiom policy, or verification fails with LLV7022 before any Lean process runs, and a verified attestation is schema v3 recording the Bend toolchain and each theorem's premises. |
+| `VR-28` | `build` | Language-2.2 verification runs the Bend stages before the language-1.2 Lean stages, and a verified attestation is schema v4 carrying the language-1.2 records, the Bend toolchain, and each theorem's premises. |
 
 ## Cited authorities
 

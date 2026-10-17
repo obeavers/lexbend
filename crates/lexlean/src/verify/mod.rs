@@ -2063,8 +2063,7 @@ pub fn run_part(
                 }
                 return Err(fail(diagnostic));
             }
-            let premises = build.bend_premises.get(&full_name).cloned();
-            let mut row = vec![
+            let row = vec![
                 ("name", Json::Str(full_name)),
                 (
                     "policy",
@@ -2090,18 +2089,6 @@ pub fn run_part(
                 ),
                 ("result", Json::Str("ok".to_owned())),
             ];
-            if crate::lowers_to_bend(&project.config.language) {
-                row.push((
-                    "premises",
-                    Json::Arr(
-                        premises
-                            .unwrap_or_default()
-                            .into_iter()
-                            .map(Json::Str)
-                            .collect(),
-                    ),
-                ));
-            }
             declaration_rows.push(Json::object(row));
         }
         if let Some(core) = &document.core {
@@ -2321,6 +2308,28 @@ pub fn run_part(
                 ),
                 ("result", Json::Str("ok".to_owned())),
             ]));
+        }
+    }
+    // §22.9: a Bend-language attestation lists `premises` on every row, not
+    // only on the document theorems lowered to Bend; a core, generated, or
+    // runtime declaration never reaches Bend, so its list is empty.
+    if crate::lowers_to_bend(&project.config.language) {
+        for row in &mut declaration_rows {
+            let Json::Obj(fields) = row else { continue };
+            let premises = match fields.get("name") {
+                Some(Json::Str(name)) => build.bend_premises.get(name).cloned(),
+                _ => None,
+            };
+            fields.insert(
+                "premises".to_owned(),
+                Json::Arr(
+                    premises
+                        .unwrap_or_default()
+                        .into_iter()
+                        .map(Json::Str)
+                        .collect(),
+                ),
+            );
         }
     }
 
@@ -3006,10 +3015,14 @@ pub fn run_part(
     let mut body_fields = vec![
         // Language 1.2 routes to its own attestation schema, which records
         // the compiler input; the 1.0 and 1.1 shape is frozen (§22.9).
+        // Language 2.2 carries both the 1.2 records and the Bend record, so
+        // it is tested first: it is also a 1.2 surface.
         (
             "spec",
             Json::Str(
-                if project.config.language == crate::LANGUAGE_1_2 {
+                if project.config.language == crate::LANGUAGE_2_2 {
+                    "lexlean/attestation/4"
+                } else if crate::is_surface_1_2(&project.config.language) {
                     "lexlean/attestation/2"
                 } else if crate::lowers_to_bend(&project.config.language) {
                     "lexlean/attestation/3"

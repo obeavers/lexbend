@@ -1,0 +1,71 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\begin{document}
+\section*{Semantic declarations}
+\subsection*{\texttt{Pair}}
+\noindent Kind: \texttt{structure}.\par
+\noindent Field \texttt{left}: \texttt{Nat}.\par
+\noindent Field \texttt{right}: \texttt{Nat}.\par
+\subsection*{\texttt{validatePair}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(pair : Pair)}.\par
+\noindent Type: \texttt{Bool}.\par
+\noindent Definition: \texttt{((Nat.beq ((pair).left) (0)) \&\& (Nat.beq ((pair).right) (1)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{PairValid}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(pair : Pair)}.\par
+\noindent Type: \texttt{Prop}.\par
+\noindent Definition: \texttt{(((pair).left = 0) /\textbackslash{} ((pair).right = 1))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{pair\_reflects}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(pair : Pair)}.\par
+\noindent Statement: \texttt{((validatePair (pair) = true) <-> PairValid (pair))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{countsFrom}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(start : Nat) (values : List (Nat))}.\par
+\noindent Type: \texttt{Bool}.\par
+\noindent Definition: \texttt{(match values with | List.nil => true | List.cons head tail => ((Nat.beq (start) (head)) \&\& countsFrom ((start + 1)) (tail)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{CountsFrom}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(start : Nat) (values : List (Nat))}.\par
+\noindent Type: \texttt{Prop}.\par
+\noindent Definition: \texttt{(match values with | List.nil => (0 = 0) | List.cons head tail => ((start = head) /\textbackslash{} CountsFrom ((start + 1)) (tail)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{counts\_reflects}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(start : Nat) (values : List (Nat))}.\par
+\noindent Statement: \texttt{((countsFrom (start) (values) = true) <-> CountsFrom (start) (values))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{allBelow}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(bound : Nat) (values : List (Nat))}.\par
+\noindent Type: \texttt{Bool}.\par
+\noindent Definition: \texttt{(match values with | List.nil => true | List.cons head tail => ((Nat.blt (head) (bound)) \&\& allBelow (bound) (tail)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{AllBelow}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(bound : Nat) (values : List (Nat))}.\par
+\noindent Type: \texttt{Prop}.\par
+\noindent Definition: \texttt{(match values with | List.nil => (0 = 0) | List.cons head tail => ((head < bound) /\textbackslash{} AllBelow (bound) (tail)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{below\_reflects}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(bound : Nat) (values : List (Nat))}.\par
+\noindent Statement: \texttt{((allBelow (bound) (values) = true) <-> AllBelow (bound) (values))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{congruence\_refl}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(value : Nat)}.\par
+\noindent Statement: \texttt{((value + 0) = (value + 0))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{congruence\_unfolds}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(a : Nat)}.\par
+\noindent Statement: \texttt{(((a + 0) + 3) = (a + 3))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\end{document}

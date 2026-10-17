@@ -1168,14 +1168,19 @@ pub(crate) fn run(id: &str) {
                 ),
                 "1.1"
             );
-            // The four languages have four distinct identities.
+            // Every supported language has its own identity.
             let ids: std::collections::BTreeSet<_> = lexlean::LANGUAGE_VERSIONS
                 .iter()
                 .map(|language| lexlean::compiler_semantics_id_for(language))
                 .collect();
             assert_eq!(
+                lexlean::LANGUAGE_VERSIONS,
+                ["1.0", "1.1", "1.2", "2.0", "2.2"],
+                "the supported languages"
+            );
+            assert_eq!(
                 ids.len(),
-                4,
+                lexlean::LANGUAGE_VERSIONS.len(),
                 "each language has its own compiler-semantics ID"
             );
 
@@ -1365,6 +1370,92 @@ pub(crate) fn run(id: &str) {
                     lexlean::api::parse_lock_bytes("lexlean.lock", bytes.as_bytes()).is_err(),
                     "{why} is refused"
                 );
+            }
+        }
+        "CF-20" => {
+            let project = P::copy_example("bend-semantic");
+            let config = project.read("lexlean.toml");
+            assert!(config.contains("language = \"2.2\"\n"));
+            assert!(config.contains(&format!(
+                "lean_toolchain = \"{}\"\nbend_toolchain = \"{}\"\n",
+                lexlean::LEAN_TOOLCHAIN,
+                lexlean::BEND_TOOLCHAIN
+            )));
+            let lock = project.read("lexlean.lock");
+            assert!(lock.starts_with("spec = \"lexlean/lock/4\"\nlanguage = \"2.2\"\n"));
+            assert!(lock.contains("\nbend_toolchain = \"bend 2.0.37\"\n"));
+            let (exit, _, stderr) = project.cli(&["lock", "--check"]);
+            assert_eq!(exit, 0, "the 2.2 lock is current: {stderr}");
+            assert_eq!(
+                support::assert_language_documents(
+                    &support::repo_root().join("examples/bend-semantic")
+                ),
+                "2.2"
+            );
+            // The language-1.2 configuration reads unchanged under 2.2:
+            // model artifacts included.
+            assert_eq!(
+                support::assert_language_documents(
+                    &support::repo_root().join("examples/bend-models")
+                ),
+                "2.2"
+            );
+            assert!(P::copy_example("bend-models")
+                .read("lexlean.toml")
+                .contains("[[artifact_source]]"));
+            let without = P::copy_example("bend-semantic");
+            without.write(
+                "lexlean.toml",
+                &config.replace("bend_toolchain = \"bend 2.0.37\"\n", ""),
+            );
+            let (exit, _, stderr) = without.cli(&["check"]);
+            assert_ne!(exit, 0, "language 2.2 without bend_toolchain");
+            assert!(stderr.contains("LLC0101"), "{stderr}");
+            assert!(
+                lexlean::api::parse_lock_bytes(
+                    "lexlean.lock",
+                    lock.replace("spec = \"lexlean/lock/4\"", "spec = \"lexlean/lock/3\"")
+                        .as_bytes()
+                )
+                .is_err(),
+                "a 2.2 lock under schema v3 is refused"
+            );
+            // `init` creates a project of either Bend language that checks
+            // and builds its Bend.
+            for (language, spec, host) in [
+                ("2.0", "lexlean/lock/3", true),
+                ("2.2", "lexlean/lock/4", false),
+            ] {
+                let dir = tempfile::tempdir().expect("tempdir");
+                let root = camino::Utf8Path::from_path(dir.path()).expect("utf8");
+                let (exit, _, stderr) = support::cli_in(
+                    root,
+                    &[
+                        "init",
+                        ".",
+                        "--name",
+                        "fresh",
+                        "--module-prefix",
+                        "Fresh",
+                        "--language",
+                        language,
+                    ],
+                );
+                assert_eq!(exit, 0, "language {language} init: {stderr}");
+                assert_eq!(support::assert_language_documents(root), language);
+                let lock =
+                    std::fs::read_to_string(root.join("lexlean.lock").as_std_path()).expect("lock");
+                assert!(
+                    lock.starts_with(&format!("spec = \"{spec}\"\nlanguage = \"{language}\"\n")),
+                    "{lock}"
+                );
+                assert_eq!(
+                    root.join("FreshHost.lean").exists(),
+                    host,
+                    "language {language} keeps its surface's skeleton"
+                );
+                let (exit, _, stderr) = support::cli_in(root, &["build"]);
+                assert_eq!(exit, 0, "language {language} builds: {stderr}");
             }
         }
         other => panic!("no configuration-lock case is wired for {other}"),

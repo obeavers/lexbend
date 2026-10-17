@@ -1,0 +1,467 @@
+\begin{lexlean}{Pipeline}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{models.titles@1.0.0}
+\importmodule{Glyphs}
+\importmodule{Recognizer}
+\importmodule{Triage}
+\importmodule{Policy}
+\importmodule{Session}
+\title{Model pipelines}
+\begin{semanticmodule}
+definition{
+  name: Responds,
+  parameters: [presentation : Triage::Presentation, action : Nat],
+  result: Prop,
+  body: (1 <= action)
+}
+
+theorem{
+  name: symptomatic_sound,
+  parameters: [presentation : Triage::Presentation],
+  statement: (((Triage::symptomaticCheck presentation) = true) -> (Triage::Symptomatic presentation)),
+  proof: apply{arguments: [presentation], theorem: Triage::symptomatic_check_sound}
+}
+
+contract{
+  name: PipelineContract,
+  input: {name: presentation, type: Triage::Presentation},
+  output: {name: action, type: Nat},
+  postcondition: Responds,
+  precondition: Triage::Symptomatic,
+  validators: [
+    {predicate: precondition, sound: symptomatic_sound, validator: Triage::symptomaticCheck}
+  ]
+}
+
+theorem{
+  name: triage_actionable,
+  parameters: [presentation : Triage::Presentation],
+  statement: ((Triage::Symptomatic presentation) -> (Policy::Actionable (Triage::TriageModel presentation))),
+  proof: cases{
+    branches: [
+      {proof: decide{}, binders: [], constructor: p0},
+      {proof: decide{}, binders: [], constructor: p1},
+      {proof: decide{}, binders: [], constructor: p2},
+      {proof: decide{}, binders: [], constructor: p3},
+      {proof: decide{}, binders: [], constructor: p4},
+      {proof: decide{}, binders: [], constructor: p5},
+      {proof: decide{}, binders: [], constructor: p6},
+      {proof: decide{}, binders: [], constructor: p7}
+    ],
+    scrutinee: presentation
+  },
+  axioms: [propext]
+}
+
+realization{
+  name: TriagePipeline,
+  axioms: [propext],
+  descriptor: composite{
+    form: sequence{
+      junctions: [proved{evidence: triage_actionable}],
+      stages: [{member: Triage::TriageModel}, {member: Policy::PolicyModel}]
+    }
+  },
+  executable: true,
+  input: {name: presentation, type: Triage::Presentation},
+  output: Nat
+}
+
+theorem{
+  name: pipeline_entry,
+  parameters: [presentation : Triage::Presentation],
+  statement: ((Triage::Symptomatic presentation) -> (Triage::Symptomatic presentation)),
+  proof: linear_arithmetic{definitions: [Triage::Symptomatic]}
+}
+
+theorem{
+  name: pipeline_responds,
+  parameters: [presentation : Triage::Presentation],
+  statement: ((Triage::Symptomatic presentation) -> (Responds presentation (TriagePipeline presentation))),
+  proof: cases{
+    branches: [
+      {proof: decide{}, binders: [], constructor: p0},
+      {proof: decide{}, binders: [], constructor: p1},
+      {proof: decide{}, binders: [], constructor: p2},
+      {proof: decide{}, binders: [], constructor: p3},
+      {proof: decide{}, binders: [], constructor: p4},
+      {proof: decide{}, binders: [], constructor: p5},
+      {proof: decide{}, binders: [], constructor: p6},
+      {proof: decide{}, binders: [], constructor: p7}
+    ],
+    scrutinee: presentation
+  },
+  axioms: [propext]
+}
+
+evidence{
+  name: PipelineEvidence,
+  axioms: [propext],
+  claims: [satisfies_contract{theorem: pipeline_responds}],
+  contract: {member: PipelineContract},
+  realization: {member: TriagePipeline}
+}
+
+model{
+  name: PipelineModel,
+  axioms: [propext],
+  contract: {member: PipelineContract},
+  entry: [pipeline_entry],
+  evidence: [{member: PipelineEvidence}],
+  realization: {member: TriagePipeline}
+}
+
+definition{
+  name: resultCode,
+  parameters: [outcome : (Result Nat ContractViolation)],
+  result: Nat,
+  body: (match outcome | Result.error violation => 0 | Result.ok action => action),
+  executable: true
+}
+
+definition{
+  name: Answered,
+  parameters: [presentation : Triage::Presentation, outcome : (Result Nat ContractViolation)],
+  result: Prop,
+  body: ((resultCode outcome) <= 2)
+}
+
+contract{
+  name: CheckedContract,
+  input: {name: presentation, type: Triage::Presentation},
+  output: {name: outcome, type: (Result Nat ContractViolation)},
+  postcondition: Answered,
+  precondition: Triage::Symptomatic
+}
+
+realization{
+  name: CheckedPipeline,
+  axioms: [propext],
+  descriptor: composite{
+    form: sequence{
+      junctions: [checked{}],
+      stages: [{member: Triage::TriageModel}, {member: Policy::PolicyModel}]
+    }
+  },
+  executable: true,
+  input: {name: presentation, type: Triage::Presentation},
+  output: (Result Nat ContractViolation)
+}
+
+theorem{
+  name: checked_answers,
+  parameters: [presentation : Triage::Presentation],
+  statement: ((Triage::Symptomatic presentation) -> (Answered presentation (CheckedPipeline presentation))),
+  proof: cases{
+    branches: [
+      {proof: decide{}, binders: [], constructor: p0},
+      {proof: decide{}, binders: [], constructor: p1},
+      {proof: decide{}, binders: [], constructor: p2},
+      {proof: decide{}, binders: [], constructor: p3},
+      {proof: decide{}, binders: [], constructor: p4},
+      {proof: decide{}, binders: [], constructor: p5},
+      {proof: decide{}, binders: [], constructor: p6},
+      {proof: decide{}, binders: [], constructor: p7}
+    ],
+    scrutinee: presentation
+  },
+  axioms: [propext]
+}
+
+evidence{
+  name: CheckedEvidence,
+  axioms: [propext],
+  claims: [satisfies_contract{theorem: checked_answers}],
+  contract: {member: CheckedContract},
+  realization: {member: CheckedPipeline}
+}
+
+model{
+  name: CheckedModel,
+  axioms: [propext],
+  contract: {member: CheckedContract},
+  entry: [pipeline_entry],
+  evidence: [{member: CheckedEvidence}],
+  realization: {member: CheckedPipeline}
+}
+
+definition{
+  name: Lit,
+  parameters: [glyph : Glyphs::Glyph, segments : Nat],
+  result: Prop,
+  body: (segments <= 7)
+}
+
+contract{
+  name: SegmentContract,
+  input: {name: glyph, type: Glyphs::Glyph},
+  output: {name: segments, type: Nat},
+  postcondition: Lit
+}
+
+realization{
+  name: SegmentCounter,
+  descriptor: deterministic{body: (Glyphs::segmentCount glyph)},
+  executable: true,
+  input: {name: glyph, type: Glyphs::Glyph},
+  output: Nat
+}
+
+theorem{
+  name: segments_lit,
+  parameters: [glyph : Glyphs::Glyph],
+  statement: (Lit glyph (SegmentCounter glyph)),
+  proof: cases{
+    branches: [
+      {proof: decide{}, binders: [], constructor: g0},
+      {proof: decide{}, binders: [], constructor: g1},
+      {proof: decide{}, binders: [], constructor: g2},
+      {proof: decide{}, binders: [], constructor: g3},
+      {proof: decide{}, binders: [], constructor: g4},
+      {proof: decide{}, binders: [], constructor: g5},
+      {proof: decide{}, binders: [], constructor: g6},
+      {proof: decide{}, binders: [], constructor: g7},
+      {proof: decide{}, binders: [], constructor: g8},
+      {proof: decide{}, binders: [], constructor: g9}
+    ],
+    scrutinee: glyph
+  }
+}
+
+evidence{
+  name: SegmentEvidence,
+  claims: [satisfies_contract{theorem: segments_lit}],
+  contract: {member: SegmentContract},
+  realization: {member: SegmentCounter}
+}
+
+model{
+  name: SegmentModel,
+  contract: {member: SegmentContract},
+  evidence: [{member: SegmentEvidence}],
+  realization: {member: SegmentCounter}
+}
+
+definition{
+  name: Reported,
+  parameters: [glyph : Glyphs::Glyph, report : (Nat * Nat)],
+  result: Prop,
+  body: ((Recognizer::Recognizes glyph (first report)) /\ ((second report) <= 7))
+}
+
+contract{
+  name: ReportContract,
+  input: {name: glyph, type: Glyphs::Glyph},
+  output: {name: report, type: (Nat * Nat)},
+  postcondition: Reported
+}
+
+realization{
+  name: GlyphReport,
+  axioms: [propext],
+  descriptor: composite{
+    form: fanout{left: {member: Recognizer::DigitModel}, right: {member: SegmentModel}}
+  },
+  executable: true,
+  input: {name: glyph, type: Glyphs::Glyph},
+  output: (Nat * Nat)
+}
+
+theorem{
+  name: report_correct,
+  parameters: [glyph : Glyphs::Glyph],
+  statement: (Reported glyph (GlyphReport glyph)),
+  proof: cases{
+    branches: [
+      {proof: decide{}, binders: [], constructor: g0},
+      {proof: decide{}, binders: [], constructor: g1},
+      {proof: decide{}, binders: [], constructor: g2},
+      {proof: decide{}, binders: [], constructor: g3},
+      {proof: decide{}, binders: [], constructor: g4},
+      {proof: decide{}, binders: [], constructor: g5},
+      {proof: decide{}, binders: [], constructor: g6},
+      {proof: decide{}, binders: [], constructor: g7},
+      {proof: decide{}, binders: [], constructor: g8},
+      {proof: decide{}, binders: [], constructor: g9}
+    ],
+    scrutinee: glyph
+  },
+  axioms: [propext]
+}
+
+evidence{
+  name: ReportEvidence,
+  axioms: [propext],
+  claims: [satisfies_contract{theorem: report_correct}],
+  contract: {member: ReportContract},
+  realization: {member: GlyphReport}
+}
+
+model{
+  name: ReportModel,
+  axioms: [propext],
+  contract: {member: ReportContract},
+  evidence: [{member: ReportEvidence}],
+  realization: {member: GlyphReport}
+}
+
+definition{
+  name: PairLit,
+  parameters: [glyphs : (Glyphs::Glyph * Glyphs::Glyph), counts : (Nat * Nat)],
+  result: Prop,
+  body: ((Lit (first glyphs) (first counts)) /\ (Lit (second glyphs) (second counts)))
+}
+
+contract{
+  name: PairContract,
+  input: {name: glyphs, type: (Glyphs::Glyph * Glyphs::Glyph)},
+  output: {name: counts, type: (Nat * Nat)},
+  postcondition: PairLit
+}
+
+realization{
+  name: GlyphPair,
+  descriptor: composite{form: product{left: {member: SegmentModel}, right: {member: SegmentModel}}},
+  executable: true,
+  input: {name: glyphs, type: (Glyphs::Glyph * Glyphs::Glyph)},
+  output: (Nat * Nat)
+}
+
+theorem{
+  name: pair_correct,
+  parameters: [glyphs : (Glyphs::Glyph * Glyphs::Glyph)],
+  statement: (PairLit glyphs (GlyphPair glyphs)),
+  proof: constructor{
+    branches: [
+      apply{arguments: [(first glyphs)], theorem: segments_lit},
+      apply{arguments: [(second glyphs)], theorem: segments_lit}
+    ]
+  }
+}
+
+evidence{
+  name: PairEvidence,
+  claims: [satisfies_contract{theorem: pair_correct}],
+  contract: {member: PairContract},
+  realization: {member: GlyphPair}
+}
+
+model{
+  name: PairModel,
+  contract: {member: PairContract},
+  evidence: [{member: PairEvidence}],
+  realization: {member: GlyphPair}
+}
+
+definition{
+  name: Bounded9,
+  parameters: [glyph : Glyphs::Glyph, value : Nat],
+  result: Prop,
+  body: (value <= 9)
+}
+
+contract{
+  name: RouteContract,
+  input: {name: glyph, type: Glyphs::Glyph},
+  output: {name: value, type: Nat},
+  postcondition: Bounded9
+}
+
+realization{
+  name: GlyphRoute,
+  axioms: [propext],
+  descriptor: composite{
+    form: branch{
+      else: {member: Recognizer::DigitModel},
+      guard: (Glyphs::isEight glyph),
+      then: {member: SegmentModel}
+    }
+  },
+  executable: true,
+  input: {name: glyph, type: Glyphs::Glyph},
+  output: Nat
+}
+
+theorem{
+  name: route_bounded,
+  parameters: [glyph : Glyphs::Glyph],
+  statement: (Bounded9 glyph (GlyphRoute glyph)),
+  proof: cases{
+    branches: [
+      {proof: decide{}, binders: [], constructor: g0},
+      {proof: decide{}, binders: [], constructor: g1},
+      {proof: decide{}, binders: [], constructor: g2},
+      {proof: decide{}, binders: [], constructor: g3},
+      {proof: decide{}, binders: [], constructor: g4},
+      {proof: decide{}, binders: [], constructor: g5},
+      {proof: decide{}, binders: [], constructor: g6},
+      {proof: decide{}, binders: [], constructor: g7},
+      {proof: decide{}, binders: [], constructor: g8},
+      {proof: decide{}, binders: [], constructor: g9}
+    ],
+    scrutinee: glyph
+  },
+  axioms: [propext]
+}
+
+evidence{
+  name: RouteEvidence,
+  axioms: [propext],
+  claims: [satisfies_contract{theorem: route_bounded}],
+  contract: {member: RouteContract},
+  realization: {member: GlyphRoute}
+}
+
+model{
+  name: RouteModel,
+  axioms: [propext],
+  contract: {member: RouteContract},
+  evidence: [{member: RouteEvidence}],
+  realization: {member: GlyphRoute}
+}
+
+definition{
+  name: ShortStream,
+  parameters: [costs : (List Nat)],
+  result: Prop,
+  body: ((prim length costs : Nat) <= 1000)
+}
+
+definition{
+  name: shortStreamCheck,
+  parameters: [costs : (List Nat)],
+  result: Bool,
+  body: ((prim length costs : Nat) <? 1001),
+  executable: true
+}
+
+theorem{
+  name: short_stream_check_sound,
+  parameters: [costs : (List Nat)],
+  statement: (((shortStreamCheck costs) = true) -> (ShortStream costs)),
+  proof: linear_arithmetic{definitions: [ShortStream, shortStreamCheck]},
+  axioms: [Quot.sound, propext]
+}
+
+contract{
+  name: StreamContract,
+  axioms: [Quot.sound, propext],
+  input: {name: costs, type: (List Nat)},
+  output: {name: overflows, type: (Result (List Nat) ContractViolation)},
+  precondition: ShortStream,
+  validators: [
+    {predicate: precondition, sound: short_stream_check_sound, validator: shortStreamCheck}
+  ]
+}
+
+realization{
+  name: SessionStream,
+  descriptor: composite{form: scan{junction: checked{}, stage: {member: Session::SessionModel}}},
+  executable: true,
+  input: {name: costs, type: (List Nat)},
+  output: (Result (List Nat) ContractViolation)
+}
+
+model{name: StreamModel, contract: {member: StreamContract}, realization: {member: SessionStream}}
+\end{semanticmodule}
+\end{lexlean}

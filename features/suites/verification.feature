@@ -196,3 +196,11 @@ Feature: verification
     Then the altered verification fails with LLV7022 naming `excluded-middle`, and `attestation-v3` requires the `bend` object and `premises` rows
     And the committed records hold an accepted Bend check of each of the five modules, the accepted kernel recheck, and its root
     And the live attestation is `lexlean/attestation/3`, records `bend 2.0.37`, and records `excluded-middle` for `even_or_not`
+
+  @VR-28 @build
+  Scenario: Language-2.2 verification runs the Bend stages before the language-1.2 Lean stages, and a verified attestation is schema v4 carrying the language-1.2 records, the Bend toolchain, and each theorem's premises.
+    Given the `attestation-v4` schema, the language-2.2 reflection example with a false theorem appended, and the language-2.2 semantic example and its committed verification
+    When the altered example is verified, the committed records are read, and the semantic example is verified
+    Then `attestation-v4` fixes `lexlean/attestation/4`, requires the `bend` object and `premises` rows, and admits `compiler_input` and `preservation`
+    And the altered verification fails with LLV7020 from the Bend check, before any Lean process
+    And the committed records hold the module's accepted Bend check and the accepted kernel recheck, and the live attestation is `lexlean/attestation/4` recording `bend 2.0.37`

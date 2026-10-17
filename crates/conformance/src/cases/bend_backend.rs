@@ -1,4 +1,5 @@
-//! The `bend-backend` suite: BN-01..BN-09 (SPEC.md §18.10).
+//! The `bend-backend` suite: BN-01..BN-09 (SPEC.md §18.10); the language-2.2
+//! rows are `bend_semantic`'s.
 
 use std::collections::BTreeSet;
 
@@ -574,6 +575,6 @@ pub(crate) fn run(id: &str) {
                 );
             }
         }
-        other => panic!("no bend-backend case is wired for {other}"),
+        other => super::bend_semantic::run(other),
     }
 }

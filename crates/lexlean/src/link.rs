@@ -564,7 +564,7 @@ fn check_project_inline(
         // relative to the project: its declarations carry their global names
         // as data, so it captures none, and the proof library's modules are
         // named for what they state (`Fixed`, `Keys`).
-        if project.config.language == crate::LANGUAGE_1_2 && load.ast.core.is_none() {
+        if crate::is_surface_1_2(&project.config.language) && load.ast.core.is_none() {
             if let Some(segment) = crate::ir::semantic::reserved_module_segment(module_name) {
                 return Err(err(vec![Diagnostic::new(
                     code!("LLT4001"),
@@ -703,19 +703,23 @@ fn check_project_inline(
         scopes.pop_frame();
 
         let core = if let Some(ast) = &load.ast.core {
-            // Language 2.0 lowers document modules to Bend (§18.10); a
-            // native core module is Lean kernel data with no Bend form.
+            // Languages 2.0 and 2.2 lower their modules to Bend (§18.10,
+            // §18.11); a native core module is Lean kernel data with no Bend
+            // form.
             if crate::lowers_to_bend(&project.config.language) {
                 return Err(err(vec![Diagnostic::new(
                     code!("LLP2003"),
-                    "a coremodule is not part of language 2.0, whose modules lower to Bend",
+                    format!(
+                        "a coremodule is not part of language {}, whose modules lower to Bend",
+                        project.config.language
+                    ),
                 )
                 .with_span(span_of_range(&load.path, &load.atoms, ast.data.range))]));
             }
             // The notation is read to the module the decoder checks, so that
             // what a module means is decided in one place (§17.21.8).
             let parsed = if ast.surface {
-                if project.config.language != crate::LANGUAGE_1_2 {
+                if !crate::is_surface_1_2(&project.config.language) {
                     return Err(err(vec![Diagnostic::new(
                         code!("LLP2003"),
                         "phase link: the authoring notation of a coremodule is language 1.2; write `\\coredata` under language 1.0 and 1.1",
@@ -771,7 +775,9 @@ fn check_project_inline(
             None
         };
         let semantic = if let Some(ast) = &load.ast.semantic {
-            if project.config.language != "1.1" && project.config.language != "1.2" {
+            if crate::surface_language(&project.config.language) != crate::LANGUAGE_1_1
+                && !crate::is_surface_1_2(&project.config.language)
+            {
                 return Err(err(vec![Diagnostic::new(
                     code!("LLP2003"),
                     "semanticmodule requires language 1.1 or 1.2",
@@ -793,7 +799,7 @@ fn check_project_inline(
             // The notation is read to the canonical JSON the decoder reads, so
             // that what a module means is decided in one place (§17.21).
             let data: std::borrow::Cow<'_, str> = if ast.surface {
-                if project.config.language != crate::LANGUAGE_1_2 {
+                if !crate::is_surface_1_2(&project.config.language) {
                     return Err(err(vec![Diagnostic::new(
                         code!("LLP2003"),
                         "phase link: the authoring notation of a semanticmodule is language 1.2; write `\\semanticdata` under language 1.1",
@@ -857,7 +863,7 @@ fn check_project_inline(
             // The notation is read to the canonical JSON the decoder reads
             // (§17.21), as for a semantic module.
             let data: std::borrow::Cow<'_, str> = if ast.surface {
-                if project.config.language != crate::LANGUAGE_1_2 {
+                if !crate::is_surface_1_2(&project.config.language) {
                     return Err(err(vec![Diagnostic::new(
                         code!("LLT4013"),
                         "phase link: a tooling module requires language 1.2",
@@ -909,7 +915,7 @@ fn check_project_inline(
         // §17.13: every production root is analysed over the linked
         // closure of this module and its imports before any backend runs.
         let production = match &semantic {
-            Some(semantic) if project.config.language == crate::LANGUAGE_1_2 => {
+            Some(semantic) if crate::is_surface_1_2(&project.config.language) => {
                 let mut linked: BTreeMap<String, crate::production::eligibility::LinkedModule<'_>> =
                     modules
                         .iter()

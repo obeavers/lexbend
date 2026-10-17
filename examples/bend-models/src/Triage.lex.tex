@@ -1,0 +1,239 @@
+\begin{lexlean}{Triage}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{models.titles@1.0.0}
+\title{Triage scoring}
+\begin{semanticmodule}
+inductive{
+  name: Presentation,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: p0, fields: []},
+    {name: p1, fields: []},
+    {name: p2, fields: []},
+    {name: p3, fields: []},
+    {name: p4, fields: []},
+    {name: p5, fields: []},
+    {name: p6, fields: []},
+    {name: p7, fields: []}
+  ]
+}
+
+inductive{
+  name: Level,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: routine, fields: []},
+    {name: urgent, fields: []},
+    {name: emergency, fields: []}
+  ]
+}
+
+definition{
+  name: features,
+  parameters: [presentation : Presentation],
+  result: (List Int),
+  body: (match presentation
+    | Presentation.p0 => (cons (0 : Int) (cons (0 : Int) (cons (0 : Int) (nil Int))))
+    | Presentation.p1 => (cons (1 : Int) (cons (0 : Int) (cons (0 : Int) (nil Int))))
+    | Presentation.p2 => (cons (0 : Int) (cons (1 : Int) (cons (0 : Int) (nil Int))))
+    | Presentation.p3 => (cons (1 : Int) (cons (1 : Int) (cons (0 : Int) (nil Int))))
+    | Presentation.p4 => (cons (0 : Int) (cons (0 : Int) (cons (1 : Int) (nil Int))))
+    | Presentation.p5 => (cons (1 : Int) (cons (0 : Int) (cons (1 : Int) (nil Int))))
+    | Presentation.p6 => (cons (0 : Int) (cons (1 : Int) (cons (1 : Int) (nil Int))))
+    | Presentation.p7 => (cons (1 : Int) (cons (1 : Int) (cons (1 : Int) (nil Int))))),
+  executable: true
+}
+
+definition{
+  name: hasSymptom,
+  parameters: [presentation : Presentation],
+  result: Bool,
+  body: (match presentation
+    | Presentation.p0 => false
+    | Presentation.p1 => true
+    | Presentation.p2 => true
+    | Presentation.p3 => true
+    | Presentation.p4 => true
+    | Presentation.p5 => true
+    | Presentation.p6 => true
+    | Presentation.p7 => true),
+  executable: true
+}
+
+definition{
+  name: isBreathless,
+  parameters: [presentation : Presentation],
+  result: Bool,
+  body: (match presentation
+    | Presentation.p0 => false
+    | Presentation.p1 => false
+    | Presentation.p2 => false
+    | Presentation.p3 => false
+    | Presentation.p4 => true
+    | Presentation.p5 => true
+    | Presentation.p6 => true
+    | Presentation.p7 => true),
+  executable: true
+}
+
+definition{
+  name: isEmergency,
+  parameters: [level : Level],
+  result: Bool,
+  body: (match level | Level.routine => false | Level.urgent => false | Level.emergency => true),
+  executable: true
+}
+
+definition{
+  name: isRoutine,
+  parameters: [level : Level],
+  result: Bool,
+  body: (match level | Level.routine => true | Level.urgent => false | Level.emergency => false),
+  executable: true
+}
+
+definition{
+  name: Symptomatic,
+  parameters: [presentation : Presentation],
+  result: Prop,
+  body: ((hasSymptom presentation) = true)
+}
+
+definition{
+  name: symptomaticCheck,
+  parameters: [presentation : Presentation],
+  result: Bool,
+  body: (hasSymptom presentation),
+  executable: true
+}
+
+theorem{
+  name: symptomatic_check_sound,
+  parameters: [presentation : Presentation],
+  statement: (((symptomaticCheck presentation) = true) -> (Symptomatic presentation)),
+  proof: cases{
+    branches: [
+      {proof: decide{}, binders: [], constructor: p0},
+      {proof: decide{}, binders: [], constructor: p1},
+      {proof: decide{}, binders: [], constructor: p2},
+      {proof: decide{}, binders: [], constructor: p3},
+      {proof: decide{}, binders: [], constructor: p4},
+      {proof: decide{}, binders: [], constructor: p5},
+      {proof: decide{}, binders: [], constructor: p6},
+      {proof: decide{}, binders: [], constructor: p7}
+    ],
+    scrutinee: presentation
+  }
+}
+
+definition{
+  name: Safe,
+  parameters: [presentation : Presentation, level : Level],
+  result: Prop,
+  body: (((isBreathless presentation) = true) -> ((isEmergency level) = true))
+}
+
+artifact{
+  name: triageWeights,
+  type: (List (List Int)),
+  length: 18,
+  role: parameters,
+  schema: int_tensor{element: int16, shape: [3, 3]},
+  sha256: "7a1039fea753fdbab50d96e9b180fb5f987c6ba688d847da0e209608c5c0f58e"
+}
+
+artifact{
+  name: triageBias,
+  type: (List Int),
+  length: 6,
+  role: parameters,
+  schema: int_tensor{element: int16, shape: [3]},
+  sha256: "34b5d0d734084832dea276360f994018f4e6eb7921334265e58217b360a2a79d"
+}
+
+contract{
+  name: TriageContract,
+  input: {name: presentation, type: Presentation},
+  output: {name: level, type: Level},
+  postcondition: Safe,
+  precondition: Symptomatic,
+  validators: [
+    {predicate: precondition, sound: symptomatic_check_sound, validator: symptomaticCheck}
+  ]
+}
+
+theorem{
+  name: triage_width,
+  parameters: [presentation : Presentation],
+  statement: ((prim length (features presentation) : Nat) = 3),
+  proof: cases{
+    branches: [
+      {proof: reflexivity{}, binders: [], constructor: p0},
+      {proof: reflexivity{}, binders: [], constructor: p1},
+      {proof: reflexivity{}, binders: [], constructor: p2},
+      {proof: reflexivity{}, binders: [], constructor: p3},
+      {proof: reflexivity{}, binders: [], constructor: p4},
+      {proof: reflexivity{}, binders: [], constructor: p5},
+      {proof: reflexivity{}, binders: [], constructor: p6},
+      {proof: reflexivity{}, binders: [], constructor: p7}
+    ],
+    scrutinee: presentation
+  }
+}
+
+realization{
+  name: TriageScore,
+  axioms: [propext],
+  descriptor: statistical{
+    bias: triageBias,
+    features: (features presentation),
+    labels: [(ctor Level.routine), (ctor Level.urgent), (ctor Level.emergency)],
+    scheme: linear_scoring,
+    weights: triageWeights,
+    width: 3,
+    width_evidence: triage_width
+  },
+  executable: true,
+  input: {name: presentation, type: Presentation},
+  output: Level
+}
+
+theorem{
+  name: triage_safe,
+  parameters: [presentation : Presentation],
+  statement: ((Symptomatic presentation) -> (Safe presentation (TriageScore presentation))),
+  proof: cases{
+    branches: [
+      {proof: decide{}, binders: [], constructor: p0},
+      {proof: decide{}, binders: [], constructor: p1},
+      {proof: decide{}, binders: [], constructor: p2},
+      {proof: decide{}, binders: [], constructor: p3},
+      {proof: decide{}, binders: [], constructor: p4},
+      {proof: decide{}, binders: [], constructor: p5},
+      {proof: decide{}, binders: [], constructor: p6},
+      {proof: decide{}, binders: [], constructor: p7}
+    ],
+    scrutinee: presentation
+  },
+  axioms: [propext]
+}
+
+evidence{
+  name: TriageEvidence,
+  axioms: [propext],
+  claims: [satisfies_contract{theorem: triage_safe}],
+  contract: {member: TriageContract},
+  realization: {member: TriageScore}
+}
+
+model{
+  name: TriageModel,
+  axioms: [propext],
+  contract: {member: TriageContract},
+  evidence: [{member: TriageEvidence}],
+  realization: {member: TriageScore}
+}
+\end{semanticmodule}
+\end{lexlean}

@@ -1,0 +1,134 @@
+\begin{lexlean}{Session}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{models.titles@1.0.0}
+\title{Session windows}
+\begin{semanticmodule}
+structure{
+  name: Window,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: used, type: Nat}, {name: items, type: Nat}]
+}
+
+definition{
+  name: Affordable,
+  parameters: [window : Window, cost : Nat],
+  result: Prop,
+  body: (cost <= 16)
+}
+
+definition{
+  name: affordableCheck,
+  parameters: [window : Window, cost : Nat],
+  result: Bool,
+  body: (cost <=? 16),
+  executable: true
+}
+
+theorem{
+  name: affordable_check_sound,
+  parameters: [window : Window, cost : Nat],
+  statement: (((affordableCheck window cost) = true) -> (Affordable window cost)),
+  proof: linear_arithmetic{definitions: [Affordable, affordableCheck]},
+  axioms: [propext]
+}
+
+definition{
+  name: Bounded,
+  parameters: [window : Window],
+  result: Prop,
+  body: ((project window used) <= 64)
+}
+
+definition{
+  name: boundedCheck,
+  parameters: [window : Window],
+  result: Bool,
+  body: ((project window used) <=? 64),
+  executable: true
+}
+
+theorem{
+  name: bounded_check_sound,
+  parameters: [window : Window],
+  statement: (((boundedCheck window) = true) -> (Bounded window)),
+  proof: linear_arithmetic{definitions: [Bounded, boundedCheck]},
+  axioms: [propext]
+}
+
+definition{
+  name: Conserves,
+  parameters: [window : Window, cost : Nat, updated : Window, overflow : Nat],
+  result: Prop,
+  body: (((project updated used) + overflow) = ((project window used) + cost))
+}
+
+contract{
+  name: SessionContract,
+  axioms: [propext],
+  input: {name: cost, type: Nat},
+  invariant: Bounded,
+  output: {name: overflow, type: Nat},
+  postcondition: Conserves,
+  precondition: Affordable,
+  state: {name: window, type: Window, next: updated},
+  validators: [
+    {predicate: invariant, sound: bounded_check_sound, validator: boundedCheck},
+    {predicate: precondition, sound: affordable_check_sound, validator: affordableCheck}
+  ]
+}
+
+realization{
+  name: SessionStep,
+  descriptor: deterministic{
+    body: (let total : Nat := ((project window used) + cost); ((record Window {used := (prim subtract total (prim subtract total 64 : Nat) : Nat), items := ((project window items) + 1)}), (prim subtract total 64 : Nat)))
+  },
+  executable: true,
+  input: {name: cost, type: Nat},
+  output: Nat,
+  state: {name: window, type: Window, initial: (record Window {used := 0, items := 0})}
+}
+
+theorem{
+  name: session_initial,
+  parameters: [],
+  statement: (Bounded (SessionStep.initial)),
+  proof: decide{}
+}
+
+theorem{
+  name: session_preserves,
+  parameters: [window : Window, cost : Nat],
+  statement: ((Bounded window) -> ((Affordable window cost) -> (Bounded (first (SessionStep window cost))))),
+  proof: linear_arithmetic{definitions: [Affordable, Bounded, SessionStep]},
+  axioms: [Quot.sound, propext]
+}
+
+theorem{
+  name: session_conserves,
+  parameters: [window : Window, cost : Nat],
+  statement: ((Bounded window) -> ((Affordable window cost) -> (Conserves window cost (first (SessionStep window cost)) (second (SessionStep window cost))))),
+  proof: linear_arithmetic{definitions: [Affordable, Bounded, Conserves, SessionStep]},
+  axioms: [Quot.sound, propext]
+}
+
+evidence{
+  name: SessionEvidence,
+  axioms: [Quot.sound, propext],
+  claims: [
+    initial_invariant{theorem: session_initial},
+    preserves_invariant{theorem: session_preserves},
+    satisfies_contract{theorem: session_conserves}
+  ],
+  contract: {member: SessionContract},
+  realization: {member: SessionStep}
+}
+
+model{
+  name: SessionModel,
+  contract: {member: SessionContract},
+  evidence: [{member: SessionEvidence}],
+  realization: {member: SessionStep}
+}
+\end{semanticmodule}
+\end{lexlean}

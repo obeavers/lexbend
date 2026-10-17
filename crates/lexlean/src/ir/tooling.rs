@@ -585,7 +585,7 @@ impl ToolingModule {
         language: &str,
         pin: AuthorityPin<'_>,
     ) -> Result<Self, ToolingFailure> {
-        if language != crate::LANGUAGE_1_2 {
+        if !crate::is_surface_1_2(language) {
             return Err(ToolingFailure::schema(
                 "a tooling module requires language 1.2",
             ));

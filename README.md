@@ -120,6 +120,10 @@ Every directory under [examples/](examples/) is discovered by the example gate (
 | [bend-peano-arithmetic](examples/bend-peano-arithmetic/) | The peano-arithmetic modules under language 2.0: every §16 proof form as an explicit Bend term, case analysis and induction as auxiliary definitions, rewrites as `%` steps, and excluded middle as the visible premise `ll_excluded_middle`. |
 | [bend-propositional-logic](examples/bend-propositional-logic/) | The propositional-logic module under language 2.0, without the `de-morgan` direction whose proof applies its hypothesis twice, which Bend's affine kernel admits no proof of (SPEC.md §18.10.5). |
 | [bend-list-induction](examples/bend-list-induction/) | The list-induction module under language 2.0: list induction as a recursive auxiliary definition whose call is the induction hypothesis. |
+| [bend-semantic](examples/bend-semantic/) | The language-1.2 example under language 2.2 (SPEC.md §18.11): a semantic module lowered to Bend beside its Lean and LaTeX, the typed `let` included. |
+| [bend-recursion](examples/bend-recursion/) | Language-2.2 recursion: mutual groups inlined into self-recursive members, and well-founded definitions run on proof-carrying fuel whose every call carries its decrease evidence. The 1.2 example's `SyntaxSize` and `Folding` groups, which recurse simultaneously, and its well-founded mutual `Bounce` group have no Bend form and are left out. |
+| [bend-models](examples/bend-models/) | The models example under language 2.2: every contract and evidence obligation restated against the Bend runtime's `LexLeanModels` and proved by its theorem, and every artifact's typed value checked against its embedded bytes. Theorems deciding numbers in the millions are left out, since Bend's `Nat` is unary, and its labeled dataset is five examples, since the BendTT kernel evaluates within a fixed step budget. |
+| [bend-reflection](examples/bend-reflection/) | Language-2.2 `boolean_reflection` (record and list validators, by `Nat.beq` and `Nat.blt`) and `congruence`, each an explicit Bend proof. |
 | [semantic-1.1](examples/semantic-1.1/) | A source-Lean-free, multi-module language-1.1 project covering every closed type, declaration, term, instance, structural-recursion, match, Boolean/Nat validation, proof variant, portable integer width, byte/string form, primitive operation, and cross-module kernel reduction. |
 | [language-1.2](examples/language-1.2/) | The language-1.2 contract (SPEC.md §17.12): a `lexlean/semantic-module/2` module whose definition and theorem statement use the 1.2-only typed `let` term, lowered to Lean `let` and verified with an empty observed axiom set. |
 | [recursive-data](examples/recursive-data/) | Language-1.2 recursive data (SPEC.md §17.12) across two modules: a self-recursive parameterized `Tree`, a nested `Rose` through `List`, the mutual `Expr`/`Stmt` group, a parameterized result-like `Outcome`, products and pairs in a structure; structural recursion and induction with one hypothesis per recursive field, under exact axiom policies. |
@@ -141,7 +145,7 @@ just vv        # the complete normative acceptance gate (SPEC.md §9.2)
 just release   # vv, then the §30 release criterion; refused until 1.0.0
 ```
 
-All 401 registered conformance IDs are implemented and pass; `just vv` runs clean from a checkout with the pinned toolchain installed.
+All 412 registered conformance IDs are implemented and pass; `just vv` runs clean from a checkout with the pinned toolchain installed.
 
 The differential against the independent generator `lean4-prod` (SPEC.md §17.19, `OR-01`..`OR-08`) acquires it at its pinned commit: from the checkout `LEXLEAN_ORACLE_DIR` names, or by fetching the commit with `git` into the Cargo target directory (`LEXLEAN_ORACLE_CACHE` overrides), and builds it with the pinned Lean and Rust toolchains. It is validation evidence only and no input to any identity. An oracle that cannot be acquired, is not the pinned files, or fails is unavailable: that fails the gate on Linux x86-64 and is printed as `NOT VALIDATED` elsewhere, and is never reported as agreement.
 
@@ -154,7 +158,7 @@ Every row is validated by `just vv`; the IDs link the claim to its register row,
 | Capability | IDs | Level |
 | --- | --- | --- |
 | Exact repository identity, layout, generated documents, and release gate | `RP-01`..`RP-14` | `build` |
-| Closed project configuration, canonical lock file, and offline dependency policy | `CF-01`..`CF-19` | `build` |
+| Closed project configuration, canonical lock file, and offline dependency policy | `CF-01`..`CF-20` | `build` |
 | Total lexical closure: every accepted atom is covered by exactly one declared origin | `LX-01`..`LX-14` | `build` |
 | Versioned lexicon packages with closed schemas, denotations, and renderer tokens | `GL-01`..`GL-18` | `build` |
 | Fixed structural, mathematical, and proposition grammar with closed ambiguity handling | `GR-01`..`GR-16` | `build` |
@@ -162,10 +166,10 @@ Every row is validated by `just vv`; the IDs link the claim to its register row,
 | Document and generic semantic declarations with exact self-application, type checking, structural recursion, recursive and mutual language-1.2 data, generic and executable higher-order definitions, mutual and well-founded recursion with semantic evidence, explicit state threading, and acyclicity rules | `DF-01`..`DF-18` | `build` |
 | The structured proof language with pinned Lean lowerings, including closed linear arithmetic | `PF-01`..`PF-19` | `build` |
 | Prose-free deterministic generated Lean with complete token traceability | `LN-01`..`LN-12` | `build` |
-| Language 2.0: prose-free deterministic Bend 2 generated from the same linked IR, every proof an explicit term over a shipped prelude faithful to Lean's definitional equations, assumptions as visible premises, the affine discipline of Bend's kernel kept with no template, complete token traceability, and every example module checked by the pinned Bend | `BN-01`..`BN-09` | `build` |
+| Languages 2.0 and 2.2: prose-free deterministic Bend 2 generated from the same linked IR, every proof an explicit term over a shipped prelude faithful to Lean's definitional equations, assumptions as visible premises, the affine discipline of Bend's kernel, complete token traceability; for 2.2 semantic modules, templates for type parameters, closure-converted function parameters, inlined mutual groups, well-founded definitions on proof-carrying fuel, and model cross-checks against a ported runtime; every example module checked by the pinned Bend | `BN-01`..`BN-18` | `build` |
 | Canonical LaTeX regeneration and the optional hash-checked PDF provider | `TX-01`..`TX-12` | `build` |
 | Canonical diagnostics, source maps, coverage, manifests, and reproducible builds | `AR-01`..`AR-14` | `build` |
-| Fifteen-stage verification with leanchecker replay and exact axiom audit, and for language 2.0 the pinned Bend's check, the BendTT kernel recheck, and assumption premises against their policies | `VR-01`..`VR-27` | `build` |
+| Fifteen-stage verification with leanchecker replay and exact axiom audit, and for languages 2.0 and 2.2 the pinned Bend's check, the BendTT kernel recheck, and assumption premises against their policies | `VR-01`..`VR-28` | `build` |
 | The exact CLI contract, the stable seven-method Rust `Engine` API, the host-driven end of the children the library started, and the `production` subcommands | `CL-01`..`CL-23` | `build` |
 | Filesystem confinement, no shell, no hidden network, closed failure model | `SE-01`..`SE-12` | `build` |
 | Language-1.2 production eligibility: closed targets, effects, and construct dispositions; runtime closures; target-dependent, fail-closed root analysis; deterministic eligibility reports; an exhaustiveness audit | `PD-01`..`PD-07` | `build` |

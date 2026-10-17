@@ -116,31 +116,47 @@ pub const LANGUAGE_1_2: &str = "1.2";
 /// backend (SPEC.md §18.10).
 pub const LANGUAGE_2_0: &str = "2.0";
 
+/// The language 2.2 identifier: the language-1.2 surface with the Bend
+/// backend for its semantic modules (SPEC.md §18.11).
+pub const LANGUAGE_2_2: &str = "2.2";
+
 /// The newest supported language identifier, whose compiler-semantics ID
 /// covers the whole embedded tree. `init` keeps `1.0` as its default so an
 /// unqualified invocation never changes meaning.
-pub const LATEST_LANGUAGE_VERSION: &str = "2.0";
+pub const LATEST_LANGUAGE_VERSION: &str = "2.2";
 
 /// The closed set of language versions accepted by this compiler.
-pub const LANGUAGE_VERSIONS: &[&str] =
-    &[LANGUAGE_VERSION, LANGUAGE_1_1, LANGUAGE_1_2, LANGUAGE_2_0];
+pub const LANGUAGE_VERSIONS: &[&str] = &[
+    LANGUAGE_VERSION,
+    LANGUAGE_1_1,
+    LANGUAGE_1_2,
+    LANGUAGE_2_0,
+    LANGUAGE_2_2,
+];
 
 /// The language whose surface (grammar, lexicon, bootstrap) a project
-/// language reads: language 2.0 is the language-1.0 surface with the Bend
-/// backend.
+/// language reads: language 2.0 is the language-1.0 surface and language 2.2
+/// the language-1.2 surface, each with the Bend backend.
 #[must_use]
 pub fn surface_language(language: &str) -> &str {
-    if language == LANGUAGE_2_0 {
-        LANGUAGE_VERSION
-    } else {
-        language
+    match language {
+        LANGUAGE_2_0 => LANGUAGE_VERSION,
+        LANGUAGE_2_2 => LANGUAGE_1_2,
+        other => other,
     }
 }
 
-/// Whether a language lowers to Bend (SPEC.md §18.10).
+/// Whether a project language reads the language-1.2 surface: language 1.2
+/// itself, or language 2.2, which lowers that surface to Bend.
+#[must_use]
+pub fn is_surface_1_2(language: &str) -> bool {
+    surface_language(language) == LANGUAGE_1_2
+}
+
+/// Whether a language lowers to Bend (SPEC.md §18.10, §18.11).
 #[must_use]
 pub fn lowers_to_bend(language: &str) -> bool {
-    language == LANGUAGE_2_0
+    language == LANGUAGE_2_0 || language == LANGUAGE_2_2
 }
 
 /// The exact pinned Bend toolchain string of language 2.0 (SPEC.md §18.10).
@@ -189,7 +205,8 @@ fn is_v1_1_file(path: &str) -> bool {
 }
 
 fn is_v2_0_file(path: &str) -> bool {
-    path.starts_with("language/bend-prelude/")
+    is_v2_2_file(path)
+        || path.starts_with("language/bend-prelude/")
         || path == "language/semantics-2.0.toml"
         || path == "schemas/coverage-v2.schema.json"
         || path == "schemas/source-map-v2.schema.json"
@@ -197,6 +214,22 @@ fn is_v2_0_file(path: &str) -> bool {
         || path == "schemas/project-v3.schema.json"
         || path == "schemas/build-manifest-v3.schema.json"
         || path == "schemas/attestation-v3.schema.json"
+}
+
+/// Files introduced solely for language 2.2. They are excluded from the
+/// language-2.0 identity, which predates them.
+fn is_v2_2_file(path: &str) -> bool {
+    path == "language/semantics-2.2.toml"
+        || path == "language/bend-prelude/Semantic.bend"
+        || path == "schemas/project-v4.schema.json"
+        || path == "schemas/lock-v4.schema.json"
+        || path == "schemas/build-manifest-v4.schema.json"
+        || path == "schemas/semantic-snapshot-v3.schema.json"
+        || path == "schemas/attestation-v4.schema.json"
+        || path == "language/bend-prelude/Runtime.bend"
+        || path == "language/bend-prelude/runtime-registry.toml"
+        || path == "language/bend-prelude/LinArith.bend"
+        || path == "language/bend-prelude/RUNTIME.md"
 }
 
 fn is_v1_2_file(path: &str) -> bool {
@@ -297,6 +330,7 @@ pub fn compiler_semantics_id_for(language: &str) -> Sha256Digest {
     static V1_1: OnceLock<Sha256Digest> = OnceLock::new();
     static V1_2: OnceLock<Sha256Digest> = OnceLock::new();
     static V2_0: OnceLock<Sha256Digest> = OnceLock::new();
+    static V2_2: OnceLock<Sha256Digest> = OnceLock::new();
     match language {
         LANGUAGE_VERSION => *V1_0.get_or_init(|| {
             embedded_digest(|path| {
@@ -307,7 +341,8 @@ pub fn compiler_semantics_id_for(language: &str) -> Sha256Digest {
             *V1_1.get_or_init(|| embedded_digest(|path| !is_v1_2_file(path) && !is_v2_0_file(path)))
         }
         LANGUAGE_1_2 => *V1_2.get_or_init(|| embedded_digest(|path| !is_v2_0_file(path))),
-        LANGUAGE_2_0 => *V2_0.get_or_init(|| embedded_digest(|_| true)),
+        LANGUAGE_2_0 => *V2_0.get_or_init(|| embedded_digest(|path| !is_v2_2_file(path))),
+        LANGUAGE_2_2 => *V2_2.get_or_init(|| embedded_digest(|_| true)),
         // An unsupported language never shares an identity with a supported
         // one; configuration rejects it before any identity is published.
         other => Sha256Digest::of(format!("unsupported-language\0{other}").as_bytes()),

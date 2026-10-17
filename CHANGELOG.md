@@ -3,7 +3,7 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 the version axes are the ones SPEC.md §30.1 separates: the compiler crate and
 binary carry the SemVer below, each project selects the supported language
-identifier (`1.0`, `1.1`, or `1.2`), and each language's compiler-semantics ID is a
+identifier (`1.0`, `1.1`, `1.2`, `2.0`, or `2.2`), and each language's compiler-semantics ID is a
 digest over its normative language data, schemas, and pinned golden fixtures.
 
 SPEC.md §2.3 fixes `0.1.0` as the initial implementation version and `1.0.0` as
@@ -14,6 +14,23 @@ criterion that does not hold. That refusal is the accurate answer at these
 versions, and the entries below say what each tag does and does not claim.
 
 ## Unreleased
+
+- Bend 2 backends (SPEC.md §18.10, §18.11, §22.13). Language 2.0 reads the
+  language-1.0 surface and language 2.2 the language-1.2 surface; each also
+  lowers every module to Bend 2 from the same linked IR, and verification
+  checks the generated Bend with the pinned `bend 2.0.37` and rechecks it
+  with the BendTT kernel before the Lean stages run. Language 2.2 lowers type
+  parameters to templates, closure-converts function parameters, inlines
+  mutual groups, runs well-founded definitions on proof-carrying fuel,
+  proves every lowered tactic by an explicit term (linear arithmetic by a
+  reflective certificate checker in Bend), and restates model cross-checks
+  against a Bend port of the runtime. It refuses, with `LLB6008`,
+  simultaneous mutual recursion, a higher-order function passed as a value,
+  and reasoning declarations. New: `BN-01`..`BN-18`, `CF-19`, `CF-20`,
+  `VR-24`..`VR-28`; schemas `project-v3`/`-v4`, `lock-v3`/`-v4`,
+  `build-manifest-v3`/`-v4`, `attestation-v3`/`-v4`, `semantic-snapshot-v3`,
+  `coverage-v2`, `source-map-v2`; `lexlean init --language 2.0|2.2`. The
+  identities of languages 1.0, 1.1, and 1.2 are unchanged.
 
 - The runtime gates read what they claimed to (#154, follow-up to #144; no new
   diagnostic code, no new ID). `RT-04` finds a Lean runtime text in any string

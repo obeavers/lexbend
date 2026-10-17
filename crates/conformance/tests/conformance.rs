@@ -171,6 +171,11 @@ fn conformance_cf_19() {
 }
 
 #[test]
+fn conformance_cf_20() {
+    repo_conformance::cases::run("CF-20");
+}
+
+#[test]
 fn conformance_lx_01() {
     repo_conformance::cases::run("LX-01");
 }
@@ -856,6 +861,51 @@ fn conformance_bn_09() {
 }
 
 #[test]
+fn conformance_bn_10() {
+    repo_conformance::cases::run("BN-10");
+}
+
+#[test]
+fn conformance_bn_11() {
+    repo_conformance::cases::run("BN-11");
+}
+
+#[test]
+fn conformance_bn_12() {
+    repo_conformance::cases::run("BN-12");
+}
+
+#[test]
+fn conformance_bn_13() {
+    repo_conformance::cases::run("BN-13");
+}
+
+#[test]
+fn conformance_bn_14() {
+    repo_conformance::cases::run("BN-14");
+}
+
+#[test]
+fn conformance_bn_15() {
+    repo_conformance::cases::run("BN-15");
+}
+
+#[test]
+fn conformance_bn_16() {
+    repo_conformance::cases::run("BN-16");
+}
+
+#[test]
+fn conformance_bn_17() {
+    repo_conformance::cases::run("BN-17");
+}
+
+#[test]
+fn conformance_bn_18() {
+    repo_conformance::cases::run("BN-18");
+}
+
+#[test]
 fn conformance_tx_01() {
     repo_conformance::cases::run("TX-01");
 }
@@ -1118,6 +1168,11 @@ fn conformance_vr_26() {
 #[test]
 fn conformance_vr_27() {
     repo_conformance::cases::run("VR-27");
+}
+
+#[test]
+fn conformance_vr_28() {
+    repo_conformance::cases::run("VR-28");
 }
 
 #[test]

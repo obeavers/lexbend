@@ -165,10 +165,13 @@ pub struct SnapshotAxiomPolicy {
 
 /// The snapshot envelope a project language selects (§17.12). Languages 1.0
 /// and 1.1 keep the historical envelope byte for byte; language 1.2 carries
-/// `lexlean/semantic-module/2` values and so has its own closed schema.
+/// `lexlean/semantic-module/2` values and so has its own closed schema, which
+/// language 2.2 shares under its own envelope so the language is exact.
 #[must_use]
 pub fn snapshot_spec(language: &str) -> &'static str {
-    if language == crate::LANGUAGE_1_2 {
+    if language == crate::LANGUAGE_2_2 {
+        "lexlean/semantic-snapshot/3"
+    } else if crate::is_surface_1_2(language) {
         "lexlean/semantic-snapshot/2"
     } else {
         "lexlean/semantic-snapshot/1"
@@ -334,7 +337,7 @@ impl SemanticSnapshot {
                         origin: None,
                         linked_ir: serde_json::to_value(declaration)
                             .expect("semantic declaration serializes"),
-                        alpha_id: (language == crate::LANGUAGE_1_2)
+                        alpha_id: crate::is_surface_1_2(language)
                             .then(|| declaration.alpha_identity())
                             .flatten(),
                         elaboration,
