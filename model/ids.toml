@@ -1092,7 +1092,13 @@ statement = "The generated Bend of every language-2.2 example module checks and 
 id = "BN-19"
 level = "build"
 suite = "bend-backend"
-statement = "A language-2.0 or 2.2 numeral above 4294967295 lowers to its base-65536 Horner form over the prelude's Lean.Nat.add and Lean.Nat.mul, and the pinned Bend accepts a proof that uses it without evaluating it in full."
+statement = "A language-2.0 or 2.2 numeral above 4294967295 lowers to its base-65536 Horner form over the prelude's Lean.Nat.add and Lean.Nat.mul, and the pinned Bend accepts a proof that uses it without reducing it."
+
+[[id]]
+id = "BN-20"
+level = "build"
+suite = "bend-backend"
+statement = "Language-2.2 equality of two orderings lowers to the Bend runtime's LexLeanRuntime.equal.Ordering, which is true exactly when both are the same ordering, as Lean's derived equality is."
 
 [[id]]
 id = "TX-01"

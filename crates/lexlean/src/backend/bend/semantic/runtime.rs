@@ -77,6 +77,7 @@ fn instance(ty: &SemanticType) -> Option<&'static str> {
         SemanticType::UInt32 => "UInt32",
         SemanticType::UInt64 => "UInt64",
         SemanticType::Bytes => "ByteArray",
+        SemanticType::Ordering => "Ordering",
         SemanticType::List { .. } => "List",
         _ => return None,
     })

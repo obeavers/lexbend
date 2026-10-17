@@ -762,12 +762,43 @@ pub fn env_lock() -> std::sync::RwLockWriteGuard<'static, ()> {
         .unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
+thread_local! {
+    /// How many [`EnvShared`] guards this thread holds.
+    static SHARED_DEPTH: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+}
+
+/// A hold on the shared environment lock; see [`env_shared`].
+pub struct EnvShared {
+    _read: Option<std::sync::RwLockReadGuard<'static, ()>>,
+}
+
+impl Drop for EnvShared {
+    fn drop(&mut self) {
+        SHARED_DEPTH.with(|depth| depth.set(depth.get() - 1));
+    }
+}
+
 /// The shared environment lock for a test that reads the environment (and
 /// so needs no one to change it) but changes nothing; see [`ENV_LOCK`].
-pub fn env_shared() -> std::sync::RwLockReadGuard<'static, ()> {
-    ENV_LOCK
-        .read()
-        .unwrap_or_else(std::sync::PoisonError::into_inner)
+///
+/// Reentrant on one thread: only the outermost hold takes the lock. A
+/// second read of a `RwLock` on a thread that already reads it waits behind
+/// any writer queued in between, and that writer waits for the first read:
+/// a helper that takes the lock, called by a case that holds it, deadlocked
+/// the suite that way.
+pub fn env_shared() -> EnvShared {
+    let outermost = SHARED_DEPTH.with(|depth| {
+        let held = depth.get();
+        depth.set(held + 1);
+        held == 0
+    });
+    EnvShared {
+        _read: outermost.then(|| {
+            ENV_LOCK
+                .read()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+        }),
+    }
 }
 
 /// Run `job` on every item of `items`, on up to `width` threads at once.
@@ -4225,11 +4256,7 @@ pub fn bend_check(file: &std::path::Path) -> (bool, String) {
     // A case may put a stand-in `bend` on PATH under the exclusive lock.
     let _guard = env_shared();
     // Found under the shared lock, so never a case's stand-in `bend`.
-    let program = {
-        let _environment = env_shared();
-        bend_program()
-    }
-    .expect("the pinned Bend is installed");
+    let program = bend_program().expect("the pinned Bend is installed");
     let output = std::process::Command::new(program)
         .arg(file.file_name().expect("a file"))
         .arg("--check-only")
@@ -4258,11 +4285,7 @@ pub fn bend_check(file: &std::path::Path) -> (bool, String) {
 pub fn bend_export(file: &std::path::Path) -> (bool, String) {
     let _guard = env_shared();
     // Found under the shared lock, so never a case's stand-in `bend`.
-    let program = {
-        let _environment = env_shared();
-        bend_program()
-    }
-    .expect("the pinned Bend is installed");
+    let program = bend_program().expect("the pinned Bend is installed");
     let target = tempfile::Builder::new()
         .prefix("lexlean-bend-export-")
         .tempdir()

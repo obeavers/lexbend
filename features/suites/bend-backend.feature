@@ -67,11 +67,11 @@ Feature: bend-backend
     And the false theorem prints `SOME PROOFS FAIL`
 
   @BN-19 @build
-  Scenario: A language-2.0 or 2.2 numeral above 4294967295 lowers to its base-65536 Horner form over the prelude's Lean.Nat.add and Lean.Nat.mul, and the pinned Bend accepts a proof that uses it without evaluating it in full.
+  Scenario: A language-2.0 or 2.2 numeral above 4294967295 lowers to its base-65536 Horner form over the prelude's Lean.Nat.add and Lean.Nat.mul, and the pinned Bend accepts a proof that uses it without reducing it.
     Given a language-2.0 theorem and a language-2.2 module whose numerals include 4294967296 and 18446744073709551616 and the integer -18446744073709551616
     When they are built
     Then each numeral at or below 4294967295 is a Bend literal and each larger one is its Horner form over the prelude's Lean.Nat.add and Lean.Nat.mul
-    And every generated module, including a theorem that 0 is below 2^64 by reflexivity, prints exactly `ALL PROOFS CHECK` under the pinned Bend
+    And every generated module, including a theorem by reflexivity about a comparison with 2^64 that never reduces it, prints exactly `ALL PROOFS CHECK` under the pinned Bend
 
   @BN-10 @build
   Scenario: Every language-2.2 semantic module renders one byte-deterministic Bend file from the same linked IR, beside its Lean and LaTeX, importing Base, the prelude, the support modules it uses, and its imported modules, with every non-whitespace token covered and mapped.
@@ -137,3 +137,10 @@ Feature: bend-backend
     When every generated module is checked and exported by the pinned Bend
     Then all twenty modules print exactly `ALL PROOFS CHECK` and export with no output
     And the false theorem prints `SOME PROOFS FAIL`
+
+  @BN-20 @build
+  Scenario: Language-2.2 equality of two orderings lowers to the Bend runtime's LexLeanRuntime.equal.Ordering, which is true exactly when both are the same ordering, as Lean's derived equality is.
+    Given a language-2.2 module comparing orderings with `equal`, and a theorem by reflexivity for each of the nine pairs of orderings
+    When it is built and its Bend is checked by the pinned Bend
+    Then the comparison calls `LexLeanRuntime.equal.Ordering`
+    And every generated module prints exactly `ALL PROOFS CHECK`, the three equal pairs `true` and the six others `false`

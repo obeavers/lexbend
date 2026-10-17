@@ -1,5 +1,5 @@
-//! The language-2.2 half of the `bend-backend` suite: BN-10..BN-18 (SPEC.md
-//! §18.11). Generation is platform-independent and asserted everywhere; a
+//! The language-2.2 half of the `bend-backend` suite: BN-10..BN-18 and BN-20
+//! (SPEC.md §18.11). Generation is platform-independent and asserted everywhere; a
 //! claim that the pinned Bend accepts or refuses a text gates that half on
 //! [`support::bend_backed`].
 
@@ -531,6 +531,54 @@ pub(crate) fn run(id: &str) {
                 let (accepted, text) = support::bend_check(&dir.path().join(&generated[0]));
                 assert!(!accepted, "a false theorem is refused by Bend");
                 assert!(text.starts_with("SOME PROOFS FAIL"), "{text}");
+            }
+        }
+        // §18.11.6: equality of orderings is the runtime's, constructor by
+        // constructor.
+        "BN-20" => {
+            let orderings = [
+                ("less", "0x00 0x01"),
+                ("same", "0x 0x"),
+                ("more", "0x01 0x00"),
+            ];
+            let mut module = String::from(
+                "definition{\n  name: sameOrdering,\n  parameters: [left : Ordering, right : Ordering],\n  result: Bool,\n  body: (prim equal left right : Bool)\n}\n",
+            );
+            for (left, left_bytes) in orderings {
+                for (right, right_bytes) in orderings {
+                    let expected = if left == right { "true" } else { "false" };
+                    module.push_str(&format!(
+                        "\ntheorem{{\n  name: {left}_{right},\n  parameters: [],\n  statement: ((sameOrdering (prim compare_bytes {left_bytes} : Ordering) (prim compare_bytes {right_bytes} : Ordering)) = {expected}),\n  proof: reflexivity{{}}\n}}\n"
+                    ));
+                }
+            }
+            let project = P::copy_example("bend-reflection");
+            let main = project.read_raw("src/Main.lex.tex");
+            project.write(
+                "src/Main.lex.tex",
+                &main.replace(
+                    "\\end{semanticmodule}",
+                    &format!("{module}\\end{{semanticmodule}}"),
+                ),
+            );
+            let build = support::rendered(&project);
+            let text = module_bend(&build, "Reflection/Main");
+            assert!(
+                text.contains("LexLeanRuntime.equal.Ordering(left, right)"),
+                "the comparison is the runtime's: {text}"
+            );
+            if support::bend_backed(id) {
+                let (dir, generated) = generated_modules(&build);
+                for path in generated {
+                    let (accepted, output) = support::bend_check(&dir.path().join(&path));
+                    assert!(accepted, "{path}: {output}");
+                }
+                // The plant: an equality that ignores its arguments is refused.
+                let (accepted, output) = check_planted(&build, "Reflection/Main", &|text| {
+                    text.replace("LexLeanRuntime.equal.Ordering(left, right)", "True{}")
+                });
+                assert!(!accepted, "an equality that is always true is refused");
+                assert!(output.starts_with("SOME PROOFS FAIL"), "{output}");
             }
         }
         other => panic!("no language-2.2 bend-backend case is wired for {other}"),
