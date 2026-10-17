@@ -24,9 +24,13 @@ fn fake_bend(script: &str) -> tempfile::TempDir {
     dir
 }
 
-/// `PATH` with `dir` first.
+/// `PATH` with `dir` first. Read under the shared lock: a case beside this
+/// one may hold a stand-in `bend` first on `PATH` (VR-29).
 fn path_with(dir: &std::path::Path) -> String {
-    let existing = std::env::var("PATH").unwrap_or_default();
+    let existing = {
+        let _environment = support::env_shared();
+        std::env::var("PATH").unwrap_or_default()
+    };
     format!("{}:{existing}", dir.display())
 }
 
@@ -130,8 +134,10 @@ fn assert_bend_only(attestation: &serde_json::Value, root: &camino::Utf8Path, wh
     }
 }
 
-/// The directory of the pinned Bend, when installed.
+/// The directory of the pinned Bend, when installed, found under the shared
+/// lock, as [`support::bend_backed`] finds it, so never a case's stand-in.
 fn bend_dir() -> Option<std::path::PathBuf> {
+    let _environment = support::env_shared();
     support::bend_program().and_then(|program| program.parent().map(std::path::Path::to_path_buf))
 }
 
@@ -465,7 +471,9 @@ pub(crate) fn run(id: &str) {
             assert_eq!(verdict["stdout"], lexlean::verify::bend::VERDICT_SUCCESS);
             if support::lean_backed(id) && support::bend_backed(id) && verdict_available(id) {
                 let path = path_with(&bend_dir().expect("the pinned Bend"));
-                let (attestation, root) = verified_attestation(&rooted_semantic(), &path);
+                // The project outlives the reads of its verified directory.
+                let rooted = rooted_semantic();
+                let (attestation, root) = verified_attestation(&rooted, &path);
                 support::assert_json_file_schema("attestation-v4", &root.join("attestation.json"));
                 assert_eq!(attestation["spec"], "lexlean/attestation/4");
                 for field in ["toolchain", "oleans", "compiler_input", "preservation"] {
@@ -474,6 +482,21 @@ pub(crate) fn run(id: &str) {
                         "the Lean stages record `{field}`"
                     );
                 }
+                // The published kernel-recheck root is the one the kernel
+                // ran, importing the module, though the Lean stages release
+                // the build's buffers before it is staged.
+                let published = std::fs::read_to_string(
+                    root.join(lexlean::verify::bend::VERDICT_DIR)
+                        .join("Root.bend")
+                        .as_std_path(),
+                )
+                .expect("the kernel-recheck root is published");
+                assert_eq!(
+                    published,
+                    lexlean::verify::bend::verdict_root(&[
+                        "modules/LanguageTwelve/Main.bend".to_owned()
+                    ])
+                );
                 assert_eq!(
                     attestation["bend"]["version_output"],
                     lexlean::BEND_VERSION_LINE
@@ -556,8 +579,8 @@ pub(crate) fn run(id: &str) {
             }
             if support::bend_backed(id) && verdict_available(id) {
                 let path = path_with(&bend_dir().expect("the pinned Bend"));
-                let (attestation, root) =
-                    verified_attestation(&P::copy_example("bend-peano-arithmetic"), &path);
+                let peano = P::copy_example("bend-peano-arithmetic");
+                let (attestation, root) = verified_attestation(&peano, &path);
                 assert_bend_only(&attestation, &root, "the live language-2.0 verification");
             }
         }

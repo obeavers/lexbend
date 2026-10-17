@@ -684,7 +684,7 @@ fn stage_build(staging: &std::path::Path, build: &RenderedBuild) -> Result<(), L
 }
 
 /// The Bend records and the kernel-recheck root, part of the verified set
-/// as the Lean records are (§22.8, §22.13).
+/// as the Lean records are (§22.8, §22.13), after the build is staged.
 fn stage_bend(
     staging: &std::path::Path,
     build: &RenderedBuild,
@@ -698,11 +698,13 @@ fn stage_bend(
             &record.to_json().to_file_bytes(),
         )?;
     }
+    // The staged build, not `build.files`: the Lean stages release the
+    // build's buffers once it is staged.
     let module_paths: Vec<String> = build
         .modules
         .iter()
         .map(|module| crate::backend::bend::module_path(&module.lean_module))
-        .filter(|path| build.files.iter().any(|(candidate, _)| candidate == path))
+        .filter(|path| staging.join(path).is_file())
         .collect();
     write_staged(
         staging,
