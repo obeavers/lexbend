@@ -20,6 +20,24 @@ termination_by structural forest => forest
 end
 
 mutual
+@[expose] public def exprSize : (expression : Recursion.Syntax.Expr) -> Nat
+  | Recursion.Syntax.Expr.literal _ => 1
+  | Recursion.Syntax.Expr.plus left right => ((exprSize (left) + exprSize (right)) + 1)
+  | Recursion.Syntax.Expr.block statements result => (statementsSize (statements) + exprSize (result))
+termination_by structural expression => expression
+
+@[expose] public def statementsSize : (statements : List (Recursion.Syntax.Stmt)) -> Nat
+  | List.nil => 0
+  | List.cons head tail => (statementSize (head) + statementsSize (tail))
+termination_by structural statements => statements
+
+@[expose] public def statementSize : (statement : Recursion.Syntax.Stmt) -> Nat
+  | Recursion.Syntax.Stmt.assign _ value => (exprSize (value) + 1)
+  | Recursion.Syntax.Stmt.sequence first second => (statementSize (first) + statementSize (second))
+termination_by structural statement => statement
+end
+
+mutual
 @[expose] public def isEven : (number : Nat) -> Bool
   | Nat.zero => true
   | Nat.succ previous => isOdd (previous)
@@ -59,6 +77,9 @@ termination_by (LexLeanRuntime.subtract (high) (low) : Nat)
 decreasing_by all_goals first | (have __evidence := search_decreases (target) (low) (high) (__decrease0) (__decrease1); subst_vars; exact __evidence)
 
 public theorem rose_size : (roseSize (Nat) (Recursion.Syntax.Rose.node (1) ((Recursion.Syntax.Rose.node (2) (([] : List (Recursion.Syntax.Rose (Nat)))) :: (Recursion.Syntax.Rose.node (3) (([] : List (Recursion.Syntax.Rose (Nat)))) :: ([] : List (Recursion.Syntax.Rose (Nat))))))) = 3) := by
+  rfl
+
+public theorem expression_size : (exprSize (Recursion.Syntax.Expr.block ((Recursion.Syntax.Stmt.assign ("x") (Recursion.Syntax.Expr.literal (1)) :: ([] : List (Recursion.Syntax.Stmt)))) (Recursion.Syntax.Expr.plus (Recursion.Syntax.Expr.literal (2)) (Recursion.Syntax.Expr.literal (3)))) = 5) := by
   rfl
 
 public theorem ten_is_even : (isEven (10) = true) := by
@@ -109,14 +130,61 @@ decreasing_by all_goals first | (have __evidence := reassociate_literal (term) _
 public theorem prune_result : (weight (prune (Recursion.Syntax.Term.plus (Recursion.Syntax.Term.plus (Recursion.Syntax.Term.literal (1)) (Recursion.Syntax.Term.literal (2))) (Recursion.Syntax.Term.literal (3)))) = 1) := by
   decide
 
-public theorem ping_to_pong (number : Nat) : (((Nat.beq (number) (0)) = false) -> ((number + number) < ((number + number) + 1))) := by
-  intros
-  try set_option linter.unusedSimpArgs false in simp only [← Bool.not_eq_true, Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true', and_true, true_and, Option.some.injEq, Nat.beq_eq, Nat.blt_eq, Nat.ble_eq, LexLeanRuntime.subtract, LexLeanRuntime.multiply] at *
-  all_goals omega
+mutual
+@[expose] public def foldExpr : (expression : Recursion.Syntax.Expr) -> Recursion.Syntax.Expr
+  | Recursion.Syntax.Expr.literal value => Recursion.Syntax.Expr.literal (value)
+  | Recursion.Syntax.Expr.plus left right => (let foldedLeft : Recursion.Syntax.Expr := foldExpr (left); (let foldedRight : Recursion.Syntax.Expr := foldExpr (right); (match foldedLeft with | Recursion.Syntax.Expr.literal leftValue => (match foldedRight with | Recursion.Syntax.Expr.literal rightValue => Recursion.Syntax.Expr.literal ((leftValue + rightValue)) | Recursion.Syntax.Expr.plus _ _ => Recursion.Syntax.Expr.plus (foldedLeft) (foldedRight) | Recursion.Syntax.Expr.block _ _ => Recursion.Syntax.Expr.plus (foldedLeft) (foldedRight)) | Recursion.Syntax.Expr.plus _ _ => Recursion.Syntax.Expr.plus (foldedLeft) (foldedRight) | Recursion.Syntax.Expr.block _ _ => Recursion.Syntax.Expr.plus (foldedLeft) (foldedRight))))
+  | Recursion.Syntax.Expr.block statements result => Recursion.Syntax.Expr.block (foldStatements (statements)) (foldExpr (result))
+termination_by structural expression => expression
 
-public theorem pong_to_ping (number : Nat) : (((Nat.beq (number) (0)) = false) -> ((((LexLeanRuntime.subtract (number) (1) : Nat) + (LexLeanRuntime.subtract (number) (1) : Nat)) + 1) < (number + number))) := by
-  intros
-  try set_option linter.unusedSimpArgs false in simp only [← Bool.not_eq_true, Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true', and_true, true_and, Option.some.injEq, Nat.beq_eq, Nat.blt_eq, Nat.ble_eq, LexLeanRuntime.subtract, LexLeanRuntime.multiply] at *
-  all_goals omega
+@[expose] public def foldStatements : (statements : List (Recursion.Syntax.Stmt)) -> List (Recursion.Syntax.Stmt)
+  | List.nil => ([] : List (Recursion.Syntax.Stmt))
+  | List.cons head tail => (foldStatement (head) :: foldStatements (tail))
+termination_by structural statements => statements
+
+@[expose] public def foldStatement : (statement : Recursion.Syntax.Stmt) -> Recursion.Syntax.Stmt
+  | Recursion.Syntax.Stmt.assign target value => Recursion.Syntax.Stmt.assign (target) (foldExpr (value))
+  | Recursion.Syntax.Stmt.sequence first second => Recursion.Syntax.Stmt.sequence (foldStatement (first)) (foldStatement (second))
+termination_by structural statement => statement
+end
+
+public theorem folding_sample : (foldExpr (Recursion.Syntax.Expr.block ((Recursion.Syntax.Stmt.assign ("x") (Recursion.Syntax.Expr.plus (Recursion.Syntax.Expr.literal (1)) (Recursion.Syntax.Expr.literal (2))) :: ([] : List (Recursion.Syntax.Stmt)))) (Recursion.Syntax.Expr.plus (Recursion.Syntax.Expr.literal (2)) (Recursion.Syntax.Expr.plus (Recursion.Syntax.Expr.literal (3)) (Recursion.Syntax.Expr.literal (4))))) = Recursion.Syntax.Expr.block ((Recursion.Syntax.Stmt.assign ("x") (Recursion.Syntax.Expr.literal (3)) :: ([] : List (Recursion.Syntax.Stmt)))) (Recursion.Syntax.Expr.literal (9))) := by
+  rfl
+
+mutual
+@[expose] public def walk : (fuel : Nat) -> (path : List (Nat)) -> Nat
+  | Nat.zero, _path => 0
+  | Nat.succ remaining, path => (match path with | List.nil => 0 | List.cons number rest => (match depth (remaining) (number) with | Option.none => walk (remaining) (rest) | Option.some halvings => (halvings + walk (remaining) (rest))))
+termination_by structural fuel _ => fuel
+
+@[expose] public def depth : (fuel : Nat) -> (number : Nat) -> Option (Nat)
+  | Nat.zero, _number => Option.none
+  | Nat.succ remaining, number => (match number with | Nat.zero => Option.some (walk (remaining) (([] : List (Nat)))) | Nat.succ smaller => (match smaller with | Nat.zero => Option.some (0) | Nat.succ lower => (match depth (remaining) (lower) with | Option.none => Option.none | Option.some halvings => Option.some ((halvings + 1)))))
+termination_by structural fuel _ => fuel
+end
+
+public theorem walk_sample : (walk (10) ((4 :: (7 :: (1 :: ([] : List (Nat)))))) = 5) := by
+  rfl
+
+public theorem walk_exhausted : (walk (3) ((9 :: ([] : List (Nat)))) = 0) := by
+  rfl
+
+public theorem depth_nine : (depth (6) (9) = Option.some (4)) := by
+  rfl
+
+@[expose] public def secondOfTwo (values : List (Nat)) : Nat := (match values with | List.nil => 0 | List.cons head rest => (match rest with | List.nil => 0 | List.cons later more => (match more with | List.nil => (match later with | Nat.zero => head | Nat.succ previous => previous) | List.cons _ _ => 0)))
+
+public theorem second_of_two : (secondOfTwo ((5 :: (3 :: ([] : List (Nat))))) = 2) := by
+  rfl
+
+public theorem second_of_two_zero : (secondOfTwo ((5 :: (0 :: ([] : List (Nat))))) = 5) := by
+  rfl
+
+@[expose] public def firstEven : (values : List (Nat)) -> Option (Nat)
+  | List.nil => Option.none
+  | List.cons head rest => (match isEven (head) with | Bool.true => Option.some (head) | Bool.false => firstEven (rest))
+
+public theorem first_even : (firstEven ((3 :: (5 :: (8 :: (2 :: ([] : List (Nat))))))) = Option.some (8)) := by
+  rfl
 
 end Recursion.Main

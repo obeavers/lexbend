@@ -90,11 +90,11 @@ Feature: bend-backend
     And the added definition fails its build with LLB6008 naming `twiceOf`
 
   @BN-12 @build
-  Scenario: A language-2.2 mutual group lowers by inlining with every member's name kept, and a group that recurses simultaneously is a hard error.
+  Scenario: A language-2.2 mutual group lowers by inlining with every member's name kept, and a well-founded definition in a mutual group is a hard error.
     Given the language-2.2 recursion example and the language-1.2 recursion example moved to language 2.2
     When the generated `Main` Bend is read and the moved example is built
     Then `forestSize` precedes `roseSize` with `roseSize` inlined into it, and `isEven` holds `isOdd` inlined
-    And the moved example fails its build with LLB6008 naming the group `SyntaxSize` and its three members
+    And the moved example fails its build with LLB6008 naming the well-founded `ping` of the group `Bounce`
 
   @BN-13 @build
   Scenario: A language-2.2 well-founded definition lowers to proof-carrying fuel whose every recursive call carries its decrease evidence, and the pinned Bend refuses a call that consumes no fuel or whose evidence does not establish the decrease.
@@ -144,3 +144,27 @@ Feature: bend-backend
     When it is built and its Bend is checked by the pinned Bend
     Then the comparison calls `LexLeanRuntime.equal.Ordering`
     And every generated module prints exactly `ALL PROOFS CHECK`, the three equal pairs `true` and the six others `false`
+
+  @BN-21 @build
+  Scenario: A language-2.2 mutual group whose members recurse simultaneously over one type lowers to one Bend definition over that type and a generated selector of the member, every member keeping its name and signature, and the pinned Bend checks it.
+    Given the language-2.2 recursion example's `Halving` group, whose `walk` and `depth` call themselves and each other on a smaller fuel and return different types
+    When its generated `Main` Bend is read and checked by the pinned Bend
+    Then one definition `walk.ll_go` matches the fuel and then the selector `walk.ll_sel`, its result `walk.ll_out` of the selector, and `walk` and `depth` call it
+    And a member call inside a match on a computed value is passed to that match's auxiliary as a function over a piece of the fuel
+    And the module prints exactly `ALL PROOFS CHECK`, and a planted call on the unchanged fuel is refused
+
+  @BN-22 @build
+  Scenario: A language-2.2 nested or mutual inductive that a simultaneous mutual group recurses over lowers to one Bend type indexed by its base and nested list types, each constructor carrying the equation of its index, and the pinned Bend checks the groups over it.
+    Given the language-2.2 recursion example's `SyntaxSize` and `Folding` groups over the mutual `Expr` and `Stmt`, whose `block` holds a `List Stmt`
+    When its generated Bend is read and checked by the pinned Bend
+    Then `Expr` is one type indexed by `Expr.ll_index` with an index for `Expr`, for `Stmt`, and for `List Stmt`, every constructor carrying the equation of its index, and `Stmt` is `Expr` at its index
+    And each group is one definition whose impossible branches are refuted from the equations
+    And every module prints exactly `ALL PROOFS CHECK`, and a planted wrong fold result is refused
+
+  @BN-23 @build
+  Scenario: A language-2.2 match on a computed value, or on a local bound before one an enclosing match has opened, lowers to an auxiliary definition, each recursive call in its branches passed in as a function over a piece of the decreasing argument, and the pinned Bend checks it.
+    Given the language-2.2 recursion example's `secondOfTwo`, which matches a list's second element after matching the list's tail, and `firstEven`, which matches `isEven` of a list's head and recurses on its tail in one branch
+    When its generated `Main` Bend is read and checked by the pinned Bend
+    Then the match on the element is an auxiliary definition that takes the element as its parameter
+    And `firstEven` passes its auxiliary the function `(+ll_unit => firstEven(rest))`, which the recursing branch applies
+    And the module prints exactly `ALL PROOFS CHECK`, and a planted function recursing on the whole list is refused

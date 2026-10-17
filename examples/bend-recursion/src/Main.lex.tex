@@ -26,6 +26,48 @@ definition{
 }
 
 definition{
+  name: exprSize,
+  parameters: [expression : Syntax::Expr],
+  result: Nat,
+  body: (match expression
+    | Syntax::Expr.literal value => 1
+    | Syntax::Expr.plus left right => (((exprSize left) + (exprSize right)) + 1)
+    | Syntax::Expr.block statements result => ((statementsSize statements) + (exprSize result))),
+  mutual: SyntaxSize,
+  recursive_argument: expression
+}
+
+definition{
+  name: statementsSize,
+  parameters: [statements : (List Syntax::Stmt)],
+  result: Nat,
+  body: (match statements
+    | List.nil => 0
+    | List.cons head tail => ((statementSize head) + (statementsSize tail))),
+  mutual: SyntaxSize,
+  recursive_argument: statements
+}
+
+definition{
+  name: statementSize,
+  parameters: [statement : Syntax::Stmt],
+  result: Nat,
+  body: match{
+    branches: [
+      {body: ((exprSize value) + 1), binders: [target, value], constructor: Syntax::Stmt.assign},
+      {
+        body: ((statementSize var{name: first}) + (statementSize var{name: second})),
+        binders: [first, second],
+        constructor: Syntax::Stmt.sequence
+      }
+    ],
+    scrutinee: statement
+  },
+  mutual: SyntaxSize,
+  recursive_argument: statement
+}
+
+definition{
   name: isEven,
   parameters: [number : Nat],
   result: Bool,
@@ -99,6 +141,13 @@ theorem{
   name: rose_size,
   parameters: [],
   statement: ((roseSize [Nat] (ctor Syntax::Rose.node [Nat] 1 (cons (ctor Syntax::Rose.node [Nat] 2 (nil (Syntax::Rose Nat))) (cons (ctor Syntax::Rose.node [Nat] 3 (nil (Syntax::Rose Nat))) (nil (Syntax::Rose Nat)))))) = 3),
+  proof: reflexivity{}
+}
+
+theorem{
+  name: expression_size,
+  parameters: [],
+  statement: ((exprSize (ctor Syntax::Expr.block (cons (ctor Syntax::Stmt.assign "x" (ctor Syntax::Expr.literal 1)) (nil Syntax::Stmt)) (ctor Syntax::Expr.plus (ctor Syntax::Expr.literal 2) (ctor Syntax::Expr.literal 3)))) = 5),
   proof: reflexivity{}
 }
 
@@ -218,20 +267,167 @@ theorem{
   axioms: [Quot.sound, propext]
 }
 
-theorem{
-  name: ping_to_pong,
-  parameters: [number : Nat],
-  statement: (((number =? 0) = false) -> ((number + number) < ((number + number) + 1))),
-  proof: linear_arithmetic{},
-  axioms: [Quot.sound, propext]
+definition{
+  name: foldExpr,
+  parameters: [expression : Syntax::Expr],
+  result: Syntax::Expr,
+  body: (match expression
+    | Syntax::Expr.literal value => (ctor Syntax::Expr.literal value)
+    | Syntax::Expr.plus left right => (let foldedLeft : Syntax::Expr := (foldExpr left); (let foldedRight : Syntax::Expr := (foldExpr right); (match foldedLeft
+      | Syntax::Expr.literal leftValue => (match foldedRight
+        | Syntax::Expr.literal rightValue => (ctor Syntax::Expr.literal (leftValue + rightValue))
+        | Syntax::Expr.plus rightFirst rightSecond => (ctor Syntax::Expr.plus foldedLeft foldedRight)
+        | Syntax::Expr.block rightStatements rightResult => (ctor Syntax::Expr.plus foldedLeft foldedRight))
+      | Syntax::Expr.plus leftFirst leftSecond => (ctor Syntax::Expr.plus foldedLeft foldedRight)
+      | Syntax::Expr.block leftStatements leftResult => (ctor Syntax::Expr.plus foldedLeft foldedRight))))
+    | Syntax::Expr.block statements result => (ctor Syntax::Expr.block (foldStatements statements) (foldExpr result))),
+  executable: true,
+  mutual: Folding,
+  recursive_argument: expression
+}
+
+definition{
+  name: foldStatements,
+  parameters: [statements : (List Syntax::Stmt)],
+  result: (List Syntax::Stmt),
+  body: (match statements
+    | List.nil => (nil Syntax::Stmt)
+    | List.cons head tail => (cons (foldStatement head) (foldStatements tail))),
+  executable: true,
+  mutual: Folding,
+  recursive_argument: statements
+}
+
+definition{
+  name: foldStatement,
+  parameters: [statement : Syntax::Stmt],
+  result: Syntax::Stmt,
+  body: match{
+    branches: [
+      {
+        body: (ctor Syntax::Stmt.assign target (foldExpr value)),
+        binders: [target, value],
+        constructor: Syntax::Stmt.assign
+      },
+      {
+        body: (ctor Syntax::Stmt.sequence (foldStatement var{
+          name: first
+        }) (foldStatement var{name: second})),
+        binders: [first, second],
+        constructor: Syntax::Stmt.sequence
+      }
+    ],
+    scrutinee: statement
+  },
+  executable: true,
+  mutual: Folding,
+  recursive_argument: statement
 }
 
 theorem{
-  name: pong_to_ping,
-  parameters: [number : Nat],
-  statement: (((number =? 0) = false) -> ((((prim subtract number 1 : Nat) + (prim subtract number 1 : Nat)) + 1) < (number + number))),
-  proof: linear_arithmetic{},
-  axioms: [Quot.sound, propext]
+  name: folding_sample,
+  parameters: [],
+  statement: ((foldExpr (ctor Syntax::Expr.block (cons (ctor Syntax::Stmt.assign "x" (ctor Syntax::Expr.plus (ctor Syntax::Expr.literal 1) (ctor Syntax::Expr.literal 2))) (nil Syntax::Stmt)) (ctor Syntax::Expr.plus (ctor Syntax::Expr.literal 2) (ctor Syntax::Expr.plus (ctor Syntax::Expr.literal 3) (ctor Syntax::Expr.literal 4))))) = (ctor Syntax::Expr.block (cons (ctor Syntax::Stmt.assign "x" (ctor Syntax::Expr.literal 3)) (nil Syntax::Stmt)) (ctor Syntax::Expr.literal 9))),
+  proof: reflexivity{}
+}
+
+definition{
+  name: walk,
+  parameters: [fuel : Nat, path : (List Nat)],
+  result: Nat,
+  body: (match fuel
+    | Nat.zero => 0
+    | Nat.succ remaining => (match path
+      | List.nil => 0
+      | List.cons number rest => (match (depth remaining number)
+        | Option.none => (walk remaining rest)
+        | Option.some halvings => (halvings + (walk remaining rest))))),
+  mutual: Halving,
+  recursive_argument: fuel
+}
+
+definition{
+  name: depth,
+  parameters: [fuel : Nat, number : Nat],
+  result: (Option Nat),
+  body: (match fuel
+    | Nat.zero => (ctor Option.none [Nat])
+    | Nat.succ remaining => (match number
+      | Nat.zero => (ctor Option.some [Nat] (walk remaining (nil Nat)))
+      | Nat.succ smaller => (match smaller
+        | Nat.zero => (ctor Option.some [Nat] 0)
+        | Nat.succ lower => (match (depth remaining lower)
+          | Option.none => (ctor Option.none [Nat])
+          | Option.some halvings => (ctor Option.some [Nat] (halvings + 1)))))),
+  mutual: Halving,
+  recursive_argument: fuel
+}
+
+theorem{
+  name: walk_sample,
+  parameters: [],
+  statement: ((walk 10 (cons 4 (cons 7 (cons 1 (nil Nat))))) = 5),
+  proof: reflexivity{}
+}
+
+theorem{
+  name: walk_exhausted,
+  parameters: [],
+  statement: ((walk 3 (cons 9 (nil Nat))) = 0),
+  proof: reflexivity{}
+}
+
+theorem{
+  name: depth_nine,
+  parameters: [],
+  statement: ((depth 6 9) = (ctor Option.some [Nat] 4)),
+  proof: reflexivity{}
+}
+
+definition{
+  name: secondOfTwo,
+  parameters: [values : (List Nat)],
+  result: Nat,
+  body: (match values
+    | List.nil => 0
+    | List.cons head rest => (match rest
+      | List.nil => 0
+      | List.cons later more => (match more
+        | List.nil => (match later | Nat.zero => head | Nat.succ previous => previous)
+        | List.cons ignored others => 0)))
+}
+
+theorem{
+  name: second_of_two,
+  parameters: [],
+  statement: ((secondOfTwo (cons 5 (cons 3 (nil Nat)))) = 2),
+  proof: reflexivity{}
+}
+
+theorem{
+  name: second_of_two_zero,
+  parameters: [],
+  statement: ((secondOfTwo (cons 5 (cons 0 (nil Nat)))) = 5),
+  proof: reflexivity{}
+}
+
+definition{
+  name: firstEven,
+  parameters: [values : (List Nat)],
+  result: (Option Nat),
+  body: (match values
+    | List.nil => (ctor Option.none [Nat])
+    | List.cons head rest => (match (isEven head)
+      | Bool.true => (ctor Option.some [Nat] head)
+      | Bool.false => (firstEven rest))),
+  recursive_argument: values
+}
+
+theorem{
+  name: first_even,
+  parameters: [],
+  statement: ((firstEven (cons 3 (cons 5 (cons 8 (cons 2 (nil Nat)))))) = (ctor Option.some [Nat] 8)),
+  proof: reflexivity{}
 }
 \end{semanticmodule}
 \end{lexlean}

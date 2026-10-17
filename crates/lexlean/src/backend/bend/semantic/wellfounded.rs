@@ -313,6 +313,7 @@ impl Lower<'_, '_> {
                     return Err(fail("a matchable scrutinee is not a local"));
                 };
                 let (spelled, ty) = scope.get(local)?.clone();
+                self.refuse_family_split(&ty, "a well-founded definition")?;
                 let mut cases = Vec::new();
                 for branch in branches {
                     let pattern = self.pattern(&ty, &branch.constructor, &branch.binders)?;

@@ -70,7 +70,7 @@ the error registry does not sanction (R5, `ERRORS.md`).
 | `BN-09` | `build` | The generated Bend of every language-1.0 example document module checks under the pinned Bend with every proof accepted. |
 | `BN-10` | `build` | Every language-2.2 semantic module renders one byte-deterministic Bend file from the same linked IR, beside its Lean and LaTeX, importing Base, the prelude, the support modules it uses, and its imported modules, with every non-whitespace token covered and mapped. |
 | `BN-11` | `build` | Language-2.2 type parameters lower to templates and function parameters are closure-converted, and a higher-order function passed as a value is a hard error. |
-| `BN-12` | `build` | A language-2.2 mutual group lowers by inlining with every member's name kept, and a group that recurses simultaneously is a hard error. |
+| `BN-12` | `build` | A language-2.2 mutual group lowers by inlining with every member's name kept, and a well-founded definition in a mutual group is a hard error. |
 | `BN-13` | `build` | A language-2.2 well-founded definition lowers to proof-carrying fuel whose every recursive call carries its decrease evidence, and the pinned Bend refuses a call that consumes no fuel or whose evidence does not establish the decrease. |
 | `BN-14` | `build` | Language-2.2 proofs lower to explicit Bend terms, including linear arithmetic, decide, congruence, and boolean reflection, and the pinned Bend refuses a reflection whose induction steps the wrong successor. |
 | `BN-15` | `build` | Every language-2.2 model cross-check restates its obligation against the Bend runtime's LexLeanModels and is proved by its discharging theorem or by evaluation, and a restatement that drifts is refused by the pinned Bend. |
@@ -79,6 +79,9 @@ the error registry does not sanction (R5, `ERRORS.md`).
 | `BN-18` | `build` | The generated Bend of every language-2.2 example module checks and exports under the pinned Bend with every proof accepted. |
 | `BN-19` | `build` | A language-2.0 or 2.2 numeral above 4294967295 lowers to its base-65536 Horner form over the prelude's Lean.Nat.add and Lean.Nat.mul, and the pinned Bend accepts a proof that uses it without reducing it. |
 | `BN-20` | `build` | Language-2.2 equality of two orderings lowers to the Bend runtime's LexLeanRuntime.equal.Ordering, which is true exactly when both are the same ordering, as Lean's derived equality is. |
+| `BN-21` | `build` | A language-2.2 mutual group whose members recurse simultaneously over one type lowers to one Bend definition over that type and a generated selector of the member, every member keeping its name and signature, and the pinned Bend checks it. |
+| `BN-22` | `build` | A language-2.2 nested or mutual inductive that a simultaneous mutual group recurses over lowers to one Bend type indexed by its base and nested list types, each constructor carrying the equation of its index, and the pinned Bend checks the groups over it. |
+| `BN-23` | `build` | A language-2.2 match on a computed value, or on a local bound before one an enclosing match has opened, lowers to an auxiliary definition, each recursive call in its branches passed in as a function over a piece of the decreasing argument, and the pinned Bend checks it. |
 
 ## calculus
 

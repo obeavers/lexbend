@@ -772,6 +772,7 @@ impl Prover<'_, '_, '_> {
         branches: &[crate::ir::semantic::SemanticProofBranch],
     ) -> Result<Body, Diagnostic> {
         let (bend, ty) = Self::local_type(ctx, scrutinee)?;
+        self.lower.refuse_family_split(&ty, "a proof by cases")?;
         let mut cases = Vec::new();
         for branch in branches {
             let constructor = self.lower.branch_constructor(&ty, &branch.constructor);
@@ -836,6 +837,8 @@ impl Prover<'_, '_, '_> {
         self.count += 1;
         let aux = format!("{}.ll_ind{}", self.owner, self.count);
         let (_, scrutinee_type) = Self::local_type(ctx, scrutinee)?;
+        self.lower
+            .refuse_family_split(&scrutinee_type, "a proof by induction")?;
         // The auxiliary takes the split value first, then every other
         // parameter, then the premises.
         let mut order: Vec<SemanticParameter> = Vec::new();

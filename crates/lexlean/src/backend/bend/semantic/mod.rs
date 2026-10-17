@@ -25,8 +25,15 @@
 //! - **Recursion.** A structurally recursive definition takes its
 //!   decreasing parameter first, as Bend's termination check requires; a
 //!   mutual group is inlined into self-recursive members (`mutual.rs`),
-//!   since Bend has no forward reference; a well-founded definition runs
-//!   on proof-carrying fuel (`wellfounded.rs`).
+//!   since Bend has no forward reference, and one that recurses
+//!   simultaneously is one definition over its members' common type and a
+//!   selector of the member (`group.rs`), over an indexed family when that
+//!   type is a nested or mutual inductive (`family.rs`), both exploratory;
+//!   a well-founded definition runs on proof-carrying fuel
+//!   (`wellfounded.rs`).
+//! - **Binder order.** Bend matches a local only while no later-bound local
+//!   has been matched, so a match that would break that order is lifted to
+//!   an auxiliary definition like a match on a computed value.
 //! - **Support.** What the semantic surface lowers through but Lean's
 //!   prelude does not define lives in the shipped support modules
 //!   (`support.rs`): the semantic forms, the ported runtime, and the
@@ -38,6 +45,9 @@
 
 pub mod check;
 pub mod closure;
+pub mod continuation;
+pub mod family;
+pub mod group;
 pub mod linear;
 pub mod mutual;
 pub mod names;
@@ -50,6 +60,7 @@ pub mod wellfounded;
 use support::Support;
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::{Arc, Mutex};
 
 use crate::backend::bend::engine::{fail, module_alias};
 use crate::backend::bend::numeral;
@@ -65,9 +76,19 @@ use crate::ir::semantic::{
 };
 use crate::link::CheckedModule;
 
+/// The family each inductive lowers into, by `(module, name)`; `None` for
+/// one that keeps its plain Bend type.
+type FamilyCache = BTreeMap<(String, String), Option<Arc<family::Family>>>;
+
 /// Every semantic module of a project, by source module name.
 pub struct SemanticProject<'a> {
     units: BTreeMap<String, Unit<'a>>,
+    /// The family each inductive lowers into, by `(module, name)`, filled
+    /// as types are met (see `family`).
+    families: Mutex<FamilyCache>,
+    /// The inductives some simultaneous mutual group recurses over, by
+    /// `(module, name)`: only their families are encoded.
+    simultaneous: Mutex<Option<BTreeSet<(String, String)>>>,
 }
 
 struct Unit<'a> {
@@ -100,7 +121,11 @@ impl<'a> SemanticProject<'a> {
                 },
             );
         }
-        Self { units }
+        Self {
+            units,
+            families: Mutex::new(BTreeMap::new()),
+            simultaneous: Mutex::new(None),
+        }
     }
 }
 
@@ -138,16 +163,78 @@ pub struct Scope {
     /// The function parameters in scope, each split into its code and its
     /// environment (see `closure`).
     closures: BTreeMap<String, closure::Closure>,
+    /// The list locals held as a family's list rather than a Bend `List`
+    /// (see `family`).
+    families: BTreeMap<String, family::FamilyLocal>,
+    /// Each local's binding position: Bend matches a local only while no
+    /// local bound after it has been matched.
+    order: BTreeMap<String, usize>,
+    next: usize,
+    /// The binding position of the latest local the enclosing statement
+    /// matches have opened.
+    matched: Option<usize>,
+}
+
+/// The semantic name of a local the lowering introduces, spelled `spelled`
+/// in Bend: no source name begins with a control character, so it neither
+/// captures nor is captured by one.
+fn generated(spelled: &str) -> String {
+    format!("\u{1}{spelled}")
 }
 
 impl Scope {
     fn with(&self, name: &str, ty: SemanticType) -> Result<Self, Diagnostic> {
+        Ok(self.bind(name, names::local(name)?, ty))
+    }
+
+    /// The scope with a generated local spelled `spelled` (see `generated`).
+    fn with_generated(&self, spelled: &str, ty: SemanticType) -> Self {
+        self.bind(&generated(spelled), spelled.to_owned(), ty)
+    }
+
+    fn with_generated_family(
+        &self,
+        spelled: &str,
+        ty: SemanticType,
+        local: family::FamilyLocal,
+    ) -> Self {
+        let mut next = self.with_generated(spelled, ty);
+        next.families.insert(generated(spelled), local);
+        next
+    }
+
+    fn bind(&self, name: &str, spelled: String, ty: SemanticType) -> Self {
         let mut next = self.clone();
-        next.locals
-            .insert(name.to_owned(), (names::local(name)?, ty));
+        next.locals.insert(name.to_owned(), (spelled, ty));
         next.lets.remove(name);
         next.closures.remove(name);
+        next.families.remove(name);
+        next.order.insert(name.to_owned(), next.next);
+        next.next += 1;
+        next
+    }
+
+    /// The scope inside a statement match on `name`.
+    fn matching(&self, name: &str) -> Self {
+        let mut next = self.clone();
+        let position = self.order.get(name).copied().unwrap_or(0);
+        next.matched = Some(next.matched.map_or(position, |m| m.max(position)));
+        next
+    }
+
+    fn with_family(
+        &self,
+        name: &str,
+        ty: SemanticType,
+        local: family::FamilyLocal,
+    ) -> Result<Self, Diagnostic> {
+        let mut next = self.with(name, ty)?;
+        next.families.insert(name.to_owned(), local);
         Ok(next)
+    }
+
+    fn family(&self, name: &str) -> Option<&family::FamilyLocal> {
+        self.families.get(name)
     }
 
     fn with_let(&self, name: &str, ty: SemanticType) -> Result<Self, Diagnostic> {
@@ -159,7 +246,11 @@ impl Scope {
     /// Whether `term` is a local Bend can match on.
     fn matchable(&self, term: &SemanticTerm) -> bool {
         matches!(term, SemanticTerm::Var { name }
-            if self.locals.contains_key(name) && !self.lets.contains(name))
+            if self.locals.contains_key(name)
+                && !self.lets.contains(name)
+                && self
+                    .matched
+                    .is_none_or(|m| self.order.get(name).is_some_and(|p| *p > m)))
     }
 
     fn get(&self, name: &str) -> Result<&(String, SemanticType), Diagnostic> {
@@ -193,6 +284,16 @@ pub struct Lower<'p, 'a> {
     /// The Bend heads, as this module spells them, of the proposition
     /// definitions lowered at kind `Data` (see `data_definition`).
     data_heads: BTreeSet<String>,
+    /// What a branch refuted from a family index equation produces: the
+    /// result of the definition or lifted match being lowered.
+    goal: Option<family::Goal>,
+    /// The simultaneous mutual group being lowered as one definition.
+    group: Option<group::GroupContext>,
+    /// The structurally recursive definition being lowered.
+    structural: Option<continuation::Structural>,
+    /// Whether a lifted match's auxiliary is being lowered: it lies above
+    /// the definition it serves and cannot call it.
+    lifted: bool,
 }
 
 fn synthetic(text: impl Into<String>) -> Name {
@@ -307,6 +408,10 @@ impl<'p, 'a> Lower<'p, 'a> {
             mutual_done: BTreeSet::new(),
             recursion: None,
             data_heads: BTreeSet::new(),
+            goal: None,
+            group: None,
+            structural: None,
+            lifted: false,
         }
     }
 
@@ -495,6 +600,10 @@ impl<'p, 'a> Lower<'p, 'a> {
                 self.function_type(parameters, result)?
             }
             SemanticType::Named { member, arguments } => {
+                if let Some((family, index)) = self.family_of(member) {
+                    let index = self.index_term(&family, index)?;
+                    return self.family_type(&family, arguments, index);
+                }
                 let head = self.member(member)?;
                 if arguments.is_empty() {
                     var(head)
@@ -941,9 +1050,16 @@ impl<'p, 'a> Lower<'p, 'a> {
         scope: &Scope,
     ) -> Result<Scope, Diagnostic> {
         let fields = self.pattern_fields(scrutinee, &branch.constructor)?;
+        let known = self.known(scrutinee);
         let mut inner = scope.clone();
         for (binder, ty) in branch.binders.iter().zip(fields) {
-            inner = inner.with(binder, ty)?;
+            let local = known
+                .as_ref()
+                .and_then(|known| family::list_local(&known.family, &known.arguments, &ty));
+            inner = match local {
+                Some(local) => inner.with_family(binder, ty, local)?,
+                None => inner.with(binder, ty)?,
+            };
         }
         Ok(inner)
     }
@@ -1118,6 +1234,12 @@ impl<'p, 'a> Lower<'p, 'a> {
                     module: member.module.clone(),
                     name: format!("{}.{short}", member.name),
                 };
+                let mut binder_names = binder_names;
+                if self.family_of(member).is_some() {
+                    // The index equation, which only an impossible branch
+                    // reads (see `family`).
+                    binder_names.push(synthetic("_"));
+                }
                 Pattern::Constructor(synthetic(self.member(&full)?), binder_names)
             }
             (other, name) => {
@@ -1227,7 +1349,13 @@ impl<'p, 'a> Lower<'p, 'a> {
     pub fn term(&mut self, term: &SemanticTerm, scope: &Scope) -> Result<BTerm, Diagnostic> {
         Ok(match term {
             SemanticTerm::Var { name } if name == HOLE => BTerm::Hole,
-            SemanticTerm::Var { name } => var(scope.get(name)?.0.clone()),
+            SemanticTerm::Var { name } => {
+                let spelled = var(scope.get(name)?.0.clone());
+                match scope.family(name).cloned() {
+                    Some(local) => self.bend_list(&local, spelled)?,
+                    None => spelled,
+                }
+            }
             SemanticTerm::Nat { value } => self.nat_literal(value)?,
             SemanticTerm::Integer {
                 representation: crate::ir::semantic::SemanticInteger::Int,
@@ -1283,11 +1411,17 @@ impl<'p, 'a> Lower<'p, 'a> {
             }
             SemanticTerm::Constructor {
                 constructor,
+                type_arguments,
                 arguments,
-                ..
             } => {
-                let fields = self.arguments(arguments, scope)?;
-                self.constructor_term(constructor, fields)?
+                if let Some(term) =
+                    self.family_constructor(constructor, type_arguments, arguments, scope)?
+                {
+                    term
+                } else {
+                    let fields = self.arguments(arguments, scope)?;
+                    self.constructor_term(constructor, fields)?
+                }
             }
             SemanticTerm::InstanceValue { resolved, .. } => {
                 BTerm::Call(synthetic(self.member(resolved)?), Vec::new())
@@ -1317,7 +1451,12 @@ impl<'p, 'a> Lower<'p, 'a> {
                 let type_arguments: Vec<SemanticType> =
                     type_arguments.iter().map(|t| self.canonical(t)).collect();
                 let (_, parameters, _) = self.signature(function)?;
-                if let Some(recursive) = self.recursive_call(function, arguments, scope)? {
+                self.refuse_lifted_call(function)?;
+                if let Some(grouped) =
+                    self.group_call(function, &type_arguments, arguments, scope)?
+                {
+                    grouped
+                } else if let Some(recursive) = self.recursive_call(function, arguments, scope)? {
                     recursive
                 } else if !self.converts(&parameters) {
                     let lowered = self.arguments(arguments, scope)?;
@@ -1706,9 +1845,6 @@ impl<'p, 'a> Lower<'p, 'a> {
         data_term(self, &body, &scope, depth)
     }
 
-    /// A `match` on a computed value or inside a term: an auxiliary def
-    /// that matches its first parameter and takes every free local after
-    /// it.
     /// The prelude function of an arithmetic primitive on `Nat` or `Int`
     /// that is exactly a Lean operation (truncated subtraction on `Nat`).
     /// Quotient and remainder take a zero case and round toward zero, so
@@ -1728,6 +1864,9 @@ impl<'p, 'a> Lower<'p, 'a> {
         })
     }
 
+    /// A `match` on a computed value or inside a term: an auxiliary def
+    /// that matches its first parameter and takes every free local after
+    /// it.
     fn lifted_match(
         &mut self,
         scrutinee: &SemanticTerm,
@@ -1742,8 +1881,9 @@ impl<'p, 'a> Lower<'p, 'a> {
             let inner = self.branch_scope(&scrutinee_type, branch, scope)?;
             self.infer(&branch.body, &inner)?
         };
+        let (branches, hoisted) = self.hoist_recursive_calls(branches, scope)?;
         let mut free = BTreeSet::new();
-        for branch in branches {
+        for branch in &branches {
             let mut bound: BTreeSet<String> = branch.binders.iter().cloned().collect();
             normal::free_vars(&branch.body, &mut bound, &mut free);
         }
@@ -1769,19 +1909,40 @@ impl<'p, 'a> Lower<'p, 'a> {
         }
         params.push(self.param(&target, &scrutinee_type)?);
         let mut inner = Scope::default();
+        let mut arguments = Vec::new();
         for (source, spelled, ty) in &free {
             params.push(self.param(spelled, ty)?);
             inner
                 .locals
                 .insert(source.clone(), (spelled.clone(), ty.clone()));
+            // A family list is passed as a Bend `List` (see `family`).
+            arguments.push(match scope.family(source).cloned() {
+                Some(local) => self.bend_list(&local, var(spelled.clone()))?,
+                None => var(spelled.clone()),
+            });
         }
-        let mut cases = Vec::new();
-        for branch in branches {
-            let pattern = self.pattern(&scrutinee_type, &branch.constructor, &branch.binders)?;
-            let branch_scope = self.branch_scope(&scrutinee_type, branch, &inner)?;
-            let body = self.term(&branch.body, &branch_scope)?;
-            cases.push((pattern, Body::term(body, here())));
+        for hoisted in &hoisted {
+            let ty = hoisted.ty().clone();
+            params.push(self.param(hoisted.name(), &ty)?);
+            inner = inner.with_generated(hoisted.name(), ty);
         }
+        let goal = if result_type == SemanticType::Prop {
+            family::Goal::Prop
+        } else {
+            family::Goal::Value(self.ty(&result_type)?)
+        };
+        let saved_goal = self.goal.replace(goal);
+        let saved_lifted = std::mem::replace(&mut self.lifted, true);
+        let cases = self.match_cases(
+            &target,
+            &scrutinee_type,
+            &branches,
+            &inner,
+            &mut |this, body, inner| Ok(Body::term(this.term(body, inner)?, here())),
+        );
+        self.goal = saved_goal;
+        self.lifted = saved_lifted;
+        let cases = cases?;
         let result = self.ty(&result_type)?;
         self.aux.push(Item::Def {
             name: synthetic(name.clone()),
@@ -1807,7 +1968,10 @@ impl<'p, 'a> Lower<'p, 'a> {
             })
             .collect::<Result<_, _>>()?;
         args.push(self.term(scrutinee, scope)?);
-        args.extend(free.iter().map(|(_, spelled, _)| var(spelled.clone())));
+        args.extend(arguments);
+        for hoisted in &hoisted {
+            args.push(self.hoisted_argument(hoisted, scope)?);
+        }
         Ok(BTerm::Call(synthetic(name), args))
     }
 
@@ -1855,6 +2019,7 @@ impl<'p, 'a> Lower<'p, 'a> {
         declaration: &SemanticDeclaration,
     ) -> Result<Vec<Item>, Diagnostic> {
         self.type_parameters.clear();
+        self.goal = None;
         let mut items = match declaration {
             SemanticDeclaration::Structure {
                 name,
@@ -1868,6 +2033,23 @@ impl<'p, 'a> Lower<'p, 'a> {
                 fields,
                 ..
             } => self.record(name, type_parameters, fields)?,
+            SemanticDeclaration::Inductive { name, .. }
+                if self
+                    .family_of(&MemberRef {
+                        module: None,
+                        name: name.clone(),
+                    })
+                    .is_some() =>
+            {
+                // A family is declared once, at its first base inductive.
+                match self.family_of(&MemberRef {
+                    module: None,
+                    name: name.clone(),
+                }) {
+                    Some((family, 0)) => self.family_items(&family)?,
+                    _ => Vec::new(),
+                }
+            }
             SemanticDeclaration::Inductive {
                 name,
                 type_parameters,
@@ -1911,6 +2093,7 @@ impl<'p, 'a> Lower<'p, 'a> {
                 vec![Item::Type {
                     name: synthetic(spelled),
                     parameters,
+                    index: None,
                     kind,
                     constructors: lowered,
                     source: here(),
@@ -1999,6 +2182,7 @@ impl<'p, 'a> Lower<'p, 'a> {
         let mut items = vec![Item::Type {
             name: synthetic(spelled),
             parameters: parameters.clone(),
+            index: None,
             kind,
             constructors: vec![(synthetic(constructor.clone()), lowered_fields.clone())],
             source: here(),
@@ -2068,7 +2252,18 @@ impl<'p, 'a> Lower<'p, 'a> {
                 matches!(declaration, SemanticDeclaration::Definition { mutual: Some(other), .. } if other == key)
             })
             .collect();
-        let plan = mutual::plan(&members, &self.module, key)?;
+        if let Some(carrier) = self.group_family(&members)? {
+            return self.merged_group(&members, carrier);
+        }
+        let plan = match mutual::plan(&members, &self.module, key) {
+            Ok(plan) => plan,
+            Err(refusal) => {
+                return match self.plain_carrier(&members) {
+                    Some(carrier) => self.merged_group(&members, carrier),
+                    None => Err(refusal),
+                }
+            }
+        };
         let mut items = Vec::new();
         for name in &plan.order {
             let declaration = members
@@ -2099,12 +2294,11 @@ impl<'p, 'a> Lower<'p, 'a> {
                     return Err(fail("a matchable scrutinee is not a local"));
                 };
                 let (spelled, ty) = scope.get(name)?.clone();
-                let mut cases = Vec::new();
-                for branch in branches {
-                    let pattern = self.pattern(&ty, &branch.constructor, &branch.binders)?;
-                    let inner = self.branch_scope(&ty, branch, scope)?;
-                    cases.push((pattern, self.tail_body(&branch.body, &inner)?));
-                }
+                let scope = &scope.matching(name);
+                let cases =
+                    self.match_cases(name, &ty, branches, scope, &mut |this, body, inner| {
+                        this.tail_body(body, inner)
+                    })?;
                 Ok(Body {
                     stmts: Vec::new(),
                     tail: Tail::Match {
@@ -2226,7 +2420,29 @@ impl<'p, 'a> Lower<'p, 'a> {
         let (values, scope) = self.value_params(parameters, &order)?;
         params.extend(values);
         let result_type = self.canonical(result);
-        let body_out = self.tail_body(body, &scope)?;
+        let saved_structural = self.structural.take();
+        if let SemanticDeclaration::Definition {
+            recursive_argument: Some(argument),
+            ..
+        } = declaration
+        {
+            self.structural = parameters
+                .iter()
+                .position(|parameter| &parameter.name == argument)
+                .map(|recursive| continuation::Structural {
+                    name: name.clone(),
+                    recursive,
+                });
+        }
+        self.goal = Some(if result_type == SemanticType::Prop {
+            family::Goal::Prop
+        } else {
+            family::Goal::Value(self.ty(&result_type)?)
+        });
+        let body_out = self.tail_body(body, &scope);
+        self.goal = None;
+        self.structural = saved_structural;
+        let body_out = body_out?;
         // A predicate built from equations is `Data`, so its proofs stay
         // reusable where it is used.
         let result_bend = if result_type == SemanticType::Prop {

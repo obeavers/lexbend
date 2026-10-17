@@ -1,5 +1,5 @@
-//! The language-2.2 half of the `bend-backend` suite: BN-10..BN-18 and BN-20
-//! (SPEC.md §18.11). Generation is platform-independent and asserted everywhere; a
+//! The language-2.2 half of the `bend-backend` suite: BN-10..BN-18 and
+//! BN-20..BN-23 (SPEC.md §18.11). Generation is platform-independent and asserted everywhere; a
 //! claim that the pinned Bend accepts or refuses a text gates that half on
 //! [`support::bend_backed`].
 
@@ -249,7 +249,7 @@ pub(crate) fn run(id: &str) {
                 "the higher-order function `twiceOf` is passed as a value",
             );
         }
-        // §18.11.3: inlining, and the simultaneous-recursion refusal.
+        // §18.11.3: inlining, and the well-founded-group refusal.
         "BN-12" => {
             let build = example_build("bend-recursion");
             let main = module_bend(&build, "Recursion/Main");
@@ -272,7 +272,7 @@ pub(crate) fn run(id: &str) {
             assert!(main.contains("def isOdd(+number: Nat) -> Bool:\n"));
             refused(
                 &moved("recursion"),
-                "the mutual group `SyntaxSize` recurses simultaneously through `exprSize`, `statementsSize`, `statementSize`",
+                "the well-founded definition `ping` belongs to a mutual group",
             );
         }
         // §18.11.4: proof-carrying fuel; Bend refuses a planted defect.
@@ -280,10 +280,10 @@ pub(crate) fn run(id: &str) {
             let build = example_build("bend-recursion");
             let main = module_bend(&build, "Recursion/Main");
             assert!(main.contains(
-                "def countdown.ll_go(+ll_fuel1: Nat, +number: Nat, +steps: Nat, +ll_bound3: S.Sem.lt(number, ll_fuel1)) -> Nat:\n"
+                "def countdown.ll_go(+ll_fuel12: Nat, +number: Nat, +steps: Nat, +ll_bound14: S.Sem.lt(number, ll_fuel12)) -> Nat:\n"
             ), "the helper takes fuel and a bound on the measure");
             assert!(main.contains(
-                "countdown.ll_go(ll_fuel2, L.Lean.Nat.sub(number, 2n), L.Lean.Nat.add(steps, 1n), S.Sem.lt_fuel(L.Lean.Nat.sub(number, 2n), number, ll_fuel2, countdown_decreases(number, steps, ll_w5), ll_bound3))"
+                "countdown.ll_go(ll_fuel13, L.Lean.Nat.sub(number, 2n), L.Lean.Nat.add(steps, 1n), S.Sem.lt_fuel(L.Lean.Nat.sub(number, 2n), number, ll_fuel13, countdown_decreases(number, steps, ll_w16), ll_bound14))"
             ), "the recursive call consumes fuel and carries the decrease evidence");
             assert!(main.contains(
                 "def countdown(+number: Nat, +steps: Nat) -> Nat:\n  countdown.ll_go(1n+number, number, steps, S.Sem.lt_succ(number))\n"
@@ -297,15 +297,15 @@ pub(crate) fn run(id: &str) {
                 let (accepted, _) = check_planted(&build, "Recursion/Main", &|text| {
                     replace_one(
                         text,
-                        "countdown.ll_go(ll_fuel2, L.Lean.Nat.sub(number, 2n)",
-                        "countdown.ll_go(ll_fuel1, L.Lean.Nat.sub(number, 2n)",
+                        "countdown.ll_go(ll_fuel13, L.Lean.Nat.sub(number, 2n)",
+                        "countdown.ll_go(ll_fuel12, L.Lean.Nat.sub(number, 2n)",
                     )
                 });
                 assert!(!accepted, "a call that consumes no fuel is refused");
                 let (accepted, _) = check_planted(&build, "Recursion/Main", &|text| {
                     replace_one(
                         text,
-                        "countdown_decreases(number, steps, ll_w5)",
+                        "countdown_decreases(number, steps, ll_w16)",
                         "S.Sem.lt_succ(number)",
                     )
                 });
@@ -578,6 +578,148 @@ pub(crate) fn run(id: &str) {
                     text.replace("LexLeanRuntime.equal.Ordering(left, right)", "True{}")
                 });
                 assert!(!accepted, "an equality that is always true is refused");
+                assert!(output.starts_with("SOME PROOFS FAIL"), "{output}");
+            }
+        }
+        // §18.11.3: a simultaneous group over a plain type is one definition.
+        "BN-21" => {
+            let build = example_build("bend-recursion");
+            let main = module_bend(&build, "Recursion/Main");
+            assert!(
+                main.contains("type walk.ll_sel is Data:\n  walk.ll_sel.walk{path: List<&2, Nat>}\n  walk.ll_sel.depth{number: Nat}\n"),
+                "the selector carries each member's other arguments: {main}"
+            );
+            assert!(
+                main.contains("def walk.ll_go(+ll_x: Nat, +ll_s: walk.ll_sel) -> walk.ll_out(ll_s):\n  match ll_x:\n"),
+                "one definition matches the fuel, its result computed from the selector"
+            );
+            assert!(
+                main.contains("def walk(+fuel: Nat, +path: List<&2, Nat>) -> Nat:\n  walk.ll_go(fuel, walk.ll_sel.walk{path})\n")
+                    && main.contains("def depth(+fuel: Nat, +number: Nat) -> Maybe<&2, Nat>:\n  walk.ll_go(fuel, walk.ll_sel.depth{number})\n"),
+                "each member keeps its name and signature"
+            );
+            assert!(
+                main.contains("(+ll_a57 => {walk.ll_go(ll_f52, walk.ll_sel.walk{ll_a57}) : Nat})"),
+                "a call in a lifted match is passed in as a function over a piece of the fuel"
+            );
+            if support::bend_backed(id) {
+                let (dir, generated) = generated_modules(&build);
+                for path in generated {
+                    let (accepted, output) = support::bend_check(&dir.path().join(&path));
+                    assert!(accepted, "{path}: {output}");
+                }
+                // The plant: a member call on the fuel it was given.
+                let (accepted, output) = check_planted(&build, "Recursion/Main", &|text| {
+                    replace_one(
+                        text,
+                        "walk.ll_go(ll_f52, walk.ll_sel.depth{number})",
+                        "walk.ll_go(1n+ll_f52, walk.ll_sel.depth{number})",
+                    )
+                });
+                assert!(!accepted, "a call on the unchanged fuel is refused");
+                assert!(output.starts_with("SOME PROOFS FAIL"), "{output}");
+            }
+        }
+        // §18.11.3: a nested and mutual inductive is one indexed type.
+        "BN-22" => {
+            let build = example_build("bend-recursion");
+            let syntax = module_bend(&build, "Recursion/Syntax");
+            let main = module_bend(&build, "Recursion/Main");
+            assert!(
+                syntax.contains("type Expr.ll_index is Data:\n  Expr.ll_index.i0{}\n  Expr.ll_index.i1{}\n  Expr.ll_index.i2{}\n"),
+                "one index for `Expr`, for `Stmt`, and for `List Stmt`: {syntax}"
+            );
+            for constructor in [
+                "  Expr.block{a0: Expr<Expr.ll_index.i2{}>, a1: Expr<Expr.ll_index.i0{}>, ll_e: {ll_i == Expr.ll_index.i0{} : Expr.ll_index}}\n",
+                "  Stmt.assign{a0: String, a1: Expr<Expr.ll_index.i0{}>, ll_e: {ll_i == Expr.ll_index.i1{} : Expr.ll_index}}\n",
+                "  Expr.ll_cons2{a0: Expr<Expr.ll_index.i1{}>, a1: Expr<Expr.ll_index.i2{}>, ll_e: {ll_i == Expr.ll_index.i2{} : Expr.ll_index}}\n",
+            ] {
+                assert!(
+                    syntax.contains(constructor),
+                    "every constructor carries the equation of its index: {constructor}"
+                );
+            }
+            assert!(
+                !syntax.contains("type Stmt"),
+                "`Stmt` is `Expr` at its index"
+            );
+            assert!(
+                main.contains("def statementSize(+statement: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>) -> Nat:\n  exprSize.ll_go(Recursion_Syntax.Expr.ll_index.i1{}, statement, exprSize.ll_sel.statementSize{{==}})\n"),
+                "a member over `Stmt` calls the group's one definition at its index"
+            );
+            assert!(
+                main.contains("def foldStatements(+statements: List<&2, Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>>) -> List<&2, Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>>:\n  foldExpr.ll_go(Recursion_Syntax.Expr.ll_index.i2{}, Recursion_Syntax.Expr.ll_from2(statements), foldExpr.ll_sel.foldStatements{{==}})\n"),
+                "a member over the nested list converts its list to the family's"
+            );
+            assert!(
+                main.contains("Empty.absurd(Nat, Recursion_Syntax.Expr.ll_clash0_1(Equal.trans("),
+                "an impossible branch is refuted from the two equations"
+            );
+            if support::bend_backed(id) {
+                let (dir, generated) = generated_modules(&build);
+                for path in generated {
+                    let (accepted, output) = support::bend_check(&dir.path().join(&path));
+                    assert!(accepted, "{path}: {output}");
+                }
+                let (accepted, output) = check_planted(&build, "Recursion/Main", &|text| {
+                    replace_one(
+                        text,
+                        "Recursion_Syntax.Expr.literal{9n, {==}}",
+                        "Recursion_Syntax.Expr.literal{8n, {==}}",
+                    )
+                });
+                assert!(!accepted, "a wrong fold result is refused");
+                assert!(output.starts_with("SOME PROOFS FAIL"), "{output}");
+            }
+            // A proof that splits a family value has no impossible branches
+            // to state, and is refused rather than emitted incomplete.
+            let project = P::copy_example("bend-recursion");
+            let source = project.read_raw("src/Main.lex.tex");
+            project.write(
+                "src/Main.lex.tex",
+                &source.replace(
+                    "\\end{semanticmodule}",
+                    "theorem{\n  name: size_by_cases,\n  parameters: [expression : Syntax::Expr],\n  statement: ((exprSize expression) = (exprSize expression)),\n  proof: cases{\n    branches: [\n      {proof: reflexivity{}, binders: [value], constructor: literal},\n      {proof: reflexivity{}, binders: [left, right], constructor: plus},\n      {proof: reflexivity{}, binders: [statements, result], constructor: block}\n    ],\n    scrutinee: expression\n  }\n}\n\\end{semanticmodule}",
+                ),
+            );
+            refused(&project, "a proof by cases splits a value of `Expr`");
+        }
+        // §18.11.3: a lifted match, its recursive calls passed in.
+        "BN-23" => {
+            let build = example_build("bend-recursion");
+            let main = module_bend(&build, "Recursion/Main");
+            assert!(
+                main.contains("        case Con{later, more}:\n          match more:\n            case Nil{}:\n              ll_match61(later, head)\n"),
+                "the element matched after the tail is passed to an auxiliary: {main}"
+            );
+            assert!(
+                main.contains(
+                    "def ll_match61(+ll_v62: Nat, +head: Nat) -> Nat:\n  match ll_v62:\n"
+                ),
+                "the auxiliary matches its parameter"
+            );
+            assert!(
+                main.contains("    case Con{head, rest}:\n      ll_match64(isEven(head), head, (+ll_unit => firstEven(rest)))\n")
+                    && main.contains("    case False{}:\n      ll_k63(Unit{})\n"),
+                "the recursive call is passed in as a function the recursing branch applies"
+            );
+            if support::bend_backed(id) {
+                let (dir, generated) = generated_modules(&build);
+                for path in generated {
+                    let (accepted, output) = support::bend_check(&dir.path().join(&path));
+                    assert!(accepted, "{path}: {output}");
+                }
+                let (accepted, output) = check_planted(&build, "Recursion/Main", &|text| {
+                    replace_one(
+                        text,
+                        "(+ll_unit => firstEven(rest))",
+                        "(+ll_unit => firstEven(values))",
+                    )
+                });
+                assert!(
+                    !accepted,
+                    "a function recursing on the whole list is refused"
+                );
                 assert!(output.starts_with("SOME PROOFS FAIL"), "{output}");
             }
         }

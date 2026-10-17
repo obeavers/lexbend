@@ -6981,9 +6981,65 @@ Bend admits a call only to a definition above it. A mutual group is lowered
 by inlining: a member that does not call itself is substituted into its
 callers until each remaining member calls, besides itself, only members
 already lowered; every member keeps its name, signature, and definitional
-equations. A group in which several members call themselves and one another
-needs simultaneous recursion, which Bend cannot state, and is `LLB6008`, as
-is a group that passes one of its members as a value.
+equations. A group that passes one of its members as a value, or that holds
+a well-founded definition (§18.11.4), is `LLB6008`.
+
+*Exploratory, to be confirmed.* The lowering of simultaneous recursion
+below is checked by the pinned Bend and by its kernel recheck on every
+committed example that uses it, but its coverage of the semantic surface,
+its cost on large proofs by evaluation, and the faithfulness argument for
+the indexed encoding are still being explored; it may change shape before
+it is relied on for production certificates (D7).
+
+A group in which several members call themselves and one another needs
+simultaneous recursion, which Bend cannot state as separate definitions.
+When every member recurses over one type, its *carrier*, the group lowers to
+one definition `F.ll_go` (`F` the first member) over the carrier and a
+generated *selector* `F.ll_sel`, one constructor per member carrying that
+member's other arguments. `F.ll_go` matches the carrier, then the selector,
+and runs the selected member's body with its recursive parameter known to be
+the matched constructor, so every member call is a call of `F.ll_go` on a
+piece of the carrier, as Bend's termination check and the kernel require.
+When the members return different types, the result of `F.ll_go` is
+`F.ll_out` of the selector, which matching the selector reduces, and each
+call is annotated with its member's result. Every member keeps its name and
+Lean's signature as a definition that calls `F.ll_go`.
+
+A carrier is `Nat`, a list, or an inductive. When the members recurse over
+an inductive and a list of it, or over the members of a mutual inductive
+set, no plain type serves: Bend's termination check follows only the
+parameter in the same position, and a parameter rebuilt around a smaller
+piece passes the checker but not the kernel. Such an inductive set is then
+lowered, everywhere it is used, as one *indexed family*: a Bend type
+`T<-ll_i: T.ll_index>` (`T` the first inductive of the set) whose generated
+index type has one index per inductive of the set and one per element type
+of a list field that mentions the set. Every constructor of the set is a
+constructor of the family carrying the equation `{ll_i == T.ll_index.ij{}}`
+of its index, each such list is the pair `T.ll_nilj`/`T.ll_consj`, and a
+type of the set is the family at its index, so the family at an index holds
+exactly the values of the Lean type it stands for. A match on a value at a
+known index adds the constructors of every other index, each refuted from
+its equation by `T.ll_clashj_k`. A list bound from a family field stays a
+family list while it is matched or passed to a member of a group over the
+family, and converts to a Bend `List` (`T.ll_toj`, `T.ll_fromj`) at any
+other use, so every signature keeps Lean's types. The selector of a group
+over a family is indexed too, and a selected member whose index the matched
+constructor contradicts is refuted from the two equations. Only an
+inductive set some simultaneous group of the project recurses over is
+encoded this way; every other keeps its plain Bend type, which its inlined
+groups already walk. A proof that splits a value of a family is `LLB6008`.
+
+Bend matches only a parameter or a pattern variable, and only while no
+local bound after it has been matched. A match on a computed value, or on a
+local bound before one an enclosing statement match has opened, lowers to an
+auxiliary definition that takes the matched value as its parameter. The
+auxiliary lies above the definition it serves, so a recursive call in one of
+its branches, of that definition or of a member of its group, is passed to
+it as a function over the callee's other arguments (over `Unit` when it has
+none), built around the call on the same decreasing argument, and the
+branch applies it: only the branch the match takes makes the call, as in
+Lean. A call whose decreasing argument the match's own binders reach is
+`LLB6008`.
 
 #### 18.11.4 Well-founded definitions
 
@@ -9602,7 +9658,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `BN-09` | `bend-backend` | The generated Bend of every language-1.0 example document module checks under the pinned Bend with every proof accepted. | §18.10 |
 | `BN-10` | `bend-backend` | Every language-2.2 semantic module renders one byte-deterministic Bend file from the same linked IR, beside its Lean and LaTeX, importing Base, the prelude, the support modules it uses, and its imported modules, with every non-whitespace token covered and mapped. | §18.11, §18.11.1 |
 | `BN-11` | `bend-backend` | Language-2.2 type parameters lower to templates and function parameters are closure-converted, and a higher-order function passed as a value is a hard error. | §18.11.2 |
-| `BN-12` | `bend-backend` | A language-2.2 mutual group lowers by inlining with every member's name kept, and a group that recurses simultaneously is a hard error. | §18.11.3 |
+| `BN-12` | `bend-backend` | A language-2.2 mutual group lowers by inlining with every member's name kept, and a well-founded definition in a mutual group is a hard error. | §18.11.3 |
 | `BN-13` | `bend-backend` | A language-2.2 well-founded definition lowers to proof-carrying fuel whose every recursive call carries its decrease evidence, and the pinned Bend refuses a call that consumes no fuel or whose evidence does not establish the decrease. | §18.11.4 |
 | `BN-14` | `bend-backend` | Language-2.2 proofs lower to explicit Bend terms, including linear arithmetic, decide, congruence, and boolean reflection, and the pinned Bend refuses a reflection whose induction steps the wrong successor. | §18.11.5 |
 | `BN-15` | `bend-backend` | Every language-2.2 model cross-check restates its obligation against the Bend runtime's LexLeanModels and is proved by its discharging theorem or by evaluation, and a restatement that drifts is refused by the pinned Bend. | §18.11.7 |
@@ -9611,6 +9667,9 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `BN-18` | `bend-backend` | The generated Bend of every language-2.2 example module checks and exports under the pinned Bend with every proof accepted. | §18.11 |
 | `BN-19` | `bend-backend` | A language-2.0 or 2.2 numeral above 4294967295 lowers to its base-65536 Horner form over the prelude's Lean.Nat.add and Lean.Nat.mul, and the pinned Bend accepts a proof that uses it without reducing it. | §18.10.6, §18.11.6 |
 | `BN-20` | `bend-backend` | Language-2.2 equality of two orderings lowers to the Bend runtime's LexLeanRuntime.equal.Ordering, which is true exactly when both are the same ordering, as Lean's derived equality is. | §18.11.6 |
+| `BN-21` | `bend-backend` | A language-2.2 mutual group whose members recurse simultaneously over one type lowers to one Bend definition over that type and a generated selector of the member, every member keeping its name and signature, and the pinned Bend checks it. | §18.11.3 |
+| `BN-22` | `bend-backend` | A language-2.2 nested or mutual inductive that a simultaneous mutual group recurses over lowers to one Bend type indexed by its base and nested list types, each constructor carrying the equation of its index, and the pinned Bend checks the groups over it. | §18.11.3 |
+| `BN-23` | `bend-backend` | A language-2.2 match on a computed value, or on a local bound before one an enclosing match has opened, lowers to an auxiliary definition, each recursive call in its branches passed in as a function over a piece of the decreasing argument, and the pinned Bend checks it. | §18.11.3 |
 | `TX-01` | `latex-pdf` | Canonical LaTeX is rendered solely from linked IR and never copies source text or controls. | §19.1 |
 | `TX-02` | `latex-pdf` | Every module uses the exact canonical LaTeX preamble and no host or timestamp metadata. | §19.2 |
 | `TX-03` | `latex-pdf` | Statements use only canonical controlled proposition and definition renderings. | §19.3, §19.4 |
@@ -9846,7 +9905,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `RT-03` | `runtime` | A verification compiles every runtime module that a project's generated modules, or the calculus modules its certificates are checked against, import before the project's modules, replays it with `leanchecker`, and audits each of its declarations against the axioms its row pins; the committed verification of a project that uses the collections prints them, the runtime's own project verifies under the pinned Lean, and a row that pins another axiom set than its declaration observes fails with LLV7005. | §17.12, §22.3, §22.5, §22.6 |
 | `RT-04` | `runtime` | No Lean runtime text remains in the language-1.2 compiler: a generated language-1.2 module imports the runtime modules whose constants it names and declares nothing under a runtime namespace, and the only Lean runtime text in the compiler's source outside unit-test items, in one string literal or in several written together, is the decoder of core module 2, which loads native modules and so cannot be one; a runtime text planted in any of its shapes, raw or escaped, with or without a namespace line, split across literals, or after a test module, is found. | §17.12, §18.1 |
 
-**Total required capability IDs:** 415.
+**Total required capability IDs:** 418.
 
 No row may be downgraded to `some-true` or `open`. Upstream Lean facts are ledger/authority rows, not substitutions for these build behaviors.
 
