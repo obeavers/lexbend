@@ -1168,14 +1168,19 @@ pub(crate) fn run(id: &str) {
                 ),
                 "1.1"
             );
-            // The four languages have four distinct identities.
+            // Every supported language has its own identity.
             let ids: std::collections::BTreeSet<_> = lexlean::LANGUAGE_VERSIONS
                 .iter()
                 .map(|language| lexlean::compiler_semantics_id_for(language))
                 .collect();
             assert_eq!(
+                lexlean::LANGUAGE_VERSIONS,
+                ["1.0", "1.1", "1.2", "2.0", "2.2"],
+                "the supported languages"
+            );
+            assert_eq!(
                 ids.len(),
-                4,
+                lexlean::LANGUAGE_VERSIONS.len(),
                 "each language has its own compiler-semantics ID"
             );
 
