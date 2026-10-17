@@ -3695,6 +3695,9 @@ closed `template` that proves it (`generatedTheorem`).
 `schemas/lock-v2.schema.json` has the lock shape of
 `schemas/lock.schema.json` with `spec` fixed to `lexlean/lock/2` and
 `language` fixed to `1.2`.
+`schemas/semantic-snapshot-v3.schema.json` is the version-2 snapshot schema
+with the `/3` envelope and `language` fixed to `2.2`, and nothing else
+changed.
 
 The project, lock, lexicon-manifest, and build-manifest schemas of §7 pin
 `language` to `1.0`, and they are hashed into the frozen 1.0 and 1.1
@@ -7552,10 +7555,14 @@ production root (§17.13). Paths in manifests use `/` regardless of host OS.
 
 Each output row contains kind, project/build-relative path, byte length, and SHA-256. Rows sort by `(kind, path)`.
 
-In language 1.2, every configured model artifact (§10.1, §17.12) is an
+In languages 1.2 and 2.2, every configured model artifact (§10.1, §17.12) is an
 `inputs` row of kind `model-artifact` with its project-relative path, byte
 length, and SHA-256, so the bytes a build's typed artifact values were
 decoded from are named by the manifest.
+
+Each language validates against its own manifest schema: `build-manifest`
+for 1.0, `build-manifest-v2` for 1.1 and 1.2, `build-manifest-v3` for 2.0,
+and `build-manifest-v4` for 2.2, each fixing `language` to its versions.
 
 The manifest does not contain its own hash. A verification attestation records the exact manifest-file hash.
 
