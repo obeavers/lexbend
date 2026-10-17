@@ -3704,6 +3704,13 @@ kind = "def"
 signature = "(left right : ByteArray) : Bool"
 
 [[constant]]
+lean = "LexLeanRuntime.equal"
+instance = "Ordering"
+bend = "LexLeanRuntime.equal.Ordering"
+kind = "def"
+signature = "(left right : Ordering) : Bool"
+
+[[constant]]
 lean = "LexLeanRuntime.utf8Encode"
 instance = ""
 bend = "LexLeanRuntime.utf8Encode"

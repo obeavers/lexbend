@@ -2728,6 +2728,17 @@ def LexLeanRuntime.equal.Int64(left: Lean.Int64, right: Lean.Int64) -> Bool:
 def LexLeanRuntime.equal.ByteArray(left: Lean.ByteArray, right: Lean.ByteArray) -> Bool:
   Lean.ByteArray.beq(left, right)
 
+# Lean's Ordering derives its equality: two orderings are equal exactly when
+# they are the same constructor.
+def LexLeanRuntime.equal.Ordering(left: Cmp, right: Cmp) -> Bool:
+  match left:
+    case LT{}:
+      Cmp.is_lt(right)
+    case EQ{}:
+      Cmp.is_eq(right)
+    case GT{}:
+      Cmp.is_gt(right)
+
 # String.splitOn s sep for a non-empty sep: the leftmost non-overlapping
 # occurrences of sep cut s; `skip` counts the separator characters still to
 # pass, `cur` is the current field reversed and `acc` the fields reversed.

@@ -577,7 +577,9 @@ pub(crate) fn run(id: &str) {
         }
         // §18.10.6, §18.11.6: a numeral past Bend's largest literal lowers
         // to its Horner form over the prelude in both languages, and Bend
-        // checks a proof that never evaluates it in full.
+        // checks a proof that never reduces it. A proof that reduces it,
+        // even `0 < 2^64`, is one the strict kernel refuses, so none is
+        // claimed here.
         "BN-19" => {
             let mul = |a: &str, b: &str| format!("L.Lean.Nat.mul({a}, {b})");
             let add = |a: &str, b: &str| format!("L.Lean.Nat.add({a}, {b})");
@@ -604,7 +606,7 @@ pub(crate) fn run(id: &str) {
             let main = project.read_raw("src/Main.lex.tex");
             let large = main.replace(
                 "\\end{semanticmodule}",
-                "definition{\n  name: largestLiteral,\n  parameters: [],\n  result: Nat,\n  body: 4294967295\n}\n\ndefinition{\n  name: wordModulus,\n  parameters: [],\n  result: Nat,\n  body: 18446744073709551616\n}\n\ndefinition{\n  name: lowestWord,\n  parameters: [],\n  result: Int,\n  body: (-18446744073709551616 : Int)\n}\n\ndefinition{\n  name: belowWord,\n  parameters: [value : Nat],\n  result: Bool,\n  body: (value <? 18446744073709551616)\n}\n\ntheorem{\n  name: zero_below_word,\n  parameters: [],\n  statement: ((belowWord 0) = true),\n  proof: reflexivity{}\n}\n\\end{semanticmodule}",
+                "definition{\n  name: largestLiteral,\n  parameters: [],\n  result: Nat,\n  body: 4294967295\n}\n\ndefinition{\n  name: wordModulus,\n  parameters: [],\n  result: Nat,\n  body: 18446744073709551616\n}\n\ndefinition{\n  name: lowestWord,\n  parameters: [],\n  result: Int,\n  body: (-18446744073709551616 : Int)\n}\n\ndefinition{\n  name: belowWord,\n  parameters: [value : Nat],\n  result: Bool,\n  body: (value <? 18446744073709551616)\n}\n\ntheorem{\n  name: below_word_stable,\n  parameters: [value : Nat],\n  statement: ((belowWord value) = (belowWord value)),\n  proof: reflexivity{}\n}\n\\end{semanticmodule}",
             );
             project.write("src/Main.lex.tex", &large);
             let build = support::rendered(&project);

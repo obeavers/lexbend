@@ -31,10 +31,11 @@ versions, and the entries below say what each tag does and does not claim.
   proves every lowered tactic by an explicit term (linear arithmetic by a
   reflective certificate checker in Bend), and restates model cross-checks
   against a Bend port of the runtime. A numeral past Bend's largest literal
-  lowers in either language to its base-65536 Horner form over the prelude.
+  lowers in either language to its base-65536 Horner form over the prelude;
+  a proof that reduces it is refused by the kernel recheck.
   Language 2.2 refuses, with `LLB6008`,
   simultaneous mutual recursion, a higher-order function passed as a value,
-  and reasoning declarations. New: `BN-01`..`BN-19`, `CF-19`, `CF-20`,
+  and reasoning declarations. New: `BN-01`..`BN-20`, `CF-19`, `CF-20`,
   `VR-24`..`VR-29`; schemas `project-v3`/`-v4`, `lock-v3`/`-v4`,
   `build-manifest-v3`/`-v4`, `attestation-v3`/`-v4`, `semantic-snapshot-v3`,
   `coverage-v2`, `source-map-v2`; `lexlean init --language 2.0|2.2`. The

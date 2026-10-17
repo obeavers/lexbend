@@ -1,13 +1,12 @@
-//! Natural-number numerals in Bend (SPEC.md §18.10.4). Bend spells a `Nat`
+//! Natural-number numerals in Bend (SPEC.md §18.10.6). Bend spells a `Nat`
 //! literal up to `4294967295n`. A larger numeral is lowered to its base-65536
 //! digits combined by the prelude's `Lean.Nat.add` and `Lean.Nat.mul` by
 //! Horner's rule, which denotes the same number because those definitions
-//! reproduce Lean's. Bend's checker reduces the term lazily, so comparing it
-//! with a small value peels only a few successors, and the BendTT kernel
-//! accepts it wherever it is not evaluated in full. A proof that evaluates
-//! it in full needs as many kernel steps as the number is large, which is
-//! the step budget's refusal (`LLV7021`) of every closed evaluation that
-//! large.
+//! reproduce Lean's. A proof that never reduces the term checks and passes
+//! the kernel recheck. One that reduces it is a closed evaluation as large
+//! as the number: the BendTT kernel evaluates strictly within its step
+//! budget and refuses it (`LLV7021`), even where Bend's lazy checker peels
+//! only a few successors.
 
 use super::syntax::{BTerm, Name};
 

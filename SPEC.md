@@ -7055,13 +7055,17 @@ support modules its modules import, at the paths of §18.11.1, with the import
 of the prelude renamed to the prelude's build path. Fixed-width integers, byte
 strings, keyed collections, and every runtime primitive lower only through a
 registry constant. A primitive or type the registry does not define at the
-required instance is `LLB6008`.
+required instance is `LLB6008`. `Ordering` is Base's `Cmp`, and equality of
+two orderings is `LexLeanRuntime.equal.Ordering`, true exactly when both are
+the same constructor.
 
 `Nat` is Bend's unary natural number, and a numeral beyond Bend's largest
 literal lowers to its Horner form over the prelude (§18.10.6). A proof that
-reduces such a numeral by a few successors, as `0 < 2^64` does, checks. One
-that normalizes it, including by comparing two stuck terms that contain it,
-evaluates it in full and is refused as any evaluation that large is. A proof
+uses such a numeral without reducing it checks and passes the kernel recheck.
+A proof that reduces it is a closed evaluation that large: the Bend checker
+reduces lazily and accepts `0 < 2^64`, but the BendTT kernel evaluates
+strictly and refuses it (`LLV7021`), and comparing two stuck terms that
+contain it normalizes it, which the checker refuses (`LLV7020`). A proof
 that evaluates a `Nat` beyond the checker's machine stack is refused by the
 pinned Bend (`LLV7020`). The BendTT kernel of the pinned release evaluates each check
 within a fixed step budget (`FUEL`, 400000000 steps), which is part of the
@@ -9605,7 +9609,8 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `BN-16` | `bend-backend` | The language-2.2 support modules import only Base and the prelude and check under the pinned Bend, and every runtime registry row names a function, law, type, or constructor the runtime defines. | §18.11.6 |
 | `BN-17` | `bend-backend` | A language-2.2 reasoning declaration is a hard error naming the theorem it generates. | §18.11.8 |
 | `BN-18` | `bend-backend` | The generated Bend of every language-2.2 example module checks and exports under the pinned Bend with every proof accepted. | §18.11 |
-| `BN-19` | `bend-backend` | A language-2.0 or 2.2 numeral above 4294967295 lowers to its base-65536 Horner form over the prelude's Lean.Nat.add and Lean.Nat.mul, and the pinned Bend accepts a proof that uses it without evaluating it in full. | §18.10.6, §18.11.6 |
+| `BN-19` | `bend-backend` | A language-2.0 or 2.2 numeral above 4294967295 lowers to its base-65536 Horner form over the prelude's Lean.Nat.add and Lean.Nat.mul, and the pinned Bend accepts a proof that uses it without reducing it. | §18.10.6, §18.11.6 |
+| `BN-20` | `bend-backend` | Language-2.2 equality of two orderings lowers to the Bend runtime's LexLeanRuntime.equal.Ordering, which is true exactly when both are the same ordering, as Lean's derived equality is. | §18.11.6 |
 | `TX-01` | `latex-pdf` | Canonical LaTeX is rendered solely from linked IR and never copies source text or controls. | §19.1 |
 | `TX-02` | `latex-pdf` | Every module uses the exact canonical LaTeX preamble and no host or timestamp metadata. | §19.2 |
 | `TX-03` | `latex-pdf` | Statements use only canonical controlled proposition and definition renderings. | §19.3, §19.4 |
@@ -9841,7 +9846,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `RT-03` | `runtime` | A verification compiles every runtime module that a project's generated modules, or the calculus modules its certificates are checked against, import before the project's modules, replays it with `leanchecker`, and audits each of its declarations against the axioms its row pins; the committed verification of a project that uses the collections prints them, the runtime's own project verifies under the pinned Lean, and a row that pins another axiom set than its declaration observes fails with LLV7005. | §17.12, §22.3, §22.5, §22.6 |
 | `RT-04` | `runtime` | No Lean runtime text remains in the language-1.2 compiler: a generated language-1.2 module imports the runtime modules whose constants it names and declares nothing under a runtime namespace, and the only Lean runtime text in the compiler's source outside unit-test items, in one string literal or in several written together, is the decoder of core module 2, which loads native modules and so cannot be one; a runtime text planted in any of its shapes, raw or escaped, with or without a namespace line, split across literals, or after a test module, is found. | §17.12, §18.1 |
 
-**Total required capability IDs:** 414.
+**Total required capability IDs:** 415.
 
 No row may be downgraded to `some-true` or `open`. Upstream Lean facts are ledger/authority rows, not substitutions for these build behaviors.
 
