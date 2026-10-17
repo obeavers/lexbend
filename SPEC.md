@@ -7086,7 +7086,15 @@ non-`Nat` type with a term free of it, rewriting the goal, as Lean's
 where Bend's evaluation would unfold them. The goal is reified into
 `LinArith.bend`'s syntax over `Nat` atoms, each truncated subtraction being an
 atom with its defining fact. A certificate is searched for and the proof is
-`LA.sound(env, goal, hyps, fuel, cert, {==}, proofs)`. Bend checks the
+`LA.sound(env, goal, hyps, fuel, cert, {==}, proofs)`. `LinArith.bend`
+reads every conjunction as an `&` pair while the lowering pairs a conjunction
+of `Data` propositions as `Lean.Prod`, so a premise holding one below
+conjunctions or implications is rebuilt component by component through
+`Semantic.bend`'s `and_map` and `and_prod`, and so is the proof of a
+conjunctive goal. A conjunctive goal is proved part by part when every
+premise is `Data`, and by one certificate otherwise, since a premise that is
+not `Data` may be used once. `some x = some y` is read as `x = y` through
+`Sem.some_inj`. Bend checks the
 certificate by computation, so a wrong certificate fails to check rather than
 being believed. A goal outside linear arithmetic over `Nat`, or one with no
 certificate, is `LLB6008`. An induction hypothesis under premises, and a

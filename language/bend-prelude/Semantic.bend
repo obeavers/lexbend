@@ -26,6 +26,20 @@ def Sem.snd(-A: Data, -B: Data, p: L.Lean.Prod(A, B)) -> B:
     case (a, b):
       b
 
+# A pair of proofs rebuilt component by component: linear arithmetic reads
+# every conjunction as an `&` pair, the lowering pairs a conjunction of
+# `Data` propositions as `Lean.Prod`, and a premise nesting one inside the
+# other is converted through this.
+def Sem.and_map(-A: Type, -B: Type, -C: Type, -D: Type, f: A -> C, g: B -> D, p: A & B) -> C & D:
+  match p:
+    case (a, b):
+      (f(a), g(b))
+
+def Sem.and_prod(-A: Type, -B: Type, -C: Data, -D: Data, f: A -> C, g: B -> D, p: A & B) -> L.Lean.Prod(C, D):
+  match p:
+    case (a, b):
+      (f(a), g(b))
+
 # Lean's `Nat.le a b` is `Nat.ble a b = true` here, as in `LexLean.bend`,
 # but returned at kind `Data`, so a semantic proof may reuse a hypothesis
 # of order as often as Lean's proofs do.

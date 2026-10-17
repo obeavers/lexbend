@@ -230,12 +230,28 @@ pub(crate) fn run(id: &str) {
                 "HigherOrder_Combinators.mapList(~Nat, ~Nat, ~Unit, ~(+ll_e => +ll_x1 => HigherOrder_Combinators.increment(ll_x1)), values, Unit{})"
             ), "a function reference is a closed template with the unit environment");
             assert!(main.contains("def map_identity.ll_ind1(~Input: Data, "));
+            let recursion = example_build("bend-recursion");
+            let text = module_bend(&recursion, "Recursion/Main");
+            assert!(text.contains(
+                "  applyTwice(~L.Lean.Prod(Nat, Nat), ~(+ll_e => +n => (\n    +high = S.Sem.fst(Nat, Nat, ll_e)\n    +low = S.Sem.snd(Nat, Nat, ll_e)\n    L.Lean.Nat.add(L.Lean.Nat.add(n, low), L.Lean.Nat.add(high, high))\n  )), (high, low), value)\n"
+            ), "a lambda capturing two locals rebinds them from the pair it is passed");
             if support::bend_backed(id) {
                 let (dir, modules) = generated_modules(&build);
                 for path in modules {
                     let (accepted, text) = support::bend_check(&dir.path().join(&path));
                     assert!(accepted, "{path}: {text}");
                 }
+                let (accepted, output) = check_planted(&recursion, "Recursion/Main", &|text| {
+                    replace_one(
+                        text,
+                        "  )), (high, low), value)\n",
+                        "  )), (low, high), value)\n",
+                    )
+                });
+                assert!(
+                    !accepted && output.starts_with("SOME PROOFS FAIL"),
+                    "captures passed in the wrong order are refused: {output}"
+                );
             }
             let main = project.read_raw("src/Main.lex.tex");
             let higher = main.replace(
@@ -344,6 +360,34 @@ pub(crate) fn run(id: &str) {
             assert!(
                 text.contains("any_high_join.ll_ind1(rest, back)"),
                 "a hypothesis over a generic call at a local type rewrites"
+            );
+            assert!(
+                text.contains(
+                    "  +swapped = {(high, low) : L.Lean.Prod(Nat, Nat)}\n  +doubled = {(\n"
+                ),
+                "a `let` of a pair or a block carries its type, which Bend cannot infer"
+            );
+            let proof_of = |name: &str| {
+                let start = text
+                    .find(&format!("\ndef {name}("))
+                    .unwrap_or_else(|| panic!("`{name}` has a proof"));
+                let rest = &text[start + 1..];
+                rest[..rest.find("\n\n").unwrap_or(rest.len())].to_owned()
+            };
+            let implied = proof_of("implied_pair");
+            assert!(
+                implied.contains("{ll_h0(ll_c70) : L.Lean.Prod(S.Sem.le(y, 3n), S.Sem.le(x, 2n))}")
+                    && implied.matches("LA.sound(").count() == 1
+                    && implied.starts_with("def implied_pair(x, y, ll_h0, ll_h1):\n  S.Sem.and_prod("),
+                "a premise implying a data conjunction is rebuilt as `holds` reads it, and a conjunction over it is one certificate"
+            );
+            assert!(
+                proof_of("assumed_pair").contains("S.Sem.and_prod("),
+                "a premise assuming a data conjunction receives it rebuilt"
+            );
+            assert!(
+                proof_of("some_bounded").contains("S.Sem.some_inj(Nat, x, v, ll_h0)"),
+                "`some x = some v` is read by injectivity"
             );
             if support::bend_backed(id) {
                 let (dir, modules) = generated_modules(&build);

@@ -250,6 +250,17 @@
 \noindent Type: \texttt{Nat}.\par
 \noindent Definition: \texttt{(match (Nat.beq (value) (0)) with | Bool.true => 0 | Bool.false => applyTwice (step) (value))}.\par
 \noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{shiftTwice}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(low : Nat) (high : Nat) (value : Nat)}.\par
+\noindent Closure 1: binds \texttt{(n)}, captures \texttt{(high, low)}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{applyTwice ((fun (n : Nat) => ((n + low) + (high + high)))) (value)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{shift\_twice}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(shiftTwice (1) (2) (3) = 13)}.\par
+\noindent Axiom policy: \texttt{none}.\par
 \subsection*{\texttt{step\_unless\_zero}}
 \noindent Kind: \texttt{theorem}.\par
 \noindent Statement: \texttt{((stepUnlessZero ((fun (n : Nat) => (n + 2))) (5) = 9) /\textbackslash{} (stepUnlessZero ((fun (n : Nat) => (n + 2))) (0) = 0))}.\par
@@ -311,4 +322,29 @@
 \noindent Parameters: \texttt{(front : List (Signal)) (back : List (Signal))}.\par
 \noindent Statement: \texttt{(anyHigh (joinAll (Signal) (front) (back)) = (anyHigh (front) || anyHigh (back)))}.\par
 \noindent Axiom policy: \texttt{exact [propext]}.\par
+\subsection*{\texttt{swapSum}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(low : Nat) (high : Nat)}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(let swapped : (Prod (Nat) (Nat)) := (high, low); (let doubled : Nat := (let bumped : Nat := ((swapped).1 + 1); (bumped + bumped)); (doubled + (swapped).2)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{swap\_sum}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(swapSum (2) (3) = 10)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{implied\_pair}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(x : Nat) (y : Nat)}.\par
+\noindent Statement: \texttt{(((x < y) -> ((y <= 3) /\textbackslash{} (x <= 2))) -> ((x < y) -> ((y <= 3) /\textbackslash{} (x <= 2))))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{assumed\_pair}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(x : Nat) (y : Nat)}.\par
+\noindent Statement: \texttt{((((x <= 1) /\textbackslash{} (y <= 1)) -> ((x + y) <= 2)) -> ((x <= 1) -> ((y <= 1) -> ((x + y) <= 3))))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{some\_bounded}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Parameters: \texttt{(x : Nat) (v : Nat)}.\par
+\noindent Statement: \texttt{((Option.some (x) = Option.some (v)) -> ((x <= 4) -> (v <= 4)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
 \end{document}

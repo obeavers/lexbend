@@ -404,7 +404,7 @@ impl Prover<'_, '_, '_> {
     }
 
     /// A normalized `linear_arithmetic` goal: a conjunction proved part by
-    /// part, a part whose sides coincide by reflexivity (it may be at any
+    /// part when every premise may be reused, a part whose sides coincide by reflexivity (it may be at any
     /// type, as Lean's `omega` preprocessing closes it), and every other
     /// part by reflection.
     fn linear(
@@ -416,7 +416,17 @@ impl Prover<'_, '_, '_> {
         if let Some((name, _)) = premises.iter().find(|(_, premise)| premise == goal) {
             return Ok(var(name.clone()));
         }
+        // A premise that is not `Data` may be used once, so a conjunction
+        // over one is proved by one certificate rather than part by part.
+        let mut affine = false;
+        for (_, premise) in premises {
+            let lowered = self.lower.term(premise, &ctx.scope)?;
+            affine |= !self.lower.prop_is_data(&lowered);
+        }
         match goal {
+            SemanticTerm::PropAnd { .. } if affine => {
+                super::linear::prove(self.lower, &ctx.scope, premises, goal)
+            }
             SemanticTerm::PropAnd { left, right } => Ok(BTerm::Pair(
                 Box::new(self.linear(ctx, premises, left)?),
                 Box::new(self.linear(ctx, premises, right)?),
@@ -449,7 +459,7 @@ impl Prover<'_, '_, '_> {
                     }
                     args.push(p);
                     args.push(q);
-                    Ok(call(self.lower.support("Sem.pair_eq"), args))
+                    Ok(call(self.lower.support("pair_eq"), args))
                 }
                 _ => super::linear::prove(self.lower, &ctx.scope, premises, goal),
             },

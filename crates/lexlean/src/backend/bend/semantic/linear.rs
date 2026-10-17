@@ -13,7 +13,7 @@
 
 use crate::backend::bend::engine::fail;
 use crate::backend::bend::linarith::{self, BExp, Fact, Problem, Term};
-use crate::backend::bend::syntax::BTerm;
+use crate::backend::bend::syntax::{BTerm, Body, Stmt, Tail};
 use crate::diagnostic::Diagnostic;
 use crate::ir::semantic::{SemanticPrimitive, SemanticTerm, SemanticType};
 
@@ -159,7 +159,7 @@ impl Reifier<'_, '_, '_> {
             self.lower.term(x, self.scope)?,
             self.lower.term(y, self.scope)?,
         );
-        let head = self.lower.support("Sem.some_inj");
+        let head = self.lower.support("some_inj");
         Ok(Some((
             fact,
             super::call(head, vec![super::var("Nat"), x, y, proof]),
@@ -205,33 +205,192 @@ impl Reifier<'_, '_, '_> {
     }
 }
 
-/// A premise's proof as `LinArith` reads it. A conjunction of `Data`
-/// propositions is a `Lean.Prod` pair in the semantic lowering but a `&`
-/// pair in `holds`, so it is rebuilt component by component.
+/// A premise's proof as `LinArith` reads it. `holds` reads every
+/// conjunction as an `&` pair; the semantic lowering pairs a conjunction of
+/// `Data` propositions as `Lean.Prod`, so a premise holding one, at any
+/// depth below conjunctions and implication conclusions, is rebuilt
+/// component by component.
 fn conjunction(
     lower: &mut Lower<'_, '_>,
     scope: &Scope,
     premise: &SemanticTerm,
     proof: BTerm,
 ) -> Result<BTerm, Diagnostic> {
-    let SemanticTerm::PropAnd { left, right } = premise else {
-        return Ok(proof);
-    };
-    let (left_type, right_type) = (lower.term(left, scope)?, lower.term(right, scope)?);
-    if !(lower.prop_is_data(&left_type) && lower.prop_is_data(&right_type)) {
+    if !reshaped(lower, scope, premise)? {
         return Ok(proof);
     }
-    let first = lower.support("fst");
-    let second = lower.support("snd");
-    let left_proof = super::call(
-        first,
-        vec![left_type.clone(), right_type.clone(), proof.clone()],
-    );
-    let right_proof = super::call(second, vec![left_type, right_type, proof]);
-    Ok(BTerm::Pair(
-        Box::new(conjunction(lower, scope, left, left_proof)?),
-        Box::new(conjunction(lower, scope, right, right_proof)?),
-    ))
+    match premise {
+        SemanticTerm::PropAnd { left, right } => {
+            let (left_type, right_type) = (lower.term(left, scope)?, lower.term(right, scope)?);
+            if lower.prop_is_data(&left_type) && lower.prop_is_data(&right_type) {
+                // Both projections read the pair, so a computed one is
+                // shared first, at its `Data` type.
+                let (stmts, pair) = if matches!(proof, BTerm::Name(_)) {
+                    (Vec::new(), proof)
+                } else {
+                    let name = lower.fresh("c");
+                    let ty = super::call(
+                        lower.prelude("Lean.Prod"),
+                        vec![left_type.clone(), right_type.clone()],
+                    );
+                    let share = Stmt::Share {
+                        name: super::synthetic(name.clone()),
+                        value: BTerm::Ann(Box::new(proof), Box::new(ty)),
+                        source: super::here(),
+                    };
+                    (vec![share], super::var(name))
+                };
+                let first = lower.support("fst");
+                let second = lower.support("snd");
+                let left_proof = super::call(
+                    first,
+                    vec![left_type.clone(), right_type.clone(), pair.clone()],
+                );
+                let right_proof = super::call(second, vec![left_type, right_type, pair]);
+                let rebuilt = BTerm::Pair(
+                    Box::new(conjunction(lower, scope, left, left_proof)?),
+                    Box::new(conjunction(lower, scope, right, right_proof)?),
+                );
+                return Ok(if stmts.is_empty() {
+                    rebuilt
+                } else {
+                    BTerm::Block(Box::new(Body {
+                        stmts,
+                        tail: Tail::Term(rebuilt, super::here()),
+                    }))
+                });
+            }
+            let mut arguments = vec![
+                left_type.clone(),
+                right_type.clone(),
+                holds_type(lower, scope, left)?,
+                holds_type(lower, scope, right)?,
+            ];
+            for (side, ty) in [(left, &left_type), (right, &right_type)] {
+                let name = lower.fresh("c");
+                let body = conjunction(lower, scope, side, super::var(name.clone()))?;
+                let binder = if lower.prop_is_data(ty) {
+                    format!("+{name}")
+                } else {
+                    name
+                };
+                arguments.push(BTerm::Lam(super::synthetic(binder), Box::new(body)));
+            }
+            arguments.push(proof);
+            Ok(super::call(lower.support("and_map"), arguments))
+        }
+        SemanticTerm::Implies {
+            premise: assumed,
+            conclusion,
+        } => {
+            // `unconjunction` uses the proof it rebuilds once, so the
+            // binder is affine, as Bend requires of one whose type it sees
+            // only through `holds`.
+            let name = lower.fresh("c");
+            let given = unconjunction(lower, scope, assumed, super::var(name.clone()))?;
+            let applied = BTerm::Apply(Box::new(proof), vec![given]);
+            let body = conjunction(lower, scope, conclusion, applied)?;
+            Ok(BTerm::Lam(super::synthetic(name), Box::new(body)))
+        }
+        _ => Ok(proof),
+    }
+}
+
+/// The inverse of `conjunction`: a proof as `holds` reads it, as the
+/// semantic lowering states the premise.
+fn unconjunction(
+    lower: &mut Lower<'_, '_>,
+    scope: &Scope,
+    premise: &SemanticTerm,
+    proof: BTerm,
+) -> Result<BTerm, Diagnostic> {
+    if !reshaped(lower, scope, premise)? {
+        return Ok(proof);
+    }
+    match premise {
+        SemanticTerm::PropAnd { left, right } => {
+            let (left_type, right_type) = (lower.term(left, scope)?, lower.term(right, scope)?);
+            let data = lower.prop_is_data(&left_type) && lower.prop_is_data(&right_type);
+            let mut arguments = vec![
+                holds_type(lower, scope, left)?,
+                holds_type(lower, scope, right)?,
+                left_type,
+                right_type,
+            ];
+            for side in [left, right] {
+                let name = lower.fresh("c");
+                let body = unconjunction(lower, scope, side, super::var(name.clone()))?;
+                arguments.push(BTerm::Lam(super::synthetic(name), Box::new(body)));
+            }
+            arguments.push(proof);
+            let head = if data { "and_prod" } else { "and_map" };
+            Ok(super::call(lower.support(head), arguments))
+        }
+        SemanticTerm::Implies {
+            premise: assumed,
+            conclusion,
+        } => {
+            let name = lower.fresh("c");
+            let assumed_type = lower.term(assumed, scope)?;
+            let given = conjunction(lower, scope, assumed, super::var(name.clone()))?;
+            let applied = BTerm::Apply(Box::new(proof), vec![given]);
+            let body = unconjunction(lower, scope, conclusion, applied)?;
+            let binder = if lower.prop_is_data(&assumed_type) {
+                format!("+{name}")
+            } else {
+                name
+            };
+            Ok(BTerm::Lam(super::synthetic(binder), Box::new(body)))
+        }
+        _ => Ok(proof),
+    }
+}
+
+/// Whether a premise's lowering differs from what `holds` reads: it holds
+/// a conjunction of `Data` propositions below conjunctions and implications.
+fn reshaped(
+    lower: &mut Lower<'_, '_>,
+    scope: &Scope,
+    premise: &SemanticTerm,
+) -> Result<bool, Diagnostic> {
+    Ok(match premise {
+        SemanticTerm::PropAnd { left, right } => {
+            let (left_type, right_type) = (lower.term(left, scope)?, lower.term(right, scope)?);
+            (lower.prop_is_data(&left_type) && lower.prop_is_data(&right_type))
+                || reshaped(lower, scope, left)?
+                || reshaped(lower, scope, right)?
+        }
+        SemanticTerm::Implies {
+            premise,
+            conclusion,
+        } => reshaped(lower, scope, premise)? || reshaped(lower, scope, conclusion)?,
+        _ => false,
+    })
+}
+
+/// The type `holds` gives a premise: its lowering with every conjunction an
+/// `&` pair.
+fn holds_type(
+    lower: &mut Lower<'_, '_>,
+    scope: &Scope,
+    premise: &SemanticTerm,
+) -> Result<BTerm, Diagnostic> {
+    Ok(match premise {
+        SemanticTerm::PropAnd { left, right } => BTerm::Product(
+            Box::new(holds_type(lower, scope, left)?),
+            Box::new(holds_type(lower, scope, right)?),
+        ),
+        SemanticTerm::Implies {
+            premise,
+            conclusion,
+        } => BTerm::Pi {
+            name: None,
+            erased: false,
+            domain: Box::new(holds_type(lower, scope, premise)?),
+            codomain: Box::new(holds_type(lower, scope, conclusion)?),
+        },
+        other => lower.term(other, scope)?,
+    })
 }
 
 /// The proof of `goal` from `premises` (Bend name and proposition, both
@@ -289,12 +448,13 @@ pub fn prove(
     }
     lower.uses_prelude = true;
     lower.supports.insert(Support::LinArith);
-    linarith::proof_bterm(
+    let proved = linarith::proof_bterm(
         Support::LinArith.alias(),
         env,
         Some(&goal_fact),
         &proof,
         &given,
     )
-    .ok_or_else(|| fail("a certificate needs a hypothesis with no proof"))
+    .ok_or_else(|| fail("a certificate needs a hypothesis with no proof"))?;
+    unconjunction(lower, scope, goal, proved)
 }
