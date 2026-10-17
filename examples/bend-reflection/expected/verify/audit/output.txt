@@ -1,0 +1,12 @@
+'Reflection.Main.AllBelow' does not depend on any axioms
+'Reflection.Main.CountsFrom' does not depend on any axioms
+'Reflection.Main.Pair' does not depend on any axioms
+'Reflection.Main.PairValid' does not depend on any axioms
+'Reflection.Main.allBelow' does not depend on any axioms
+'Reflection.Main.below_reflects' does not depend on any axioms
+'Reflection.Main.congruence_refl' does not depend on any axioms
+'Reflection.Main.congruence_unfolds' does not depend on any axioms
+'Reflection.Main.countsFrom' does not depend on any axioms
+'Reflection.Main.counts_reflects' does not depend on any axioms
+'Reflection.Main.pair_reflects' does not depend on any axioms
+'Reflection.Main.validatePair' does not depend on any axioms
