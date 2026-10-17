@@ -200,6 +200,32 @@ impl Reifier<'_, '_, '_> {
     }
 }
 
+/// A premise's proof as `LinArith` reads it. A conjunction of `Data`
+/// propositions is a `Lean.Prod` pair in the semantic lowering but a `&`
+/// pair in `holds`, so it is rebuilt component by component.
+fn conjunction(
+    lower: &mut Lower<'_, '_>,
+    scope: &Scope,
+    premise: &SemanticTerm,
+    proof: BTerm,
+) -> Result<BTerm, Diagnostic> {
+    let SemanticTerm::PropAnd { left, right } = premise else {
+        return Ok(proof);
+    };
+    let (left_type, right_type) = (lower.term(left, scope)?, lower.term(right, scope)?);
+    if !(lower.prop_is_data(&left_type) && lower.prop_is_data(&right_type)) {
+        return Ok(proof);
+    }
+    let first = lower.support("fst");
+    let second = lower.support("snd");
+    let left_proof = super::call(first, vec![left_type.clone(), right_type.clone(), proof.clone()]);
+    let right_proof = super::call(second, vec![left_type, right_type, proof]);
+    Ok(BTerm::Pair(
+        Box::new(conjunction(lower, scope, left, left_proof)?),
+        Box::new(conjunction(lower, scope, right, right_proof)?),
+    ))
+}
+
 /// The proof of `goal` from `premises` (Bend name and proposition, both
 /// normalized) by linear arithmetic.
 ///
@@ -230,7 +256,7 @@ pub fn prove(
         let proof = super::var(name.clone());
         if let Some(fact) = reifier.fact(premise)? {
             hyps.push(fact);
-            given.push(proof);
+            given.push(conjunction(reifier.lower, scope, premise, proof)?);
         } else if let Some((fact, proof)) = reifier.injective(premise, proof)? {
             hyps.push(fact);
             given.push(proof);

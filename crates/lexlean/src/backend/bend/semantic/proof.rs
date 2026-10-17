@@ -21,6 +21,8 @@
 
 use std::collections::BTreeMap;
 
+mod reflect;
+
 use super::normal::{self, Normalizer};
 use super::{call, here, synthetic, var, Lower, Scope, HOLE};
 use crate::backend::bend::engine::fail;
@@ -308,12 +310,10 @@ impl Prover<'_, '_, '_> {
                     tail: Tail::Term(proof, here()),
                 })
             }
-            SemanticProof::Congruence => Err(fail(
-                "`congruence` has no Bend lowering in this build of language 2.2",
-            )),
-            SemanticProof::BooleanReflection { .. } => Err(fail(
-                "`boolean_reflection` has no Bend lowering in this build of language 2.2",
-            )),
+            SemanticProof::Congruence => self.congruence(ctx, goal),
+            SemanticProof::BooleanReflection { reflection } => {
+                self.reflection(ctx, goal, reflection)
+            }
         }
     }
 

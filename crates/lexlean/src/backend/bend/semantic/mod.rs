@@ -175,6 +175,9 @@ pub struct Lower<'p, 'a> {
     mutual_done: BTreeSet<String>,
     /// The well-founded definition whose body is being lowered.
     recursion: Option<wellfounded::Recursion>,
+    /// The Bend heads, as this module spells them, of the proposition
+    /// definitions lowered at kind `Data` (see `data_definition`).
+    data_heads: BTreeSet<String>,
 }
 
 fn synthetic(text: impl Into<String>) -> Name {
@@ -288,6 +291,7 @@ impl<'p, 'a> Lower<'p, 'a> {
             type_parameters: BTreeSet::new(),
             mutual_done: BTreeSet::new(),
             recursion: None,
+            data_heads: BTreeSet::new(),
         }
     }
 
@@ -829,7 +833,7 @@ impl<'p, 'a> Lower<'p, 'a> {
             | SemanticTerm::Implies { .. }
             | SemanticTerm::Iff { .. }
             | SemanticTerm::Forall { .. } => SemanticType::Prop,
-            SemanticTerm::Add { left, .. } => self.infer(left, scope)?,
+            SemanticTerm::Add { left, right } => self.infer_operands(left, right, scope)?,
             SemanticTerm::Let {
                 binder,
                 value: _,
@@ -1144,6 +1148,21 @@ impl<'p, 'a> Lower<'p, 'a> {
         terms.iter().map(|term| self.term(term, scope)).collect()
     }
 
+    /// The type of a binary operation's operands, from the left one unless
+    /// it is a rewrite motive's hole, whose type only the other side shows.
+    fn infer_operands(
+        &self,
+        left: &SemanticTerm,
+        right: &SemanticTerm,
+        scope: &Scope,
+    ) -> Result<SemanticType, Diagnostic> {
+        if matches!(left, SemanticTerm::Var { name } if name == HOLE) {
+            self.infer(right, scope)
+        } else {
+            self.infer(left, scope)
+        }
+    }
+
     /// A call of a definition or law: erased type arguments, then the
     /// value arguments in the callee's Bend order.
     fn call_of(
@@ -1298,7 +1317,13 @@ impl<'p, 'a> Lower<'p, 'a> {
                     recursive
                 } else if !self.converts(&parameters) {
                     let lowered = self.arguments(arguments, scope)?;
-                    self.call_of(function, &type_arguments, lowered)?
+                    let out = self.call_of(function, &type_arguments, lowered)?;
+                    if let BTerm::Call(head, _) = &out {
+                        if self.data_definition(function) {
+                            self.data_heads.insert(head.text.clone());
+                        }
+                    }
+                    out
                 } else {
                     let order = bend_order(self.declaration(function)?);
                     let args = self.call_with_closures(
@@ -1355,7 +1380,7 @@ impl<'p, 'a> Lower<'p, 'a> {
                 branches,
             } => self.lifted_match(scrutinee, branches, scope)?,
             SemanticTerm::Eq { left, right } => {
-                let ty = self.infer(left, scope)?;
+                let ty = self.infer_operands(left, right, scope)?;
                 let ty = self.ty(&ty)?;
                 BTerm::Equal(
                     Box::new(self.term(left, scope)?),
@@ -1364,7 +1389,7 @@ impl<'p, 'a> Lower<'p, 'a> {
                 )
             }
             SemanticTerm::Le { left, right } | SemanticTerm::Lt { left, right } => {
-                let ty = self.infer(left, scope)?;
+                let ty = self.infer_operands(left, right, scope)?;
                 let less = matches!(term, SemanticTerm::Lt { .. });
                 let head = match ty {
                     SemanticType::Nat => self.support(if less { "lt" } else { "le" }),
@@ -1376,7 +1401,7 @@ impl<'p, 'a> Lower<'p, 'a> {
                 call(head, vec![self.term(left, scope)?, self.term(right, scope)?])
             }
             SemanticTerm::Add { left, right } => {
-                let ty = self.infer(left, scope)?;
+                let ty = self.infer_operands(left, right, scope)?;
                 let head = match ty {
                     SemanticType::Nat => self.prelude("Lean.Nat.add"),
                     SemanticType::Int => self.prelude("Lean.Int.add"),
@@ -1599,9 +1624,68 @@ impl<'p, 'a> Lower<'p, 'a> {
                 head.text == format!("{}.Sem.le", Support::Semantic.alias())
                     || head.text == format!("{}.Sem.lt", Support::Semantic.alias())
                     || head.text == format!("{PRELUDE_ALIAS}.Lean.Prod")
+                    || self.data_heads.contains(&head.text)
             }
             _ => false,
         }
+    }
+
+    /// Whether a proposition definition is lowered at kind `Data`: exactly
+    /// when its body is one term `definition` reads as `Data`, an equation,
+    /// a `Nat` order, a call of such a definition, or a conjunction of
+    /// those.
+    fn data_definition(&self, member: &MemberRef) -> bool {
+        self.data_definition_within(member, 64)
+    }
+
+    fn data_definition_within(&self, member: &MemberRef, depth: usize) -> bool {
+        fn data_term(
+            lower: &Lower<'_, '_>,
+            term: &SemanticTerm,
+            scope: &Scope,
+            depth: usize,
+        ) -> bool {
+            match term {
+                SemanticTerm::Eq { .. } => true,
+                SemanticTerm::Le { left, right } | SemanticTerm::Lt { left, right } => lower
+                    .infer_operands(left, right, scope)
+                    .is_ok_and(|ty| lower.canonical(&ty) == SemanticType::Nat),
+                SemanticTerm::PropAnd { left, right } => {
+                    data_term(lower, left, scope, depth) && data_term(lower, right, scope, depth)
+                }
+                SemanticTerm::Call { function, .. } => {
+                    lower.data_definition_within(function, depth)
+                }
+                _ => false,
+            }
+        }
+        let Some(depth) = depth.checked_sub(1) else {
+            return false;
+        };
+        let Ok(SemanticDeclaration::Definition {
+            result,
+            parameters,
+            body,
+            recursive_argument: None,
+            termination: None,
+            ..
+        }) = self.declaration(member)
+        else {
+            return false;
+        };
+        if self.canonical(result) != SemanticType::Prop {
+            return false;
+        }
+        let mut scope = Scope::default();
+        for parameter in parameters {
+            match scope.with(&parameter.name, self.canonical(&parameter.r#type)) {
+                Ok(next) => scope = next,
+                Err(_) => return false,
+            }
+        }
+        // The body is read in its own module, where its members resolve.
+        let body = normal::qualify_term(body, &self.home(member));
+        data_term(self, &body, &scope, depth)
     }
 
     /// A `match` on a computed value or inside a term: an auxiliary def

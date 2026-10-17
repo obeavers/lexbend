@@ -171,3 +171,48 @@ def Sem.iteDep(-A: Type, +c: Bool, t: {c == True{} : Bool} -> A, f: {c == False{
       t({==})
     case False{}:
       f({==})
+
+# Boolean reflection: a validator's `&&` of `Nat.beq` and `Nat.blt` tests
+# against a proposition's `/\` of equations and orders, piece by piece.
+def Sem.and_left(+a: Bool, +b: Bool, h: {L.Lean.Bool.and(a, b) == True{} : Bool}) -> {a == True{} : Bool}:
+  match a:
+    case False{}:
+      Sem.false_ne_true({False{} == True{} : Bool}, h)
+    case True{}:
+      {==}
+
+def Sem.and_right(+a: Bool, +b: Bool, h: {L.Lean.Bool.and(a, b) == True{} : Bool}) -> {b == True{} : Bool}:
+  match a:
+    case False{}:
+      Sem.false_ne_true({b == True{} : Bool}, h)
+    case True{}:
+      h
+
+def Sem.and_intro(+a: Bool, +b: Bool, ha: {a == True{} : Bool}, hb: {b == True{} : Bool}) -> {L.Lean.Bool.and(a, b) == True{} : Bool}:
+  match a:
+    case False{}:
+      Sem.false_ne_true({False{} == True{} : Bool}, ha)
+    case True{}:
+      hb
+
+def Sem.beq_refl(a: Nat) -> {L.Lean.Nat.beq(a, a) == True{} : Bool}:
+  match a:
+    case 0n:
+      {==}
+    case 1n+p:
+      Sem.beq_refl(p)
+
+def Sem.beq_eq(a: Nat, b: Nat, h: {L.Lean.Nat.beq(a, b) == True{} : Bool}) -> {a == b : Nat}:
+  match a b:
+    case 0n 0n:
+      {==}
+    case 0n 1n+bp:
+      Sem.false_ne_true({0n == 1n+bp : Nat}, h)
+    case 1n+ap 0n:
+      Sem.false_ne_true({1n+ap == 0n : Nat}, h)
+    case 1n+ap 1n+bp:
+      Equal.cong(Nat, Nat, x => 1n+x, ap, bp, Sem.beq_eq(ap, bp, h))
+
+def Sem.eq_beq(+a: Nat, +b: Nat, h: {a == b : Nat}) -> {L.Lean.Nat.beq(a, b) == True{} : Bool}:
+  %h : {L.Lean.Nat.beq(a, _) == True{} : Bool}
+  Sem.beq_refl(a)
