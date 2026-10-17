@@ -31,6 +31,7 @@ pub mod normal;
 pub mod proof;
 pub mod runtime;
 pub mod support;
+pub mod wellfounded;
 
 use support::Support;
 
@@ -172,6 +173,8 @@ pub struct Lower<'p, 'a> {
     type_parameters: BTreeSet<String>,
     /// The mutual groups already lowered, by key.
     mutual_done: BTreeSet<String>,
+    /// The well-founded definition whose body is being lowered.
+    recursion: Option<wellfounded::Recursion>,
 }
 
 fn synthetic(text: impl Into<String>) -> Name {
@@ -284,6 +287,7 @@ impl<'p, 'a> Lower<'p, 'a> {
             fresh: 0,
             type_parameters: BTreeSet::new(),
             mutual_done: BTreeSet::new(),
+            recursion: None,
         }
     }
 
@@ -1290,7 +1294,9 @@ impl<'p, 'a> Lower<'p, 'a> {
                 let type_arguments: Vec<SemanticType> =
                     type_arguments.iter().map(|t| self.canonical(t)).collect();
                 let (_, parameters, _) = self.signature(function)?;
-                if !self.converts(&parameters) {
+                if let Some(recursive) = self.recursive_call(function, arguments, scope)? {
+                    recursive
+                } else if !self.converts(&parameters) {
                     let lowered = self.arguments(arguments, scope)?;
                     self.call_of(function, &type_arguments, lowered)?
                 } else {
@@ -1841,7 +1847,7 @@ impl<'p, 'a> Lower<'p, 'a> {
                 mutual: Some(key), ..
             } => self.mutual_group(key)?,
             SemanticDeclaration::Definition { body, .. } => {
-                vec![self.definition(declaration, body)?]
+                self.definition(declaration, body)?
             }
             SemanticDeclaration::Theorem { .. } => proof::theorem(self, declaration)?,
             other => {
@@ -1970,9 +1976,9 @@ impl<'p, 'a> Lower<'p, 'a> {
                 .find(|declaration| declaration.name() == name)
                 .ok_or_else(|| fail("a planned member vanished"))?;
             self.type_parameters.clear();
-            let item = self.definition(declaration, &plan.bodies[name])?;
+            let mut lowered = self.definition(declaration, &plan.bodies[name])?;
             items.append(&mut self.aux);
-            items.push(item);
+            items.append(&mut lowered);
         }
         Ok(items)
     }
@@ -2100,7 +2106,7 @@ impl<'p, 'a> Lower<'p, 'a> {
         &mut self,
         declaration: &SemanticDeclaration,
         body: &SemanticTerm,
-    ) -> Result<Item, Diagnostic> {
+    ) -> Result<Vec<Item>, Diagnostic> {
         let SemanticDeclaration::Definition {
             name,
             type_parameters,
@@ -2133,28 +2139,16 @@ impl<'p, 'a> Lower<'p, 'a> {
         } else {
             self.ty(&result_type)?
         };
-        Ok(Item::Def {
+        Ok(vec![Item::Def {
             name: synthetic(names::global(name)?),
             params,
             result: result_bend,
             result_source: here(),
             body: body_out,
             source: here(),
-        })
+        }])
     }
 
-    /// A well-founded definition counts down a `Nat` fuel set to its
-    /// measure plus one: the evidence proves the measure decreases at every
-    /// recursive call, so the fuel never runs out on any input and the
-    /// result equals Lean's.
-    fn well_founded(&mut self, declaration: &SemanticDeclaration) -> Result<Item, Diagnostic> {
-        let SemanticDeclaration::Definition { name, .. } = declaration else {
-            return Err(fail("not a definition"));
-        };
-        Err(fail(format!(
-            "the well-founded definition `{name}` has no Bend lowering in language 2.2"
-        )))
-    }
 }
 
 /// The source span of a byte range of a module's normalized source.

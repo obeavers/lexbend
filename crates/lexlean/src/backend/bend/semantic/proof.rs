@@ -285,16 +285,28 @@ impl Prover<'_, '_, '_> {
                 arguments,
             )?)),
             SemanticProof::LinearArithmetic { .. } => {
+                let (stmts, goal, premises) = self.substitute_equations(ctx, goal)?;
                 // The listed definitions unfold in normalization, which
                 // unfolds every non-recursive definition anyway.
+                // Every member is qualified, so an atom unfolded from a
+                // body and the same atom as written are one atom.
+                let module = self.lower.module.clone();
                 let mut normalizer = Normalizer::new(self.lower);
-                let goal = normalizer.normalize(goal);
-                let premises: Vec<(String, SemanticTerm)> = ctx
-                    .premises
+                let goal = normal::qualify_term(&normalizer.normalize(&goal), &module);
+                let premises: Vec<(String, SemanticTerm)> = premises
                     .iter()
-                    .map(|(name, premise)| (name.clone(), normalizer.normalize(premise)))
+                    .map(|(name, premise)| {
+                        (
+                            name.clone(),
+                            normal::qualify_term(&normalizer.normalize(premise), &module),
+                        )
+                    })
                     .collect();
-                Ok(Self::term_body(self.linear(ctx, &premises, &goal)?))
+                let proof = self.linear(ctx, &premises, &goal)?;
+                Ok(Body {
+                    stmts,
+                    tail: Tail::Term(proof, here()),
+                })
             }
             SemanticProof::Congruence => Err(fail(
                 "`congruence` has no Bend lowering in this build of language 2.2",
@@ -303,6 +315,84 @@ impl Prover<'_, '_, '_> {
                 "`boolean_reflection` has no Bend lowering in this build of language 2.2",
             )),
         }
+    }
+
+    /// Lean's `subst_vars` before `omega`: each premise equating a local
+    /// of a non-`Nat` type with a term free of it rewrites the goal, so the
+    /// goal's definitions unfold on the term (`weight term` with `term =
+    /// plus left right` becomes `weight (plus left right)`). A premise that
+    /// mentions a substituted local keeps its unsubstituted Bend type, so it
+    /// is set aside.
+    #[allow(clippy::type_complexity)]
+    fn substitute_equations(
+        &mut self,
+        ctx: &Ctx,
+        goal: &SemanticTerm,
+    ) -> Result<(Vec<Stmt>, SemanticTerm, Vec<(String, SemanticTerm)>), Diagnostic> {
+        fn mentions(term: &SemanticTerm, local: &str) -> bool {
+            if matches!(term, SemanticTerm::Var { name } if name == local) {
+                return true;
+            }
+            let mut found = false;
+            normal::for_each_child(term, &mut |child| found |= mentions(child, local));
+            found
+        }
+        let mut goal = goal.clone();
+        let mut premises = ctx.premises.clone();
+        let mut stmts = Vec::new();
+        loop {
+            let mut found = None;
+            for (index, (_, premise)) in premises.iter().enumerate() {
+                let SemanticTerm::Eq { left, right } = premise else {
+                    continue;
+                };
+                for (local, other, reversed) in [(left, right, false), (right, left, true)] {
+                    let SemanticTerm::Var { name } = local.as_ref() else {
+                        continue;
+                    };
+                    if !ctx.scope.matchable(local) || mentions(other, name) {
+                        continue;
+                    }
+                    let ty = self.lower.infer(local, &ctx.scope)?;
+                    if self.lower.canonical(&ty) == SemanticType::Nat {
+                        continue;
+                    }
+                    found = Some((index, name.clone(), (**other).clone(), reversed, ty));
+                    break;
+                }
+                if found.is_some() {
+                    break;
+                }
+            }
+            let Some((index, local, value, reversed, ty)) = found else {
+                break;
+            };
+            let (hypothesis, _) = premises.remove(index);
+            let hole = SemanticTerm::Var {
+                name: HOLE.to_owned(),
+            };
+            let motive = self
+                .lower
+                .term(&normal::substitute(&goal, &local, &hole), &ctx.scope)?;
+            // `%e : M(_)` with `e : a == b` turns the goal `M(b)` into `M(a)`:
+            // `e` must equate the value with the local.
+            let proof = if reversed {
+                var(hypothesis)
+            } else {
+                let ty = self.lower.ty(&ty)?;
+                let local_term = self.lower.term(&SemanticTerm::Var { name: local.clone() }, &ctx.scope)?;
+                let value_term = self.lower.term(&value, &ctx.scope)?;
+                call("Equal.sym", vec![ty, local_term, value_term, var(hypothesis)])
+            };
+            stmts.push(Stmt::Rewrite {
+                proof,
+                motive,
+                source: here(),
+            });
+            goal = normal::substitute(&goal, &local, &value);
+            premises.retain(|(_, premise)| !mentions(premise, &local));
+        }
+        Ok((stmts, goal, premises))
     }
 
     /// A normalized `linear_arithmetic` goal: a conjunction proved part by

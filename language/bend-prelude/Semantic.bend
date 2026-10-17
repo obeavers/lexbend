@@ -131,3 +131,43 @@ def Sem.lengthsAre(-A: Data, xss: List<&2, List<&2, A>>, +m: Nat) -> Bool:
       True{}
     case Con{h, t}:
       L.Lean.Bool.and(L.Lean.Nat.beq(L.Lean.List.length(A, h), m), Sem.lengthsAre(A, t, m))
+
+# Well-founded recursion by proof-carrying fuel. A well-founded definition's
+# helper recurses on a fuel and carries `measure < fuel`: `lt_succ` starts it
+# at `measure + 1`, `lt_fuel` re-establishes it for the smaller fuel from the
+# evidence that the measure decreased, and `lt_zero` makes fuel zero absurd.
+def Sem.ble_trans(a: Nat, b: Nat, c: Nat, h1: {L.Lean.Nat.ble(a, b) == True{} : Bool}, h2: {L.Lean.Nat.ble(b, c) == True{} : Bool}) -> {L.Lean.Nat.ble(a, c) == True{} : Bool}:
+  match a b c:
+    case 0n _ _:
+      {==}
+    case 1n+ap 0n _:
+      Sem.false_ne_true({L.Lean.Nat.ble(1n+ap, c) == True{} : Bool}, h1)
+    case 1n+ap 1n+bp 0n:
+      Sem.false_ne_true({False{} == True{} : Bool}, h2)
+    case 1n+ap 1n+bp 1n+cp:
+      Sem.ble_trans(ap, bp, cp, h1, h2)
+
+def Sem.ble_refl(m: Nat) -> {L.Lean.Nat.ble(m, m) == True{} : Bool}:
+  match m:
+    case 0n:
+      {==}
+    case 1n+p:
+      Sem.ble_refl(p)
+
+def Sem.lt_succ(+m: Nat) -> Sem.lt(m, 1n+m):
+  Sem.ble_refl(m)
+
+def Sem.lt_fuel(+smaller: Nat, +m: Nat, +p: Nat, decreases: Sem.lt(smaller, m), bound: Sem.lt(m, 1n+p)) -> Sem.lt(smaller, p):
+  Sem.ble_trans(L.Lean.Nat.add(smaller, 1n), m, p, decreases, bound)
+
+def Sem.lt_zero(-B: Type, +m: Nat, bound: Sem.lt(m, 0n)) -> B:
+  Sem.false_ne_true(B, bound)
+
+# `if c then t else f` where each arm receives its condition's equation, as
+# the evidence of a recursive call under it needs.
+def Sem.iteDep(-A: Type, +c: Bool, t: {c == True{} : Bool} -> A, f: {c == False{} : Bool} -> A) -> A:
+  match c:
+    case True{}:
+      t({==})
+    case False{}:
+      f({==})
