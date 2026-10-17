@@ -110,7 +110,7 @@ public theorem digit_net_correct (glyph : Models.Glyphs.Glyph) : Recognizes (gly
   | g9 =>
     decide
 
-@[expose] public def labeledGlyphs : List ((Prod (Models.Glyphs.Glyph) (Nat))) := ((Models.Glyphs.Glyph.g3, 3) :: ((Models.Glyphs.Glyph.g0, 0) :: ((Models.Glyphs.Glyph.g7, 7) :: ((Models.Glyphs.Glyph.g4, 4) :: ((Models.Glyphs.Glyph.g1, 1) :: ((Models.Glyphs.Glyph.g8, 8) :: ((Models.Glyphs.Glyph.g5, 5) :: ((Models.Glyphs.Glyph.g2, 1) :: ((Models.Glyphs.Glyph.g9, 9) :: ((Models.Glyphs.Glyph.g6, 6) :: ((Models.Glyphs.Glyph.g3, 3) :: ((Models.Glyphs.Glyph.g0, 0) :: ((Models.Glyphs.Glyph.g7, 7) :: ((Models.Glyphs.Glyph.g4, 4) :: ((Models.Glyphs.Glyph.g1, 1) :: ((Models.Glyphs.Glyph.g8, 8) :: ((Models.Glyphs.Glyph.g5, 5) :: ((Models.Glyphs.Glyph.g2, 2) :: ((Models.Glyphs.Glyph.g9, 9) :: ((Models.Glyphs.Glyph.g6, 7) :: ((Models.Glyphs.Glyph.g3, 3) :: ((Models.Glyphs.Glyph.g0, 0) :: ((Models.Glyphs.Glyph.g7, 7) :: ((Models.Glyphs.Glyph.g4, 4) :: ((Models.Glyphs.Glyph.g1, 1) :: ((Models.Glyphs.Glyph.g8, 8) :: ((Models.Glyphs.Glyph.g5, 5) :: ((Models.Glyphs.Glyph.g2, 2) :: ((Models.Glyphs.Glyph.g9, 9) :: ((Models.Glyphs.Glyph.g6, 6) :: ((Models.Glyphs.Glyph.g3, 3) :: ((Models.Glyphs.Glyph.g0, 0) :: ((Models.Glyphs.Glyph.g7, 7) :: ((Models.Glyphs.Glyph.g4, 8) :: ((Models.Glyphs.Glyph.g1, 1) :: ((Models.Glyphs.Glyph.g8, 8) :: ((Models.Glyphs.Glyph.g5, 5) :: ((Models.Glyphs.Glyph.g2, 2) :: ((Models.Glyphs.Glyph.g9, 9) :: ((Models.Glyphs.Glyph.g6, 6) :: ([] : List ((Prod (Models.Glyphs.Glyph) (Nat))))))))))))))))))))))))))))))))))))))))))))
+@[expose] public def labeledGlyphs : List ((Prod (Models.Glyphs.Glyph) (Nat))) := ((Models.Glyphs.Glyph.g3, 3) :: ((Models.Glyphs.Glyph.g0, 0) :: ((Models.Glyphs.Glyph.g2, 1) :: ((Models.Glyphs.Glyph.g7, 7) :: ((Models.Glyphs.Glyph.g4, 4) :: ([] : List ((Prod (Models.Glyphs.Glyph) (Nat)))))))))
 
 @[expose] public def sameDigit (expected : Nat) (observed : Nat) : Bool := (Nat.beq (expected) (observed))
 
@@ -120,10 +120,10 @@ public theorem same_digit_sound (expected : Nat) (observed : Nat) : ((sameDigit 
   try set_option linter.unusedSimpArgs false in simp only [sameDigit, ← Bool.not_eq_true, Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true', and_true, true_and, Option.some.injEq, Nat.beq_eq, Nat.blt_eq, Nat.ble_eq, LexLeanRuntime.subtract, LexLeanRuntime.multiply] at *
   all_goals omega
 
-public theorem labeled_agreement : (((LexLeanRuntime.length (labeledGlyphs) : Nat) = 40) /\ ((LexLeanCollections.listFold ((fun (count : Nat) («example» : (Prod (Models.Glyphs.Glyph) (Nat))) => (if sameDigit (DigitNet ((«example»).1)) ((«example»).2) then (count + 1) else count))) (0) (labeledGlyphs) : Nat) = 37)) := by
+public theorem labeled_agreement : (((LexLeanRuntime.length (labeledGlyphs) : Nat) = 5) /\ ((LexLeanCollections.listFold ((fun (count : Nat) («example» : (Prod (Models.Glyphs.Glyph) (Nat))) => (if sameDigit (DigitNet ((«example»).1)) ((«example»).2) then (count + 1) else count))) (0) (labeledGlyphs) : Nat) = 4)) := by
   decide
 
-public theorem DigitEvidence.labeled_agreement : LexLeanModels.Agreement ((Models.Recognizer.DigitNet)) ((Models.Recognizer.sameDigit)) (Models.Recognizer.labeledGlyphs) (40) (37) := by decide
+public theorem DigitEvidence.labeled_agreement : LexLeanModels.Agreement ((Models.Recognizer.DigitNet)) ((Models.Recognizer.sameDigit)) (Models.Recognizer.labeledGlyphs) (5) (4) := by decide
 public theorem DigitEvidence.digit_net_exact : LexLeanModels.EquivalentTotal ((Models.Recognizer.DigitNet)) ((Models.Glyphs.digitOf)) := Models.Recognizer.digit_net_exact
 public theorem DigitEvidence.digit_net_correct : LexLeanModels.SatisfiesTotal ((Models.Recognizer.Recognizes)) ((Models.Recognizer.DigitNet)) := Models.Recognizer.digit_net_correct
 

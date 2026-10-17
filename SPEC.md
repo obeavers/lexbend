@@ -7052,7 +7052,13 @@ required instance is `LLB6008`.
 `Nat` is Bend's unary natural number, and the largest `Nat` literal Bend reads
 is `4294967295`. A larger numeral is `LLB6008`. A proof that evaluates a
 `Nat` beyond the checker's machine stack is refused by the pinned Bend
-(`LLV7020`).
+(`LLV7020`). The BendTT kernel of the pinned release evaluates each check
+within a fixed step budget (`FUEL`, 400000000 steps), which is part of the
+proved kernel and is not configurable; a proof by evaluation that the Bend
+checker accepts but that exceeds the budget fails the kernel recheck
+(`LLV7021`), and so is not verified. A closed `decide` over a large dataset
+or network evaluation is such a proof: the committed `bend-models` example
+keeps its dataset at five examples for this reason.
 
 #### 18.11.7 Model cross-checks
 

@@ -1,0 +1,653 @@
+'LexLeanCollections.Key' does not depend on any axioms
+'LexLeanCollections.Key.casesOn' does not depend on any axioms
+'LexLeanCollections.Key.compare' does not depend on any axioms
+'LexLeanCollections.Key.ctorIdx' does not depend on any axioms
+'LexLeanCollections.Key.mk._flat_ctor' does not depend on any axioms
+'LexLeanCollections.Key.mk.noConfusion' does not depend on any axioms
+'LexLeanCollections.Key.noConfusion' does not depend on any axioms
+'LexLeanCollections.Key.noConfusionType' does not depend on any axioms
+'LexLeanCollections.Key.recOn' does not depend on any axioms
+'LexLeanCollections.compareCodes' depends on axioms: [propext]
+'LexLeanCollections.compareCodes._f' depends on axioms: [propext]
+'LexLeanCollections.compareCodes._sparseCasesOn_1' depends on axioms: [propext]
+'LexLeanCollections.compareCodes._sunfold' depends on axioms: [propext]
+'LexLeanCollections.compareCodes._unsafe_rec' depends on axioms: [propext]
+'LexLeanCollections.compareCodes.match_1' depends on axioms: [propext]
+'LexLeanCollections.compareCodes.match_4' does not depend on any axioms
+'LexLeanCollections.containsElement' does not depend on any axioms
+'LexLeanCollections.containsElement._f' does not depend on any axioms
+'LexLeanCollections.containsElement._sunfold' does not depend on any axioms
+'LexLeanCollections.containsElement._unsafe_rec' does not depend on any axioms
+'LexLeanCollections.graphNodes' does not depend on any axioms
+'LexLeanCollections.graphReachable' depends on axioms: [propext]
+'LexLeanCollections.graphSuccessors' does not depend on any axioms
+'LexLeanCollections.graphTopological' does not depend on any axioms
+'LexLeanCollections.insertElement' does not depend on any axioms
+'LexLeanCollections.insertElement._f' does not depend on any axioms
+'LexLeanCollections.insertElement._sunfold' does not depend on any axioms
+'LexLeanCollections.insertElement._unsafe_rec' does not depend on any axioms
+'LexLeanCollections.insertElement.match_1' does not depend on any axioms
+'LexLeanCollections.insertEntry' does not depend on any axioms
+'LexLeanCollections.insertEntry._f' does not depend on any axioms
+'LexLeanCollections.insertEntry._sunfold' does not depend on any axioms
+'LexLeanCollections.insertEntry._unsafe_rec' does not depend on any axioms
+'LexLeanCollections.insertEntry.match_1' does not depend on any axioms
+'LexLeanCollections.insertEntry.match_3' does not depend on any axioms
+'LexLeanCollections.instKeyBool' depends on axioms: [propext]
+'LexLeanCollections.instKeyInt' does not depend on any axioms
+'LexLeanCollections.instKeyInt16' does not depend on any axioms
+'LexLeanCollections.instKeyInt32' does not depend on any axioms
+'LexLeanCollections.instKeyInt64' does not depend on any axioms
+'LexLeanCollections.instKeyInt8' does not depend on any axioms
+'LexLeanCollections.instKeyNat' does not depend on any axioms
+'LexLeanCollections.instKeyProd' depends on axioms: [propext]
+'LexLeanCollections.instKeyString' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LexLeanCollections.instKeyUInt16' does not depend on any axioms
+'LexLeanCollections.instKeyUInt32' does not depend on any axioms
+'LexLeanCollections.instKeyUInt64' does not depend on any axioms
+'LexLeanCollections.instKeyUInt8' does not depend on any axioms
+'LexLeanCollections.iterate' does not depend on any axioms
+'LexLeanCollections.iterate._f' does not depend on any axioms
+'LexLeanCollections.iterate._sunfold' does not depend on any axioms
+'LexLeanCollections.iterate._unsafe_rec' does not depend on any axioms
+'LexLeanCollections.iterate.match_1' does not depend on any axioms
+'LexLeanCollections.iterateUntil' does not depend on any axioms
+'LexLeanCollections.iterateUntil._f' does not depend on any axioms
+'LexLeanCollections.iterateUntil._sunfold' does not depend on any axioms
+'LexLeanCollections.iterateUntil._unsafe_rec' does not depend on any axioms
+'LexLeanCollections.iterateUntil.match_1' does not depend on any axioms
+'LexLeanCollections.lessThan' depends on axioms: [propext]
+'LexLeanCollections.lessThan._sparseCasesOn_1' depends on axioms: [propext]
+'LexLeanCollections.lessThan.match_1' depends on axioms: [propext]
+'LexLeanCollections.listFold' does not depend on any axioms
+'LexLeanCollections.lookupEntry' does not depend on any axioms
+'LexLeanCollections.lookupEntry._f' does not depend on any axioms
+'LexLeanCollections.lookupEntry._sunfold' does not depend on any axioms
+'LexLeanCollections.lookupEntry._unsafe_rec' does not depend on any axioms
+'LexLeanCollections.mapContains' does not depend on any axioms
+'LexLeanCollections.mapEntries' does not depend on any axioms
+'LexLeanCollections.mapFold' does not depend on any axioms
+'LexLeanCollections.mapInsert' does not depend on any axioms
+'LexLeanCollections.mapKeys' does not depend on any axioms
+'LexLeanCollections.mapLookup' does not depend on any axioms
+'LexLeanCollections.mapRemove' does not depend on any axioms
+'LexLeanCollections.mapSize' does not depend on any axioms
+'LexLeanCollections.mapValues' does not depend on any axioms
+'LexLeanCollections.reachableFrom' depends on axioms: [propext]
+'LexLeanCollections.reachableFrom._f' depends on axioms: [propext]
+'LexLeanCollections.reachableFrom._sparseCasesOn_1' depends on axioms: [propext]
+'LexLeanCollections.reachableFrom._sunfold' depends on axioms: [propext]
+'LexLeanCollections.reachableFrom._unsafe_rec' depends on axioms: [propext]
+'LexLeanCollections.reachableFrom.match_1' depends on axioms: [propext]
+'LexLeanCollections.reachableFrom.match_4' does not depend on any axioms
+'LexLeanCollections.removeElement' does not depend on any axioms
+'LexLeanCollections.removeElement._f' does not depend on any axioms
+'LexLeanCollections.removeElement._sunfold' does not depend on any axioms
+'LexLeanCollections.removeElement._unsafe_rec' does not depend on any axioms
+'LexLeanCollections.removeEntry' does not depend on any axioms
+'LexLeanCollections.removeEntry._f' does not depend on any axioms
+'LexLeanCollections.removeEntry._sunfold' does not depend on any axioms
+'LexLeanCollections.removeEntry._unsafe_rec' does not depend on any axioms
+'LexLeanCollections.setContains' does not depend on any axioms
+'LexLeanCollections.setDifference' does not depend on any axioms
+'LexLeanCollections.setElements' does not depend on any axioms
+'LexLeanCollections.setFold' does not depend on any axioms
+'LexLeanCollections.setInsert' does not depend on any axioms
+'LexLeanCollections.setIntersection' does not depend on any axioms
+'LexLeanCollections.setRemove' does not depend on any axioms
+'LexLeanCollections.setSize' does not depend on any axioms
+'LexLeanCollections.setUnion' does not depend on any axioms
+'LexLeanCollections.topological' does not depend on any axioms
+'LexLeanCollections.topological._f' does not depend on any axioms
+'LexLeanCollections.topological._sunfold' does not depend on any axioms
+'LexLeanCollections.topological._unsafe_rec' does not depend on any axioms
+'LexLeanModels.Agreement' does not depend on any axioms
+'LexLeanModels.Complete1' does not depend on any axioms
+'LexLeanModels.Complete2' does not depend on any axioms
+'LexLeanModels.Complete4' does not depend on any axioms
+'LexLeanModels.Equivalent' does not depend on any axioms
+'LexLeanModels.EquivalentStep' does not depend on any axioms
+'LexLeanModels.EquivalentStepNoInvariant' does not depend on any axioms
+'LexLeanModels.EquivalentStepNoPrecondition' does not depend on any axioms
+'LexLeanModels.EquivalentStepTotal' does not depend on any axioms
+'LexLeanModels.EquivalentTotal' does not depend on any axioms
+'LexLeanModels.Initial' does not depend on any axioms
+'LexLeanModels.Preserves' does not depend on any axioms
+'LexLeanModels.PreservesTotal' does not depend on any axioms
+'LexLeanModels.Satisfies' does not depend on any axioms
+'LexLeanModels.SatisfiesStep' does not depend on any axioms
+'LexLeanModels.SatisfiesStepNoInvariant' does not depend on any axioms
+'LexLeanModels.SatisfiesStepNoPrecondition' does not depend on any axioms
+'LexLeanModels.SatisfiesStepTotal' does not depend on any axioms
+'LexLeanModels.SatisfiesTotal' does not depend on any axioms
+'LexLeanModels.Sound1' does not depend on any axioms
+'LexLeanModels.Sound2' does not depend on any axioms
+'LexLeanModels.Sound4' does not depend on any axioms
+'LexLeanModels.encodeInt' does not depend on any axioms
+'LexLeanModels.inRange' does not depend on any axioms
+'LexLeanModels.linesMatch' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LexLeanModels.tensorMatches' does not depend on any axioms
+'LexLeanModels.utf8Char' does not depend on any axioms
+'LexLeanRuntime.Appendable' does not depend on any axioms
+'LexLeanRuntime.Appendable.append' does not depend on any axioms
+'LexLeanRuntime.Appendable.casesOn' does not depend on any axioms
+'LexLeanRuntime.Appendable.ctorIdx' does not depend on any axioms
+'LexLeanRuntime.Appendable.mk._flat_ctor' does not depend on any axioms
+'LexLeanRuntime.Appendable.mk.noConfusion' does not depend on any axioms
+'LexLeanRuntime.Appendable.noConfusion' does not depend on any axioms
+'LexLeanRuntime.Appendable.noConfusionType' does not depend on any axioms
+'LexLeanRuntime.Appendable.recOn' does not depend on any axioms
+'LexLeanRuntime.Decimal' does not depend on any axioms
+'LexLeanRuntime.Decimal.casesOn' does not depend on any axioms
+'LexLeanRuntime.Decimal.ctorIdx' does not depend on any axioms
+'LexLeanRuntime.Decimal.format' does not depend on any axioms
+'LexLeanRuntime.Decimal.mk._flat_ctor' does not depend on any axioms
+'LexLeanRuntime.Decimal.mk.noConfusion' does not depend on any axioms
+'LexLeanRuntime.Decimal.noConfusion' does not depend on any axioms
+'LexLeanRuntime.Decimal.noConfusionType' does not depend on any axioms
+'LexLeanRuntime.Decimal.parse' does not depend on any axioms
+'LexLeanRuntime.Decimal.recOn' does not depend on any axioms
+'LexLeanRuntime.Fixed' does not depend on any axioms
+'LexLeanRuntime.Fixed.bitAnd' does not depend on any axioms
+'LexLeanRuntime.Fixed.bitNot' does not depend on any axioms
+'LexLeanRuntime.Fixed.bitOr' does not depend on any axioms
+'LexLeanRuntime.Fixed.bitXor' does not depend on any axioms
+'LexLeanRuntime.Fixed.casesOn' does not depend on any axioms
+'LexLeanRuntime.Fixed.ctorIdx' does not depend on any axioms
+'LexLeanRuntime.Fixed.fromInt' does not depend on any axioms
+'LexLeanRuntime.Fixed.maximum' does not depend on any axioms
+'LexLeanRuntime.Fixed.minimum' does not depend on any axioms
+'LexLeanRuntime.Fixed.mk._flat_ctor' does not depend on any axioms
+'LexLeanRuntime.Fixed.mk.noConfusion' does not depend on any axioms
+'LexLeanRuntime.Fixed.noConfusion' does not depend on any axioms
+'LexLeanRuntime.Fixed.noConfusionType' does not depend on any axioms
+'LexLeanRuntime.Fixed.recOn' does not depend on any axioms
+'LexLeanRuntime.Fixed.shiftLeft' does not depend on any axioms
+'LexLeanRuntime.Fixed.shiftRight' does not depend on any axioms
+'LexLeanRuntime.Fixed.toToMathInt' does not depend on any axioms
+'LexLeanRuntime.Indexable' does not depend on any axioms
+'LexLeanRuntime.Indexable.casesOn' does not depend on any axioms
+'LexLeanRuntime.Indexable.ctorIdx' does not depend on any axioms
+'LexLeanRuntime.Indexable.index' does not depend on any axioms
+'LexLeanRuntime.Indexable.mk._flat_ctor' does not depend on any axioms
+'LexLeanRuntime.Indexable.mk.noConfusion' does not depend on any axioms
+'LexLeanRuntime.Indexable.noConfusion' does not depend on any axioms
+'LexLeanRuntime.Indexable.noConfusionType' does not depend on any axioms
+'LexLeanRuntime.Indexable.recOn' does not depend on any axioms
+'LexLeanRuntime.Lengthable' does not depend on any axioms
+'LexLeanRuntime.Lengthable.casesOn' does not depend on any axioms
+'LexLeanRuntime.Lengthable.ctorIdx' does not depend on any axioms
+'LexLeanRuntime.Lengthable.length' does not depend on any axioms
+'LexLeanRuntime.Lengthable.mk._flat_ctor' does not depend on any axioms
+'LexLeanRuntime.Lengthable.mk.noConfusion' does not depend on any axioms
+'LexLeanRuntime.Lengthable.noConfusion' does not depend on any axioms
+'LexLeanRuntime.Lengthable.noConfusionType' does not depend on any axioms
+'LexLeanRuntime.Lengthable.recOn' does not depend on any axioms
+'LexLeanRuntime.Quotient' does not depend on any axioms
+'LexLeanRuntime.Quotient.casesOn' does not depend on any axioms
+'LexLeanRuntime.Quotient.ctorIdx' does not depend on any axioms
+'LexLeanRuntime.Quotient.isZero' does not depend on any axioms
+'LexLeanRuntime.Quotient.mk._flat_ctor' does not depend on any axioms
+'LexLeanRuntime.Quotient.mk.noConfusion' does not depend on any axioms
+'LexLeanRuntime.Quotient.noConfusion' does not depend on any axioms
+'LexLeanRuntime.Quotient.noConfusionType' does not depend on any axioms
+'LexLeanRuntime.Quotient.quotient' does not depend on any axioms
+'LexLeanRuntime.Quotient.recOn' does not depend on any axioms
+'LexLeanRuntime.Quotient.remainder' does not depend on any axioms
+'LexLeanRuntime.Sliceable' does not depend on any axioms
+'LexLeanRuntime.Sliceable.casesOn' does not depend on any axioms
+'LexLeanRuntime.Sliceable.ctorIdx' does not depend on any axioms
+'LexLeanRuntime.Sliceable.mk._flat_ctor' does not depend on any axioms
+'LexLeanRuntime.Sliceable.mk.noConfusion' does not depend on any axioms
+'LexLeanRuntime.Sliceable.noConfusion' does not depend on any axioms
+'LexLeanRuntime.Sliceable.noConfusionType' does not depend on any axioms
+'LexLeanRuntime.Sliceable.recOn' does not depend on any axioms
+'LexLeanRuntime.Sliceable.slice' does not depend on any axioms
+'LexLeanRuntime.ToMathInt' does not depend on any axioms
+'LexLeanRuntime.ToMathInt.casesOn' does not depend on any axioms
+'LexLeanRuntime.ToMathInt.ctorIdx' does not depend on any axioms
+'LexLeanRuntime.ToMathInt.mk._flat_ctor' does not depend on any axioms
+'LexLeanRuntime.ToMathInt.mk.noConfusion' does not depend on any axioms
+'LexLeanRuntime.ToMathInt.noConfusion' does not depend on any axioms
+'LexLeanRuntime.ToMathInt.noConfusionType' does not depend on any axioms
+'LexLeanRuntime.ToMathInt.recOn' does not depend on any axioms
+'LexLeanRuntime.ToMathInt.toInt' does not depend on any axioms
+'LexLeanRuntime.append' does not depend on any axioms
+'LexLeanRuntime.bitAnd' does not depend on any axioms
+'LexLeanRuntime.bitNot' does not depend on any axioms
+'LexLeanRuntime.bitOr' does not depend on any axioms
+'LexLeanRuntime.bitXor' does not depend on any axioms
+'LexLeanRuntime.checkedAdd' does not depend on any axioms
+'LexLeanRuntime.checkedAddInt64' does not depend on any axioms
+'LexLeanRuntime.checkedConvert' does not depend on any axioms
+'LexLeanRuntime.checkedFromInt' does not depend on any axioms
+'LexLeanRuntime.checkedMultiply' does not depend on any axioms
+'LexLeanRuntime.checkedMultiplyInt64' does not depend on any axioms
+'LexLeanRuntime.checkedMultiplyInt64.match_1' does not depend on any axioms
+'LexLeanRuntime.checkedNegate' does not depend on any axioms
+'LexLeanRuntime.checkedNegateInt64' does not depend on any axioms
+'LexLeanRuntime.checkedQuotient' does not depend on any axioms
+'LexLeanRuntime.checkedQuotientInt64' does not depend on any axioms
+'LexLeanRuntime.checkedSubtract' does not depend on any axioms
+'LexLeanRuntime.checkedSubtractInt64' does not depend on any axioms
+'LexLeanRuntime.compareBytes' depends on axioms: [propext]
+'LexLeanRuntime.divideMagnitudeInt64' does not depend on any axioms
+'LexLeanRuntime.divideMagnitudeInt64._f' does not depend on any axioms
+'LexLeanRuntime.divideMagnitudeInt64._sunfold' does not depend on any axioms
+'LexLeanRuntime.divideMagnitudeInt64._unsafe_rec' does not depend on any axioms
+'LexLeanRuntime.divideMagnitudeInt64.match_1' does not depend on any axioms
+'LexLeanRuntime.equal' does not depend on any axioms
+'LexLeanRuntime.formatDecimal' does not depend on any axioms
+'LexLeanRuntime.index' does not depend on any axioms
+'LexLeanRuntime.instAppendableByteArray' does not depend on any axioms
+'LexLeanRuntime.instAppendableList' does not depend on any axioms
+'LexLeanRuntime.instDecimalInt' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LexLeanRuntime.instDecimalInt.match_1' does not depend on any axioms
+'LexLeanRuntime.instDecimalOfFixedOfToString' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LexLeanRuntime.instFixedInt16' depends on axioms: [propext, Quot.sound]
+'LexLeanRuntime.instFixedInt32' depends on axioms: [propext, Quot.sound]
+'LexLeanRuntime.instFixedInt64' depends on axioms: [propext, Quot.sound]
+'LexLeanRuntime.instFixedInt8' depends on axioms: [propext, Quot.sound]
+'LexLeanRuntime.instFixedUInt16' depends on axioms: [propext, Quot.sound]
+'LexLeanRuntime.instFixedUInt32' depends on axioms: [propext, Quot.sound]
+'LexLeanRuntime.instFixedUInt64' depends on axioms: [propext, Quot.sound]
+'LexLeanRuntime.instFixedUInt8' depends on axioms: [propext, Quot.sound]
+'LexLeanRuntime.instIndexableByteArrayUInt8' does not depend on any axioms
+'LexLeanRuntime.instIndexableList' does not depend on any axioms
+'LexLeanRuntime.instLengthableByteArray' does not depend on any axioms
+'LexLeanRuntime.instLengthableList' does not depend on any axioms
+'LexLeanRuntime.instLengthableString' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LexLeanRuntime.instQuotientInt' does not depend on any axioms
+'LexLeanRuntime.instQuotientNat' does not depend on any axioms
+'LexLeanRuntime.instSliceableByteArray' does not depend on any axioms
+'LexLeanRuntime.instSliceableList' does not depend on any axioms
+'LexLeanRuntime.instToMathIntInt' does not depend on any axioms
+'LexLeanRuntime.join' depends on axioms: [propext]
+'LexLeanRuntime.length' does not depend on any axioms
+'LexLeanRuntime.listIndex' does not depend on any axioms
+'LexLeanRuntime.listIndex._f' does not depend on any axioms
+'LexLeanRuntime.listIndex._sunfold' does not depend on any axioms
+'LexLeanRuntime.listIndex._unsafe_rec' does not depend on any axioms
+'LexLeanRuntime.listIndex.match_1' does not depend on any axioms
+'LexLeanRuntime.magnitudeInt64' does not depend on any axioms
+'LexLeanRuntime.multiply' does not depend on any axioms
+'LexLeanRuntime.multiplyMagnitudeInt64' does not depend on any axioms
+'LexLeanRuntime.multiplyMagnitudeInt64._f' does not depend on any axioms
+'LexLeanRuntime.multiplyMagnitudeInt64._sunfold' does not depend on any axioms
+'LexLeanRuntime.multiplyMagnitudeInt64._unsafe_rec' does not depend on any axioms
+'LexLeanRuntime.multiplyMagnitudeInt64.match_1' does not depend on any axioms
+'LexLeanRuntime.negate' does not depend on any axioms
+'LexLeanRuntime.parseDecimal' does not depend on any axioms
+'LexLeanRuntime.quotient' does not depend on any axioms
+'LexLeanRuntime.remainder' does not depend on any axioms
+'LexLeanRuntime.shiftLeft' does not depend on any axioms
+'LexLeanRuntime.shiftRight' does not depend on any axioms
+'LexLeanRuntime.signedMagnitudeInt64' does not depend on any axioms
+'LexLeanRuntime.slice' does not depend on any axioms
+'LexLeanRuntime.splitExact' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LexLeanRuntime.subtract' does not depend on any axioms
+'LexLeanRuntime.utf8Decode' depends on axioms: [propext, Classical.choice, Quot.sound]
+'LexLeanRuntime.utf8Encode' does not depend on any axioms
+'Models.Flows.BothCapped' does not depend on any axioms
+'Models.Flows.BranchContract.invariant_sound' depends on axioms: [propext]
+'Models.Flows.BranchContract.precondition_sound' depends on axioms: [propext]
+'Models.Flows.BranchModel' does not depend on any axioms
+'Models.Flows.BranchModel.initial' does not depend on any axioms
+'Models.Flows.ChainContract.invariant_sound' depends on axioms: [propext]
+'Models.Flows.ChainContract.precondition_sound' depends on axioms: [propext]
+'Models.Flows.ChainModel' does not depend on any axioms
+'Models.Flows.ChainModel.initial' does not depend on any axioms
+'Models.Flows.ClampBoth' does not depend on any axioms
+'Models.Flows.ClampBoth.initial' does not depend on any axioms
+'Models.Flows.ClampGuess' does not depend on any axioms
+'Models.Flows.ClampGuess.initial' does not depend on any axioms
+'Models.Flows.ClampOrTally' does not depend on any axioms
+'Models.Flows.ClampOrTally.initial' does not depend on any axioms
+'Models.Flows.ClampTally' does not depend on any axioms
+'Models.Flows.ClampTally.initial' does not depend on any axioms
+'Models.Flows.Drain' does not depend on any axioms
+'Models.Flows.Drain.initial' does not depend on any axioms
+'Models.Flows.DrainChainModel' does not depend on any axioms
+'Models.Flows.DrainChainModel.initial' does not depend on any axioms
+'Models.Flows.DrainModel' does not depend on any axioms
+'Models.Flows.DrainModel.initial' does not depend on any axioms
+'Models.Flows.Few' does not depend on any axioms
+'Models.Flows.FlowContract.invariant_sound' depends on axioms: [propext]
+'Models.Flows.FlowModel' does not depend on any axioms
+'Models.Flows.FlowModel.initial' does not depend on any axioms
+'Models.Flows.GuessOvershoot' does not depend on any axioms
+'Models.Flows.GuessTwice' does not depend on any axioms
+'Models.Flows.OvershootPairModel' does not depend on any axioms
+'Models.Flows.PairClampContract.invariant_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Models.Flows.PairClampModel' does not depend on any axioms
+'Models.Flows.PairClampModel.initial' does not depend on any axioms
+'Models.Flows.PairGuessContract.precondition_sound' depends on axioms: [propext]
+'Models.Flows.PairGuessModel' does not depend on any axioms
+'Models.Flows.RawChainContract.invariant_sound' depends on axioms: [propext]
+'Models.Flows.RawChainModel' does not depend on any axioms
+'Models.Flows.RawChainModel.initial' does not depend on any axioms
+'Models.Flows.SpillStream' does not depend on any axioms
+'Models.Flows.SpillStreamContract.precondition_sound' depends on axioms: [propext]
+'Models.Flows.SpillStreamModel' does not depend on any axioms
+'Models.Flows.SpillTally' does not depend on any axioms
+'Models.Flows.SpillTally.initial' does not depend on any axioms
+'Models.Flows.TallyDrain' does not depend on any axioms
+'Models.Flows.TallyDrain.initial' does not depend on any axioms
+'Models.Flows.TallySpillRaw' does not depend on any axioms
+'Models.Flows.TallySpillRaw.initial' does not depend on any axioms
+'Models.Flows.TwinCapped' does not depend on any axioms
+'Models.Flows.TwinContract.invariant_sound' depends on axioms: [propext]
+'Models.Flows.TwinContract.precondition_sound' depends on axioms: [propext]
+'Models.Flows.TwinModel' does not depend on any axioms
+'Models.Flows.TwinModel.initial' does not depend on any axioms
+'Models.Flows.TwinSmall' does not depend on any axioms
+'Models.Flows.bothCappedCheck' does not depend on any axioms
+'Models.Flows.both_capped_check_sound' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Models.Flows.both_entry_left' depends on axioms: [propext, Quot.sound]
+'Models.Flows.both_entry_right' depends on axioms: [propext, Quot.sound]
+'Models.Flows.branch_entry_else' does not depend on any axioms
+'Models.Flows.branch_entry_then' does not depend on any axioms
+'Models.Flows.chain_entry_invariant' does not depend on any axioms
+'Models.Flows.chain_entry_precondition' does not depend on any axioms
+'Models.Flows.fewCheck' does not depend on any axioms
+'Models.Flows.few_check_sound' depends on axioms: [propext]
+'Models.Flows.flow_capped_sound' depends on axioms: [propext]
+'Models.Flows.flow_entry' does not depend on any axioms
+'Models.Flows.pair_entry_left' does not depend on any axioms
+'Models.Flows.pair_entry_right' does not depend on any axioms
+'Models.Flows.pair_within_sound' depends on axioms: [propext]
+'Models.Flows.spill_tally' does not depend on any axioms
+'Models.Flows.twinCappedCheck' does not depend on any axioms
+'Models.Flows.twinSmallCheck' does not depend on any axioms
+'Models.Flows.twin_capped_check_sound' depends on axioms: [propext]
+'Models.Flows.twin_entry_left' does not depend on any axioms
+'Models.Flows.twin_entry_right' does not depend on any axioms
+'Models.Flows.twin_small_check_sound' depends on axioms: [propext]
+'Models.Glyphs.Glyph' does not depend on any axioms
+'Models.Glyphs.digitOf' does not depend on any axioms
+'Models.Glyphs.encode' does not depend on any axioms
+'Models.Glyphs.encode_width' does not depend on any axioms
+'Models.Glyphs.isEight' does not depend on any axioms
+'Models.Glyphs.segmentCount' does not depend on any axioms
+'Models.Ledger.Below' does not depend on any axioms
+'Models.Ledger.CapContract.invariant_complete' depends on axioms: [propext]
+'Models.Ledger.CapContract.invariant_sound' depends on axioms: [propext]
+'Models.Ledger.CapContract.postcondition_sound' depends on axioms: [propext]
+'Models.Ledger.Capped' does not depend on any axioms
+'Models.Ledger.Clamp' does not depend on any axioms
+'Models.Ledger.Clamp.initial' does not depend on any axioms
+'Models.Ledger.ClampEvidence.clamp_grows' depends on axioms: [propext, Quot.sound]
+'Models.Ledger.ClampEvidence.clamp_initial' does not depend on any axioms
+'Models.Ledger.ClampEvidence.clamp_preserves' depends on axioms: [propext, Quot.sound]
+'Models.Ledger.ClampEvidence.clamp_reference' depends on axioms: [propext]
+'Models.Ledger.ClampModel' does not depend on any axioms
+'Models.Ledger.ClampModel.initial' does not depend on any axioms
+'Models.Ledger.FreeContract.postcondition_sound' depends on axioms: [propext]
+'Models.Ledger.FreeEvidence.tally_free_grows' depends on axioms: [propext, Quot.sound]
+'Models.Ledger.FreeEvidence.tally_free_reference' depends on axioms: [propext]
+'Models.Ledger.FreeModel' does not depend on any axioms
+'Models.Ledger.FreeModel.initial' does not depend on any axioms
+'Models.Ledger.Grows' does not depend on any axioms
+'Models.Ledger.Guess' does not depend on any axioms
+'Models.Ledger.GuessContract.postcondition_sound' depends on axioms: [propext]
+'Models.Ledger.GuessContract.precondition_complete' depends on axioms: [propext]
+'Models.Ledger.GuessContract.precondition_sound' depends on axioms: [propext]
+'Models.Ledger.GuessEquivalence.guess_reference' depends on axioms: [propext]
+'Models.Ledger.GuessExactModel' does not depend on any axioms
+'Models.Ledger.GuessModel' does not depend on any axioms
+'Models.Ledger.GuessSample.guess_agreement' does not depend on any axioms
+'Models.Ledger.LedgerContract.invariant_complete' depends on axioms: [propext]
+'Models.Ledger.LedgerContract.invariant_sound' depends on axioms: [propext]
+'Models.Ledger.LedgerContract.postcondition_complete' depends on axioms: [propext]
+'Models.Ledger.LedgerContract.postcondition_sound' depends on axioms: [propext]
+'Models.Ledger.LedgerContract.precondition_sound' depends on axioms: [propext]
+'Models.Ledger.Overshoot' does not depend on any axioms
+'Models.Ledger.OvershootModel' does not depend on any axioms
+'Models.Ledger.Small' does not depend on any axioms
+'Models.Ledger.Spill' does not depend on any axioms
+'Models.Ledger.Spill.initial' does not depend on any axioms
+'Models.Ledger.SpillEvidence.spill_grows' depends on axioms: [propext, Quot.sound]
+'Models.Ledger.SpillModel' does not depend on any axioms
+'Models.Ledger.SpillModel.initial' does not depend on any axioms
+'Models.Ledger.SpillRawModel' does not depend on any axioms
+'Models.Ledger.SpillRawModel.initial' does not depend on any axioms
+'Models.Ledger.SpillReference.spill_reference' depends on axioms: [propext]
+'Models.Ledger.Tally' does not depend on any axioms
+'Models.Ledger.Tally.initial' does not depend on any axioms
+'Models.Ledger.TallyContract.postcondition_sound' depends on axioms: [propext]
+'Models.Ledger.TallyContract.precondition_sound' depends on axioms: [propext]
+'Models.Ledger.TallyEvidence.tally_grows' depends on axioms: [propext, Quot.sound]
+'Models.Ledger.TallyEvidence.tally_reference' depends on axioms: [propext]
+'Models.Ledger.TallyModel' does not depend on any axioms
+'Models.Ledger.TallyModel.initial' does not depend on any axioms
+'Models.Ledger.Within' does not depend on any axioms
+'Models.Ledger.belowCheck' does not depend on any axioms
+'Models.Ledger.below_check_sound' depends on axioms: [propext]
+'Models.Ledger.cappedCheck' does not depend on any axioms
+'Models.Ledger.capped_check_complete' depends on axioms: [propext]
+'Models.Ledger.capped_check_sound' depends on axioms: [propext]
+'Models.Ledger.clampRef' does not depend on any axioms
+'Models.Ledger.clamp_grows' depends on axioms: [propext, Quot.sound]
+'Models.Ledger.clamp_initial' does not depend on any axioms
+'Models.Ledger.clamp_preserves' depends on axioms: [propext, Quot.sound]
+'Models.Ledger.clamp_reference' depends on axioms: [propext]
+'Models.Ledger.growsCheck' does not depend on any axioms
+'Models.Ledger.grows_check_complete' depends on axioms: [propext]
+'Models.Ledger.grows_check_sound' depends on axioms: [propext]
+'Models.Ledger.guessRef' does not depend on any axioms
+'Models.Ledger.guessSamples' does not depend on any axioms
+'Models.Ledger.guess_agreement' does not depend on any axioms
+'Models.Ledger.guess_reference' depends on axioms: [propext]
+'Models.Ledger.sameNat' does not depend on any axioms
+'Models.Ledger.same_nat_sound' depends on axioms: [propext]
+'Models.Ledger.smallCheck' does not depend on any axioms
+'Models.Ledger.small_check_sound' depends on axioms: [propext]
+'Models.Ledger.spillRef' does not depend on any axioms
+'Models.Ledger.spill_grows' depends on axioms: [propext, Quot.sound]
+'Models.Ledger.spill_reference' depends on axioms: [propext]
+'Models.Ledger.tallyRef' does not depend on any axioms
+'Models.Ledger.tally_free_grows' depends on axioms: [propext, Quot.sound]
+'Models.Ledger.tally_free_reference' depends on axioms: [propext]
+'Models.Ledger.tally_grows' depends on axioms: [propext, Quot.sound]
+'Models.Ledger.tally_reference' depends on axioms: [propext]
+'Models.Ledger.violationCode' does not depend on any axioms
+'Models.Ledger.withinCheck' does not depend on any axioms
+'Models.Ledger.within_check_complete' depends on axioms: [propext]
+'Models.Ledger.within_check_sound' depends on axioms: [propext]
+'Models.Main.admission' does not depend on any axioms
+'Models.Main.admitCosts' does not depend on any axioms
+'Models.Main.admit_accepts_cheap' does not depend on any axioms
+'Models.Main.admit_rejects_costly' does not depend on any axioms
+'Models.Main.branchCode' does not depend on any axioms
+'Models.Main.branchStep' does not depend on any axioms
+'Models.Main.branch_refuses_precondition' does not depend on any axioms
+'Models.Main.chainCode' does not depend on any axioms
+'Models.Main.chainStep' does not depend on any axioms
+'Models.Main.chain_refuses_precondition' does not depend on any axioms
+'Models.Main.classify' depends on axioms: [propext]
+'Models.Main.classifyChecked' depends on axioms: [propext]
+'Models.Main.classify_eight' depends on axioms: [propext]
+'Models.Main.drainChainStep' does not depend on any axioms
+'Models.Main.flowCode' does not depend on any axioms
+'Models.Main.flowStep' does not depend on any axioms
+'Models.Main.flow_accepts' does not depend on any axioms
+'Models.Main.flow_refuses_input' does not depend on any axioms
+'Models.Main.flow_refuses_junction' does not depend on any axioms
+'Models.Main.guessChecked' does not depend on any axioms
+'Models.Main.guessOvershoot' does not depend on any axioms
+'Models.Main.guessTwice' does not depend on any axioms
+'Models.Main.guess_accepts' does not depend on any axioms
+'Models.Main.guess_refuses_precondition' does not depend on any axioms
+'Models.Main.ledgerFull' does not depend on any axioms
+'Models.Main.ledgerPost' does not depend on any axioms
+'Models.Main.ledger_accepts' does not depend on any axioms
+'Models.Main.ledger_full_accepts' does not depend on any axioms
+'Models.Main.ledger_full_refuses_output' does not depend on any axioms
+'Models.Main.ledger_refuses_input' does not depend on any axioms
+'Models.Main.ledger_refuses_output' does not depend on any axioms
+'Models.Main.ledger_refuses_precondition' does not depend on any axioms
+'Models.Main.overshootChecked' does not depend on any axioms
+'Models.Main.overshoot_pair_refuses_postcondition' does not depend on any axioms
+'Models.Main.overshoot_refuses_postcondition' does not depend on any axioms
+'Models.Main.pairClamp' does not depend on any axioms
+'Models.Main.pair_clamp_refuses_input' does not depend on any axioms
+'Models.Main.quadCode' does not depend on any axioms
+'Models.Main.rawChainStep' does not depend on any axioms
+'Models.Main.respond' depends on axioms: [propext]
+'Models.Main.spillStream' does not depend on any axioms
+'Models.Main.step' does not depend on any axioms
+'Models.Main.stepCode' does not depend on any axioms
+'Models.Main.streamCode' does not depend on any axioms
+'Models.Main.stream_accepts' does not depend on any axioms
+'Models.Main.stream_refuses_output' does not depend on any axioms
+'Models.Main.twiceCode' does not depend on any axioms
+'Models.Main.twice_accepts' does not depend on any axioms
+'Models.Main.twice_refuses' does not depend on any axioms
+'Models.Main.twinStep' does not depend on any axioms
+'Models.Main.twin_refuses_input' does not depend on any axioms
+'Models.Main.twin_refuses_precondition' does not depend on any axioms
+'Models.Main.valueCode' does not depend on any axioms
+'Models.Pipeline.Answered' does not depend on any axioms
+'Models.Pipeline.Bounded9' does not depend on any axioms
+'Models.Pipeline.CheckedEvidence.checked_answers' depends on axioms: [propext]
+'Models.Pipeline.CheckedModel' depends on axioms: [propext]
+'Models.Pipeline.CheckedPipeline' depends on axioms: [propext]
+'Models.Pipeline.GlyphPair' does not depend on any axioms
+'Models.Pipeline.GlyphReport' depends on axioms: [propext]
+'Models.Pipeline.GlyphRoute' depends on axioms: [propext]
+'Models.Pipeline.Lit' does not depend on any axioms
+'Models.Pipeline.PairEvidence.pair_correct' does not depend on any axioms
+'Models.Pipeline.PairLit' does not depend on any axioms
+'Models.Pipeline.PairModel' does not depend on any axioms
+'Models.Pipeline.PipelineContract.precondition_sound' does not depend on any axioms
+'Models.Pipeline.PipelineEvidence.pipeline_responds' depends on axioms: [propext]
+'Models.Pipeline.PipelineModel' depends on axioms: [propext]
+'Models.Pipeline.ReportEvidence.report_correct' depends on axioms: [propext]
+'Models.Pipeline.ReportModel' depends on axioms: [propext]
+'Models.Pipeline.Reported' does not depend on any axioms
+'Models.Pipeline.Responds' does not depend on any axioms
+'Models.Pipeline.RouteEvidence.route_bounded' depends on axioms: [propext]
+'Models.Pipeline.RouteModel' depends on axioms: [propext]
+'Models.Pipeline.SegmentCounter' does not depend on any axioms
+'Models.Pipeline.SegmentEvidence.segments_lit' does not depend on any axioms
+'Models.Pipeline.SegmentModel' does not depend on any axioms
+'Models.Pipeline.SessionStream' does not depend on any axioms
+'Models.Pipeline.ShortStream' does not depend on any axioms
+'Models.Pipeline.StreamContract.precondition_sound' depends on axioms: [propext, Quot.sound]
+'Models.Pipeline.StreamModel' does not depend on any axioms
+'Models.Pipeline.TriagePipeline' depends on axioms: [propext]
+'Models.Pipeline.checked_answers' depends on axioms: [propext]
+'Models.Pipeline.pair_correct' does not depend on any axioms
+'Models.Pipeline.pipeline_entry' does not depend on any axioms
+'Models.Pipeline.pipeline_responds' depends on axioms: [propext]
+'Models.Pipeline.report_correct' depends on axioms: [propext]
+'Models.Pipeline.resultCode' does not depend on any axioms
+'Models.Pipeline.route_bounded' depends on axioms: [propext]
+'Models.Pipeline.segments_lit' does not depend on any axioms
+'Models.Pipeline.shortStreamCheck' does not depend on any axioms
+'Models.Pipeline.short_stream_check_sound' depends on axioms: [propext, Quot.sound]
+'Models.Pipeline.symptomatic_sound' does not depend on any axioms
+'Models.Pipeline.triage_actionable' depends on axioms: [propext]
+'Models.Policy.Actionable' does not depend on any axioms
+'Models.Policy.Escalates' does not depend on any axioms
+'Models.Policy.PolicyContract.precondition_complete' does not depend on any axioms
+'Models.Policy.PolicyContract.precondition_sound' does not depend on any axioms
+'Models.Policy.PolicyEvidence.policy_escalates' does not depend on any axioms
+'Models.Policy.PolicyModel' does not depend on any axioms
+'Models.Policy.PolicyRules' does not depend on any axioms
+'Models.Policy.PolicyRules.selected' does not depend on any axioms
+'Models.Policy.actionableCheck' does not depend on any axioms
+'Models.Policy.actionable_check_complete' does not depend on any axioms
+'Models.Policy.actionable_check_sound' does not depend on any axioms
+'Models.Policy.emergency_dispatches' does not depend on any axioms
+'Models.Policy.isUrgent' does not depend on any axioms
+'Models.Policy.policy_escalates' does not depend on any axioms
+'Models.Recognizer.DigitContract.postcondition_complete' depends on axioms: [propext]
+'Models.Recognizer.DigitContract.postcondition_sound' depends on axioms: [propext]
+'Models.Recognizer.DigitEvidence.digit_net_correct' depends on axioms: [propext]
+'Models.Recognizer.DigitEvidence.digit_net_exact' depends on axioms: [propext]
+'Models.Recognizer.DigitEvidence.labeled_agreement' depends on axioms: [propext]
+'Models.Recognizer.DigitModel' depends on axioms: [propext]
+'Models.Recognizer.DigitNet' depends on axioms: [propext]
+'Models.Recognizer.DigitNet.encoded' does not depend on any axioms
+'Models.Recognizer.DigitNet.layer1' does not depend on any axioms
+'Models.Recognizer.DigitNet.layer2' depends on axioms: [propext]
+'Models.Recognizer.DigitNet.layer3' depends on axioms: [propext]
+'Models.Recognizer.DigitNet.layer4' does not depend on any axioms
+'Models.Recognizer.DigitNet.logits' depends on axioms: [propext]
+'Models.Recognizer.RawDigitModel' depends on axioms: [propext]
+'Models.Recognizer.Recognizes' does not depend on any axioms
+'Models.Recognizer.banner' does not depend on any axioms
+'Models.Recognizer.banner.bytes' does not depend on any axioms
+'Models.Recognizer.banner.decoded' does not depend on any axioms
+'Models.Recognizer.digitName' does not depend on any axioms
+'Models.Recognizer.digitNames' does not depend on any axioms
+'Models.Recognizer.digitNames.bytes' does not depend on any axioms
+'Models.Recognizer.digitNames.decoded' depends on axioms: [propext, Classical.choice, Quot.sound]
+'Models.Recognizer.digit_net_correct' depends on axioms: [propext]
+'Models.Recognizer.digit_net_exact' depends on axioms: [propext]
+'Models.Recognizer.digit_net_width' does not depend on any axioms
+'Models.Recognizer.hiddenBias' does not depend on any axioms
+'Models.Recognizer.hiddenBias.bytes' does not depend on any axioms
+'Models.Recognizer.hiddenBias.decoded' does not depend on any axioms
+'Models.Recognizer.hiddenWeights' does not depend on any axioms
+'Models.Recognizer.hiddenWeights.bytes' does not depend on any axioms
+'Models.Recognizer.hiddenWeights.decoded' does not depend on any axioms
+'Models.Recognizer.labeledGlyphs' does not depend on any axioms
+'Models.Recognizer.labeled_agreement' depends on axioms: [propext]
+'Models.Recognizer.outputBias' does not depend on any axioms
+'Models.Recognizer.outputBias.bytes' does not depend on any axioms
+'Models.Recognizer.outputBias.decoded' does not depend on any axioms
+'Models.Recognizer.outputWeights' does not depend on any axioms
+'Models.Recognizer.outputWeights.bytes' does not depend on any axioms
+'Models.Recognizer.outputWeights.decoded' does not depend on any axioms
+'Models.Recognizer.recognizesCheck' does not depend on any axioms
+'Models.Recognizer.recognizes_check_complete' depends on axioms: [propext]
+'Models.Recognizer.recognizes_check_sound' depends on axioms: [propext]
+'Models.Recognizer.sameDigit' does not depend on any axioms
+'Models.Recognizer.same_digit_sound' depends on axioms: [propext]
+'Models.Session.Affordable' does not depend on any axioms
+'Models.Session.Bounded' does not depend on any axioms
+'Models.Session.Conserves' does not depend on any axioms
+'Models.Session.SessionContract.invariant_sound' depends on axioms: [propext]
+'Models.Session.SessionContract.precondition_sound' depends on axioms: [propext]
+'Models.Session.SessionEvidence.session_conserves' depends on axioms: [propext, Quot.sound]
+'Models.Session.SessionEvidence.session_initial' does not depend on any axioms
+'Models.Session.SessionEvidence.session_preserves' depends on axioms: [propext, Quot.sound]
+'Models.Session.SessionModel' does not depend on any axioms
+'Models.Session.SessionModel.initial' does not depend on any axioms
+'Models.Session.SessionStep' does not depend on any axioms
+'Models.Session.SessionStep.initial' does not depend on any axioms
+'Models.Session.Window' does not depend on any axioms
+'Models.Session.affordableCheck' does not depend on any axioms
+'Models.Session.affordable_check_sound' depends on axioms: [propext]
+'Models.Session.boundedCheck' does not depend on any axioms
+'Models.Session.bounded_check_sound' depends on axioms: [propext]
+'Models.Session.session_conserves' depends on axioms: [propext, Quot.sound]
+'Models.Session.session_initial' does not depend on any axioms
+'Models.Session.session_preserves' depends on axioms: [propext, Quot.sound]
+'Models.Triage.Level' does not depend on any axioms
+'Models.Triage.Presentation' does not depend on any axioms
+'Models.Triage.Safe' does not depend on any axioms
+'Models.Triage.Symptomatic' does not depend on any axioms
+'Models.Triage.TriageContract.precondition_sound' does not depend on any axioms
+'Models.Triage.TriageEvidence.triage_safe' depends on axioms: [propext]
+'Models.Triage.TriageModel' depends on axioms: [propext]
+'Models.Triage.TriageScore' depends on axioms: [propext]
+'Models.Triage.TriageScore.features' does not depend on any axioms
+'Models.Triage.TriageScore.scores' does not depend on any axioms
+'Models.Triage.features' does not depend on any axioms
+'Models.Triage.hasSymptom' does not depend on any axioms
+'Models.Triage.isBreathless' does not depend on any axioms
+'Models.Triage.isEmergency' does not depend on any axioms
+'Models.Triage.isRoutine' does not depend on any axioms
+'Models.Triage.symptomaticCheck' does not depend on any axioms
+'Models.Triage.symptomatic_check_sound' does not depend on any axioms
+'Models.Triage.triageBias' does not depend on any axioms
+'Models.Triage.triageBias.bytes' does not depend on any axioms
+'Models.Triage.triageBias.decoded' does not depend on any axioms
+'Models.Triage.triageWeights' does not depend on any axioms
+'Models.Triage.triageWeights.bytes' does not depend on any axioms
+'Models.Triage.triageWeights.decoded' does not depend on any axioms
+'Models.Triage.triage_safe' depends on axioms: [propext]
+'Models.Triage.triage_width' does not depend on any axioms

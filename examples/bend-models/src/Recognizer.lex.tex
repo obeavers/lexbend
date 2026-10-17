@@ -182,7 +182,7 @@ definition{
   name: labeledGlyphs,
   parameters: [],
   result: (List (Glyphs::Glyph * Nat)),
-  body: (cons ((ctor Glyphs::Glyph.g3), 3) (cons ((ctor Glyphs::Glyph.g0), 0) (cons ((ctor Glyphs::Glyph.g7), 7) (cons ((ctor Glyphs::Glyph.g4), 4) (cons ((ctor Glyphs::Glyph.g1), 1) (cons ((ctor Glyphs::Glyph.g8), 8) (cons ((ctor Glyphs::Glyph.g5), 5) (cons ((ctor Glyphs::Glyph.g2), 1) (cons ((ctor Glyphs::Glyph.g9), 9) (cons ((ctor Glyphs::Glyph.g6), 6) (cons ((ctor Glyphs::Glyph.g3), 3) (cons ((ctor Glyphs::Glyph.g0), 0) (cons ((ctor Glyphs::Glyph.g7), 7) (cons ((ctor Glyphs::Glyph.g4), 4) (cons ((ctor Glyphs::Glyph.g1), 1) (cons ((ctor Glyphs::Glyph.g8), 8) (cons ((ctor Glyphs::Glyph.g5), 5) (cons ((ctor Glyphs::Glyph.g2), 2) (cons ((ctor Glyphs::Glyph.g9), 9) (cons ((ctor Glyphs::Glyph.g6), 7) (cons ((ctor Glyphs::Glyph.g3), 3) (cons ((ctor Glyphs::Glyph.g0), 0) (cons ((ctor Glyphs::Glyph.g7), 7) (cons ((ctor Glyphs::Glyph.g4), 4) (cons ((ctor Glyphs::Glyph.g1), 1) (cons ((ctor Glyphs::Glyph.g8), 8) (cons ((ctor Glyphs::Glyph.g5), 5) (cons ((ctor Glyphs::Glyph.g2), 2) (cons ((ctor Glyphs::Glyph.g9), 9) (cons ((ctor Glyphs::Glyph.g6), 6) (cons ((ctor Glyphs::Glyph.g3), 3) (cons ((ctor Glyphs::Glyph.g0), 0) (cons ((ctor Glyphs::Glyph.g7), 7) (cons ((ctor Glyphs::Glyph.g4), 8) (cons ((ctor Glyphs::Glyph.g1), 1) (cons ((ctor Glyphs::Glyph.g8), 8) (cons ((ctor Glyphs::Glyph.g5), 5) (cons ((ctor Glyphs::Glyph.g2), 2) (cons ((ctor Glyphs::Glyph.g9), 9) (cons ((ctor Glyphs::Glyph.g6), 6) (nil (Glyphs::Glyph * Nat))))))))))))))))))))))))))))))))))))))))))
+  body: (cons ((ctor Glyphs::Glyph.g3), 3) (cons ((ctor Glyphs::Glyph.g0), 0) (cons ((ctor Glyphs::Glyph.g2), 1) (cons ((ctor Glyphs::Glyph.g7), 7) (cons ((ctor Glyphs::Glyph.g4), 4) (nil (Glyphs::Glyph * Nat)))))))
 }
 
 definition{
@@ -204,7 +204,7 @@ theorem{
 theorem{
   name: labeled_agreement,
   parameters: [],
-  statement: (((prim length (labeledGlyphs) : Nat) = 40) /\ ((prim list_fold (fun (count : Nat) (example : (Glyphs::Glyph * Nat)) => (if (sameDigit (DigitNet (first example)) (second example)) then (count + 1) else count)) 0 (labeledGlyphs) : Nat) = 37)),
+  statement: (((prim length (labeledGlyphs) : Nat) = 5) /\ ((prim list_fold (fun (count : Nat) (example : (Glyphs::Glyph * Nat)) => (if (sameDigit (DigitNet (first example)) (second example)) then (count + 1) else count)) 0 (labeledGlyphs) : Nat) = 4)),
   proof: decide{},
   axioms: [propext]
 }
@@ -214,11 +214,11 @@ evidence{
   axioms: [propext],
   claims: [
     dataset_agreement{
-      agreements: 37,
+      agreements: 4,
       comparison: sameDigit,
       comparison_sound: same_digit_sound,
       dataset: labeledGlyphs,
-      examples: 40,
+      examples: 5,
       theorem: labeled_agreement
     },
     equivalent_to{reference: {member: Glyphs::digitOf}, theorem: digit_net_exact},

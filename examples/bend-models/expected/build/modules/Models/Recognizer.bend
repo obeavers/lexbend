@@ -254,7 +254,7 @@ def digit_net_correct(glyph):
       {==}
 
 def labeledGlyphs() -> List<&2, L.Lean.Prod(Models_Glyphs.Glyph, Nat)>:
-  Con{(Models_Glyphs.Glyph.g3{}, 3n), Con{(Models_Glyphs.Glyph.g0{}, 0n), Con{(Models_Glyphs.Glyph.g7{}, 7n), Con{(Models_Glyphs.Glyph.g4{}, 4n), Con{(Models_Glyphs.Glyph.g1{}, 1n), Con{(Models_Glyphs.Glyph.g8{}, 8n), Con{(Models_Glyphs.Glyph.g5{}, 5n), Con{(Models_Glyphs.Glyph.g2{}, 1n), Con{(Models_Glyphs.Glyph.g9{}, 9n), Con{(Models_Glyphs.Glyph.g6{}, 6n), Con{(Models_Glyphs.Glyph.g3{}, 3n), Con{(Models_Glyphs.Glyph.g0{}, 0n), Con{(Models_Glyphs.Glyph.g7{}, 7n), Con{(Models_Glyphs.Glyph.g4{}, 4n), Con{(Models_Glyphs.Glyph.g1{}, 1n), Con{(Models_Glyphs.Glyph.g8{}, 8n), Con{(Models_Glyphs.Glyph.g5{}, 5n), Con{(Models_Glyphs.Glyph.g2{}, 2n), Con{(Models_Glyphs.Glyph.g9{}, 9n), Con{(Models_Glyphs.Glyph.g6{}, 7n), Con{(Models_Glyphs.Glyph.g3{}, 3n), Con{(Models_Glyphs.Glyph.g0{}, 0n), Con{(Models_Glyphs.Glyph.g7{}, 7n), Con{(Models_Glyphs.Glyph.g4{}, 4n), Con{(Models_Glyphs.Glyph.g1{}, 1n), Con{(Models_Glyphs.Glyph.g8{}, 8n), Con{(Models_Glyphs.Glyph.g5{}, 5n), Con{(Models_Glyphs.Glyph.g2{}, 2n), Con{(Models_Glyphs.Glyph.g9{}, 9n), Con{(Models_Glyphs.Glyph.g6{}, 6n), Con{(Models_Glyphs.Glyph.g3{}, 3n), Con{(Models_Glyphs.Glyph.g0{}, 0n), Con{(Models_Glyphs.Glyph.g7{}, 7n), Con{(Models_Glyphs.Glyph.g4{}, 8n), Con{(Models_Glyphs.Glyph.g1{}, 1n), Con{(Models_Glyphs.Glyph.g8{}, 8n), Con{(Models_Glyphs.Glyph.g5{}, 5n), Con{(Models_Glyphs.Glyph.g2{}, 2n), Con{(Models_Glyphs.Glyph.g9{}, 9n), Con{(Models_Glyphs.Glyph.g6{}, 6n), Nil{}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}}
+  Con{(Models_Glyphs.Glyph.g3{}, 3n), Con{(Models_Glyphs.Glyph.g0{}, 0n), Con{(Models_Glyphs.Glyph.g2{}, 1n), Con{(Models_Glyphs.Glyph.g7{}, 7n), Con{(Models_Glyphs.Glyph.g4{}, 4n), Nil{}}}}}}
 
 def sameDigit(+expected: Nat, +observed: Nat) -> Bool:
   L.Lean.Nat.beq(expected, observed)
@@ -269,13 +269,13 @@ def same_digit_sound(expected, observed, ll_h0):
   LA.sound(Con{expected, Con{observed, Nil{}}}, LA.FEq{LA.TVar{0n}, LA.TVar{1n}}, Con{LA.FIs{LA.BEq{LA.TVar{0n}, LA.TVar{1n}}, True{}}, Nil{}}, 9n, LA.Fork{LA.Leaf{Con{1n, Con{0n, Con{1n, Nil{}}}}}, LA.Leaf{Con{0n, Con{1n, Con{1n, Nil{}}}}}}, {==}, (ll_h0, Unit{}))
 
 law labeled_agreement:
-  L.Lean.Prod({R.LexLeanRuntime.length.List(L.Lean.Prod(Models_Glyphs.Glyph, Nat), labeledGlyphs()) == 40n : Nat}, {S.Sem.listFold(~L.Lean.Prod(Models_Glyphs.Glyph, Nat), ~Nat, ~Unit, ~(+ll_e => +count => +example => S.Sem.ite(Nat, sameDigit(DigitNet(S.Sem.fst(Models_Glyphs.Glyph, Nat, example)), S.Sem.snd(Models_Glyphs.Glyph, Nat, example)), L.Lean.Nat.add(count, 1n), count)), Unit{}, labeledGlyphs(), 0n) == 37n : Nat})
+  L.Lean.Prod({R.LexLeanRuntime.length.List(L.Lean.Prod(Models_Glyphs.Glyph, Nat), labeledGlyphs()) == 5n : Nat}, {S.Sem.listFold(~L.Lean.Prod(Models_Glyphs.Glyph, Nat), ~Nat, ~Unit, ~(+ll_e => +count => +example => S.Sem.ite(Nat, sameDigit(DigitNet(S.Sem.fst(Models_Glyphs.Glyph, Nat, example)), S.Sem.snd(Models_Glyphs.Glyph, Nat, example)), L.Lean.Nat.add(count, 1n), count)), Unit{}, labeledGlyphs(), 0n) == 4n : Nat})
 
 def labeled_agreement():
   ({==}, {==})
 
 law DigitEvidence.labeled_agreement:
-  R.LexLeanModels.Agreement(Models_Glyphs.Glyph, Nat, (+ll_x29 => DigitNet(ll_x29)), (+ll_x30 => +ll_x31 => sameDigit(ll_x30, ll_x31)), labeledGlyphs(), 40n, 37n)
+  R.LexLeanModels.Agreement(Models_Glyphs.Glyph, Nat, (+ll_x29 => DigitNet(ll_x29)), (+ll_x30 => +ll_x31 => sameDigit(ll_x30, ll_x31)), labeledGlyphs(), 5n, 4n)
 
 def DigitEvidence.labeled_agreement():
   ({==}, {==})

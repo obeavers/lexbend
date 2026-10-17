@@ -134,7 +134,7 @@
 \subsection*{\texttt{labeledGlyphs}}
 \noindent Kind: \texttt{definition}.\par
 \noindent Type: \texttt{List ((Prod (Models.Glyphs.Glyph) (Nat)))}.\par
-\noindent Definition: \texttt{((Models.Glyphs.Glyph.g3, 3) :: ((Models.Glyphs.Glyph.g0, 0) :: ((Models.Glyphs.Glyph.g7, 7) :: ((Models.Glyphs.Glyph.g4, 4) :: ((Models.Glyphs.Glyph.g1, 1) :: ((Models.Glyphs.Glyph.g8, 8) :: ((Models.Glyphs.Glyph.g5, 5) :: ((Models.Glyphs.Glyph.g2, 1) :: ((Models.Glyphs.Glyph.g9, 9) :: ((Models.Glyphs.Glyph.g6, 6) :: ((Models.Glyphs.Glyph.g3, 3) :: ((Models.Glyphs.Glyph.g0, 0) :: ((Models.Glyphs.Glyph.g7, 7) :: ((Models.Glyphs.Glyph.g4, 4) :: ((Models.Glyphs.Glyph.g1, 1) :: ((Models.Glyphs.Glyph.g8, 8) :: ((Models.Glyphs.Glyph.g5, 5) :: ((Models.Glyphs.Glyph.g2, 2) :: ((Models.Glyphs.Glyph.g9, 9) :: ((Models.Glyphs.Glyph.g6, 7) :: ((Models.Glyphs.Glyph.g3, 3) :: ((Models.Glyphs.Glyph.g0, 0) :: ((Models.Glyphs.Glyph.g7, 7) :: ((Models.Glyphs.Glyph.g4, 4) :: ((Models.Glyphs.Glyph.g1, 1) :: ((Models.Glyphs.Glyph.g8, 8) :: ((Models.Glyphs.Glyph.g5, 5) :: ((Models.Glyphs.Glyph.g2, 2) :: ((Models.Glyphs.Glyph.g9, 9) :: ((Models.Glyphs.Glyph.g6, 6) :: ((Models.Glyphs.Glyph.g3, 3) :: ((Models.Glyphs.Glyph.g0, 0) :: ((Models.Glyphs.Glyph.g7, 7) :: ((Models.Glyphs.Glyph.g4, 8) :: ((Models.Glyphs.Glyph.g1, 1) :: ((Models.Glyphs.Glyph.g8, 8) :: ((Models.Glyphs.Glyph.g5, 5) :: ((Models.Glyphs.Glyph.g2, 2) :: ((Models.Glyphs.Glyph.g9, 9) :: ((Models.Glyphs.Glyph.g6, 6) :: ([] : List ((Prod (Models.Glyphs.Glyph) (Nat))))))))))))))))))))))))))))))))))))))))))))}.\par
+\noindent Definition: \texttt{((Models.Glyphs.Glyph.g3, 3) :: ((Models.Glyphs.Glyph.g0, 0) :: ((Models.Glyphs.Glyph.g2, 1) :: ((Models.Glyphs.Glyph.g7, 7) :: ((Models.Glyphs.Glyph.g4, 4) :: ([] : List ((Prod (Models.Glyphs.Glyph) (Nat)))))))))}.\par
 \noindent Axiom policy: \texttt{none}.\par
 \subsection*{\texttt{sameDigit}}
 \noindent Kind: \texttt{definition}.\par
@@ -150,16 +150,16 @@
 \noindent Axiom policy: \texttt{exact [propext]}.\par
 \subsection*{\texttt{labeled\_agreement}}
 \noindent Kind: \texttt{theorem}.\par
-\noindent Statement: \texttt{(((LexLeanRuntime.length (labeledGlyphs) : Nat) = 40) /\textbackslash{} ((LexLeanCollections.listFold ((fun (count : Nat) (<U+00AB>example<U+00BB> : (Prod (Models.Glyphs.Glyph) (Nat))) => (if sameDigit (DigitNet ((<U+00AB>example<U+00BB>).1)) ((<U+00AB>example<U+00BB>).2) then (count + 1) else count))) (0) (labeledGlyphs) : Nat) = 37))}.\par
+\noindent Statement: \texttt{(((LexLeanRuntime.length (labeledGlyphs) : Nat) = 5) /\textbackslash{} ((LexLeanCollections.listFold ((fun (count : Nat) (<U+00AB>example<U+00BB> : (Prod (Models.Glyphs.Glyph) (Nat))) => (if sameDigit (DigitNet ((<U+00AB>example<U+00BB>).1)) ((<U+00AB>example<U+00BB>).2) then (count + 1) else count))) (0) (labeledGlyphs) : Nat) = 4))}.\par
 \noindent Axiom policy: \texttt{exact [propext]}.\par
 \subsection*{\texttt{DigitEvidence}}
 \noindent Kind: \texttt{evidence}.\par
 \noindent About: \texttt{realization DigitNet against contract DigitContract}.\par
-\noindent Claim: \texttt{agrees with the expected output on exactly 37 of the 40 examples of labeledGlyphs under sameDigit, sound for equality by same\_digit\_sound, discharged by labeled\_agreement}.\par
+\noindent Claim: \texttt{agrees with the expected output on exactly 4 of the 5 examples of labeledGlyphs under sameDigit, sound for equality by same\_digit\_sound, discharged by labeled\_agreement}.\par
 \noindent Claim: \texttt{equals Models.Glyphs.digitOf under the contract's premises, discharged by digit\_net\_exact}.\par
 \noindent Claim: \texttt{satisfies the postcondition under the contract's premises, discharged by digit\_net\_correct}.\par
 \noindent Axiom policy: \texttt{exact [propext]}.\par
-\noindent Obligation (evidence DigitEvidence claim dataset\_agreement): \texttt{(((LexLeanRuntime.length (labeledGlyphs) : Nat) = 40) /\textbackslash{} ((LexLeanCollections.listFold ((fun (\_\_count : Nat) (\_\_example : (Prod (Models.Glyphs.Glyph) (Nat))) => (if sameDigit (DigitNet ((\_\_example).1)) ((\_\_example).2) then (\_\_count + 1) else \_\_count))) (0) (labeledGlyphs) : Nat) = 37)); stated exactly by labeled\_agreement}.\par
+\noindent Obligation (evidence DigitEvidence claim dataset\_agreement): \texttt{(((LexLeanRuntime.length (labeledGlyphs) : Nat) = 5) /\textbackslash{} ((LexLeanCollections.listFold ((fun (\_\_count : Nat) (\_\_example : (Prod (Models.Glyphs.Glyph) (Nat))) => (if sameDigit (DigitNet ((\_\_example).1)) ((\_\_example).2) then (\_\_count + 1) else \_\_count))) (0) (labeledGlyphs) : Nat) = 4)); stated exactly by labeled\_agreement}.\par
 \noindent Obligation (evidence DigitEvidence claim dataset\_agreement comparison): \texttt{forall (\_\_expected : Nat) (\_\_observed : Nat), ((sameDigit (\_\_expected) (\_\_observed) = true) -> (\_\_expected = \_\_observed)); stated exactly by same\_digit\_sound}.\par
 \noindent Obligation (evidence DigitEvidence claim equivalent\_to): \texttt{forall (glyph : Models.Glyphs.Glyph), (DigitNet (glyph) = Models.Glyphs.digitOf (glyph)); stated exactly by digit\_net\_exact}.\par
 \noindent Obligation (evidence DigitEvidence claim satisfies\_contract): \texttt{forall (glyph : Models.Glyphs.Glyph), Recognizes (glyph) (DigitNet (glyph)); stated exactly by digit\_net\_correct}.\par

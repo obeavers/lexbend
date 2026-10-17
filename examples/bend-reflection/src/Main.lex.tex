@@ -28,14 +28,23 @@ theorem{
   name: pair_reflects,
   parameters: [pair : Pair],
   statement: (((validatePair pair) = true) <-> (PairValid pair)),
-  proof: boolean_reflection{reflection: record{boolean_definition: validatePair, fields: [{expected: "0", field: left}, {expected: "1", field: right}], proposition_definition: PairValid, record: pair}}
+  proof: boolean_reflection{
+    reflection: record{
+      fields: [{expected: "0", field: left}, {expected: "1", field: right}],
+      boolean_definition: validatePair,
+      proposition_definition: PairValid,
+      record: pair
+    }
+  }
 }
 
 definition{
   name: countsFrom,
   parameters: [start : Nat, values : (List Nat)],
   result: Bool,
-  body: (match values | List.nil => true | List.cons head tail => ((start =? head) && (countsFrom (start + 1) tail))),
+  body: (match values
+    | List.nil => true
+    | List.cons head tail => ((start =? head) && (countsFrom (start + 1) tail))),
   recursive_argument: values
 }
 
@@ -43,7 +52,9 @@ definition{
   name: CountsFrom,
   parameters: [start : Nat, values : (List Nat)],
   result: Prop,
-  body: (match values | List.nil => (0 = 0) | List.cons head tail => ((start = head) /\ (CountsFrom (start + 1) tail))),
+  body: (match values
+    | List.nil => (0 = 0)
+    | List.cons head tail => ((start = head) /\ (CountsFrom (start + 1) tail))),
   recursive_argument: values
 }
 
@@ -51,14 +62,24 @@ theorem{
   name: counts_reflects,
   parameters: [start : Nat, values : (List Nat)],
   statement: (((countsFrom start values) = true) <-> (CountsFrom start values)),
-  proof: boolean_reflection{reflection: list{boolean_definition: countsFrom, comparison: nat_beq, parameter: start, proposition_definition: CountsFrom, values: values}}
+  proof: boolean_reflection{
+    reflection: list{
+      boolean_definition: countsFrom,
+      comparison: nat_beq,
+      parameter: start,
+      proposition_definition: CountsFrom,
+      values: values
+    }
+  }
 }
 
 definition{
   name: allBelow,
   parameters: [bound : Nat, values : (List Nat)],
   result: Bool,
-  body: (match values | List.nil => true | List.cons head tail => ((head <? bound) && (allBelow bound tail))),
+  body: (match values
+    | List.nil => true
+    | List.cons head tail => ((head <? bound) && (allBelow bound tail))),
   recursive_argument: values
 }
 
@@ -66,7 +87,9 @@ definition{
   name: AllBelow,
   parameters: [bound : Nat, values : (List Nat)],
   result: Prop,
-  body: (match values | List.nil => (0 = 0) | List.cons head tail => ((head < bound) /\ (AllBelow bound tail))),
+  body: (match values
+    | List.nil => (0 = 0)
+    | List.cons head tail => ((head < bound) /\ (AllBelow bound tail))),
   recursive_argument: values
 }
 
@@ -74,7 +97,15 @@ theorem{
   name: below_reflects,
   parameters: [bound : Nat, values : (List Nat)],
   statement: (((allBelow bound values) = true) <-> (AllBelow bound values)),
-  proof: boolean_reflection{reflection: list{boolean_definition: allBelow, comparison: nat_blt, parameter: bound, proposition_definition: AllBelow, values: values}}
+  proof: boolean_reflection{
+    reflection: list{
+      boolean_definition: allBelow,
+      comparison: nat_blt,
+      parameter: bound,
+      proposition_definition: AllBelow,
+      values: values
+    }
+  }
 }
 
 theorem{
@@ -85,9 +116,9 @@ theorem{
 }
 
 theorem{
-  name: congruence_premise,
-  parameters: [a : Nat, b : Nat],
-  statement: ((a = b) -> ((a + 3) = (b + 3))),
+  name: congruence_unfolds,
+  parameters: [a : Nat],
+  statement: (((a + 0) + 3) = (a + 3)),
   proof: congruence{}
 }
 \end{semanticmodule}

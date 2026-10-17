@@ -120,12 +120,9 @@ law congruence_refl:
 def congruence_refl(value):
   {==}
 
-law congruence_premise:
+law congruence_unfolds:
   for +a: Nat
-  for +b: Nat
-  for +ll_h0: {a == b : Nat}
-  {L.Lean.Nat.add(a, 3n) == L.Lean.Nat.add(b, 3n) : Nat}
+  {L.Lean.Nat.add(L.Lean.Nat.add(a, 0n), 3n) == L.Lean.Nat.add(a, 3n) : Nat}
 
-def congruence_premise(a, b, ll_h0):
-  %ll_h0 : {L.Lean.Nat.add(a, 3n) == L.Lean.Nat.add(_, 3n) : Nat}
+def congruence_unfolds(a):
   {==}

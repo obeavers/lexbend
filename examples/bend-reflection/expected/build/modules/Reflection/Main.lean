@@ -89,7 +89,7 @@ public theorem below_reflects (bound : Nat) (values : List (Nat)) : ((allBelow (
 public theorem congruence_refl (value : Nat) : ((value + 0) = (value + 0)) := by
   congr 1
 
-public theorem congruence_premise (a : Nat) (b : Nat) : ((a = b) -> ((a + 3) = (b + 3))) := by
+public theorem congruence_unfolds (a : Nat) : (((a + 0) + 3) = (a + 3)) := by
   congr 1
 
 end Reflection.Main
