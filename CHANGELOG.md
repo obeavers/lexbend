@@ -19,7 +19,13 @@ versions, and the entries below say what each tag does and does not claim.
   language-1.0 surface and language 2.2 the language-1.2 surface; each also
   lowers every module to Bend 2 from the same linked IR, and verification
   checks the generated Bend with the pinned `bend 2.0.37` and rechecks it
-  with the BendTT kernel before the Lean stages run. Language 2.2 lowers type
+  with the BendTT kernel before any Lean stage. A project whose every module
+  lowers to Bend and that declares no production root, every language-2.0
+  project among them, is verified by Bend alone: no Lean, Lake, or
+  `leanchecker` process runs, no Lean toolchain need be installed, and the
+  attestation is `lexlean/attestation/3`. A language-2.2 project with a
+  production root keeps the Lean stages, whose certificates are Lean proofs.
+  Language 2.2 lowers type
   parameters to templates, closure-converts function parameters, inlines
   mutual groups, runs well-founded definitions on proof-carrying fuel,
   proves every lowered tactic by an explicit term (linear arithmetic by a
@@ -27,7 +33,7 @@ versions, and the entries below say what each tag does and does not claim.
   against a Bend port of the runtime. It refuses, with `LLB6008`,
   simultaneous mutual recursion, a higher-order function passed as a value,
   and reasoning declarations. New: `BN-01`..`BN-18`, `CF-19`, `CF-20`,
-  `VR-24`..`VR-28`; schemas `project-v3`/`-v4`, `lock-v3`/`-v4`,
+  `VR-24`..`VR-29`; schemas `project-v3`/`-v4`, `lock-v3`/`-v4`,
   `build-manifest-v3`/`-v4`, `attestation-v3`/`-v4`, `semantic-snapshot-v3`,
   `coverage-v2`, `source-map-v2`; `lexlean init --language 2.0|2.2`. The
   identities of languages 1.0, 1.1, and 1.2 are unchanged.

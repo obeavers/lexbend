@@ -34,7 +34,7 @@ rules, from SPEC.md §27.2; nothing else in the repository defines an
 | R6 | Shipped dependency boundaries, versions, licenses, and sources are explicit and audited. | `just deny` and `audit-shipped` |
 | R7 | Every accepted LexLean source and canonical output satisfies complete lexical and symbolic closure. | the `lexical-closure` and `latex-pdf` conformance suites |
 | R8 | Lean and LaTeX are both derived from one linked IR; neither backend may accept an opaque bypass. | the `lean-backend` and `latex-pdf` conformance suites and `audit-language-closure` |
-| R9 | Verified status requires Lean elaboration, kernel replay, exact axiom audit, and policy success. | the `verification` conformance suite and `cargo xtask verify-examples` |
+| R9 | Verified status requires Lean elaboration, kernel replay, exact axiom audit, and policy success, or, for a project Bend verifies alone, the Bend check, the BendTT kernel recheck, and assumption-premise policy success. | the `verification` conformance suite and `cargo xtask verify-examples` |
 | R10 | Platform-independent artifacts are deterministic, source-mapped, and content-addressed. | `cargo xtask check-reproducibility` and `cargo xtask check-golden` |
 
 Expanded, in the order they are most often broken:

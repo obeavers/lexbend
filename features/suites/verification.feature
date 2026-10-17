@@ -198,9 +198,17 @@ Feature: verification
     And the live attestation is `lexlean/attestation/3`, records `bend 2.0.37`, and records `excluded-middle` for `even_or_not`
 
   @VR-28 @build
-  Scenario: Language-2.2 verification runs the Bend stages before the language-1.2 Lean stages, and a verified attestation is schema v4 carrying the language-1.2 records, the Bend toolchain, and each theorem's premises.
-    Given the `attestation-v4` schema, the language-2.2 reflection example with a false theorem appended, and the language-2.2 semantic example and its committed verification
-    When the altered example is verified, the committed records are read, and the semantic example is verified
+  Scenario: Language-2.2 verification of a project with a production root or a module that does not lower to Bend runs the Bend stages before the language-1.2 Lean stages, and a verified attestation is schema v4 carrying the language-1.2 records, the Bend toolchain, and each theorem's premises.
+    Given the `attestation-v4` schema, the language-2.2 reflection example with a false theorem appended, the language-2.2 semantic example's committed verification, and the semantic example with a production root added
+    When the altered example is verified, the committed records are read, and the example with a production root is verified
     Then `attestation-v4` fixes `lexlean/attestation/4`, requires the `bend` object and `premises` rows, and admits `compiler_input` and `preservation`
     And the altered verification fails with LLV7020 from the Bend check, before any Lean process
     And the committed records hold the module's accepted Bend check and the accepted kernel recheck, and the live attestation is `lexlean/attestation/4` recording `bend 2.0.37`
+
+  @VR-29 @build
+  Scenario: A language-2.0 or 2.2 project whose every module lowers to Bend and that declares no production root is verified by Bend alone, running no Lean, Lake, or leanchecker process and needing no Lean toolchain, and its attestation is schema v3, recording the Bend toolchain, only Bend and PDF processes, and on each declaration row its premises and, as observed, the axioms they stand for.
+    Given a Bend that accepts every check on a PATH holding nothing else, the language-2.0 Peano example, the language-2.2 semantic example, and the semantic example with a production root added
+    When each is verified with that PATH, and, where the pinned Bend and its kernel are installed, the language-2.0 example is verified with them
+    Then both examples verify with no Lean toolchain present, and each attestation is `lexlean/attestation/3` with no `toolchain`, `oleans`, or `lake_workspace` and only `bend` processes
+    And `even_or_not` records the premise `excluded-middle` and observes `Classical.choice`, `Quot.sound`, and `propext`
+    And the example with a production root still needs the Lean toolchain, and the live verification runs no Lean, Lake, or leanchecker process

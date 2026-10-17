@@ -32,7 +32,7 @@ Outside `vv`:
 
 - Every §31 conformance ID is level `build` (§27.3): constructed here and validated against its oracle by the test `conformance_<id>`. Evidence, not a proof.
 - Facts about Lean 4.32.1, Lake, `leanchecker`, and `#print axioms` output are `some-true` rows in `model/ledger.toml`: reproduced from the cited authority rows in `model/authorities.toml`, not established here.
-- `lexlean verify` is the only command that runs Lean; its attestation records toolchain hashes, per-process records, and per-declaration observed axiom sets, and its ID is recomputed by `conformance_vr_14`.
+- `lexlean verify` is the only command that runs Lean; its attestation records toolchain hashes, per-process records, and per-declaration observed axiom sets, and its ID is recomputed by `conformance_vr_14`. A project Bend verifies alone (§22.13) runs no Lean: its attestation records the Bend toolchain, the Bend processes, and each declaration's premises and the axioms they stand for, and `conformance_vr_29` verifies one with no Lean toolchain to be found.
 - Lean-backed conformance cases detect the host at run time (`repo_conformance::support::lean_backed`): on Linux x86-64 the pinned toolchain is mandatory and a missing toolchain fails the case; on another supported host without the toolchain the case runs only its platform-independent assertions and prints that it did (§8.3). A verified fixture is reached only through `example_backed`, `corpus_backed`, `f1_backed`, or `verify_ok_backed`, so a case that forgets the gate fails on every non-normative host rather than claiming a verification it never ran. The generated Lean and LaTeX of those same fixtures are `build` products and are asserted byte for byte on every supported host.
 - The cases whose subject is an external program written as `#!/bin/sh` take the same shape through `posix_shell_backed`, and a unix-only half of any other case reports itself through `unix_only` rather than dropping its assertions in silence.
 - Two host properties are measured rather than inferred from the target triple, because they vary by filesystem and not by operating system: `case_sensitive_backed` writes two names differing only in case and reads back whether both survived (§23.3's collision cannot be built where they do not), and `non_utf8_names_backed` writes a name carrying a byte that is not valid UTF-8 (§8.3's environment diagnostic cannot be provoked where the filesystem refuses it). Each reports the host it declined on.
@@ -60,6 +60,27 @@ Restoring the statement restores verification. `conformance_bn_09` plants
 the same false theorem on every run and requires `SOME PROOFS FAIL`, and
 `conformance_vr_25` plants a refusing `bend` and requires the remapped span
 and note.
+
+### Bend-alone verification can fail
+
+With the return to the Bend-alone path disabled in `verify`,
+`conformance_vr_29` verified `examples/bend-peano-arithmetic` with an
+accepting `bend` first on `PATH` and an empty `ELAN_HOME`, and failed on the
+guard that keeps a language-2.0 project off the Lean stages:
+
+```text
+the project verifies: LLI9001: phase verify: every language-2.0 module lowers to Bend and declares no production root, so Bend verifies the project alone
+```
+
+Before that path existed, the same case failed at the first Lean stage with
+`LLV7001` (the pinned toolchain is not installed). With the production-root
+test removed from `bend_alone`, so that every Bend-language project took the
+Bend-alone path, the case failed on the language-2.2 project with a
+production root, whose verification it requires to fail with `LLV7001`:
+
+```text
+verification fails
+```
 
 ### BendTT kernel recheck can fail
 

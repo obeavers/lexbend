@@ -1,7 +1,8 @@
-//! The Bend half of the `verification` suite: VR-24..VR-28 (SPEC.md
-//! §22.13). The Bend stages run before any Lean process, so each case
-//! reaches its stage on every host; a case that needs the pinned Bend (or,
-//! for the kernel recheck, the Lean that builds the kernel) gates that half.
+//! The Bend half of the `verification` suite: VR-24..VR-29 (SPEC.md
+//! §22.13). The Bend stages run before any Lean process, and a project Bend
+//! verifies alone runs none, so each case reaches its stage on every host; a
+//! case that needs the pinned Bend (or, for the kernel recheck, the Lean that
+//! builds the kernel) gates that half.
 
 use lexlean::{Selection, VerifyRequest};
 
@@ -40,6 +41,93 @@ fn verify_err_with_path(project: &P, path: &str) -> lexlean::LexLeanError {
             .err()
             .expect("verification fails")
     })
+}
+
+/// A Bend that accepts every check and the kernel recheck: what the Lean-free
+/// pipeline does around Bend's answers, on a host without the pinned Bend.
+fn accepting_bend() -> tempfile::TempDir {
+    fake_bend(
+        "#!/bin/sh\ncase \"$*\" in\n  version) echo 'bend 2.0.37' ;;\n  *--check-only*) printf 'ALL PROOFS CHECK\\nUse --verdict for mathematical validity.\\n' ;;\n  *--verdict*) printf 'ALL PROOFS CHECK\\n' ;;\nesac\n",
+    )
+}
+
+/// Verify a project with `PATH` set, returning the published attestation.
+fn verified_attestation(project: &P, path: &str) -> (serde_json::Value, camino::Utf8PathBuf) {
+    verified_attestation_with(project, &[("PATH", Some(path))])
+}
+
+/// Verify a project with environment overrides, returning the published
+/// attestation.
+fn verified_attestation_with(
+    project: &P,
+    environment: &[(&str, Option<&str>)],
+) -> (serde_json::Value, camino::Utf8PathBuf) {
+    let verified = support::with_env(environment, || {
+        project
+            .engine()
+            .verify(VerifyRequest {
+                selection: Selection::Entrypoints,
+            })
+            .unwrap_or_else(|error| panic!("the project verifies: {error}"))
+    });
+    let path = verified.root.join("attestation.json");
+    let attestation =
+        serde_json::from_slice(&std::fs::read(path.as_std_path()).expect("attestation"))
+            .expect("JSON");
+    (attestation, verified.root)
+}
+
+/// The language-2.2 semantic example with a production root: the one thing
+/// that keeps a project whose modules all lower to Bend on the Lean stages.
+fn rooted_semantic() -> P {
+    let project = P::copy_example("bend-semantic");
+    let main = project.read_raw("src/Main.lex.tex");
+    let rooted = main.replacen(
+        "  body: (let doubled : Nat := (n + n); (doubled + 1))\n}",
+        "  body: (let doubled : Nat := (n + n); (doubled + 1)),\n  executable: true,\n  production: {effects: [overflow], targets: [rust-std]}\n}",
+        1,
+    );
+    assert_ne!(rooted, main, "`doubledSuccessor` becomes a production root");
+    project.write("src/Main.lex.tex", &rooted);
+    project.relock();
+    project
+}
+
+/// A Bend-only attestation: schema v3, the Bend toolchain, and nothing
+/// that only a Lean run could have produced.
+fn assert_bend_only(attestation: &serde_json::Value, root: &camino::Utf8Path, what: &str) {
+    support::assert_json_file_schema("attestation-v3", &root.join("attestation.json"));
+    assert_eq!(attestation["spec"], "lexlean/attestation/3", "{what}");
+    assert_eq!(
+        attestation["bend"]["version_output"],
+        lexlean::BEND_VERSION_LINE,
+        "{what}"
+    );
+    for field in ["toolchain", "oleans", "lake_workspace"] {
+        assert!(attestation.get(field).is_none(), "{what} records `{field}`");
+    }
+    let processes = attestation["processes"].as_array().expect("processes");
+    assert!(!processes.is_empty(), "{what} records its Bend processes");
+    assert!(
+        processes.iter().all(|record| record["tool"] == "bend"),
+        "{what} ran only Bend: {:?}",
+        processes
+            .iter()
+            .map(|record| &record["tool"])
+            .collect::<Vec<_>>()
+    );
+    for directory in [
+        "oleans",
+        "probe",
+        "audit",
+        "process/lean",
+        "process/leanchecker",
+    ] {
+        assert!(
+            !root.join(directory).as_std_path().exists(),
+            "{what} published `{directory}`"
+        );
+    }
 }
 
 /// The directory of the pinned Bend, when installed.
@@ -311,8 +399,9 @@ pub(crate) fn run(id: &str) {
                 assert_eq!(row["premises"], serde_json::json!(["excluded-middle"]));
             }
         }
-        // §22.13: a language-2.2 project is verified by Bend first, then by
-        // the language-1.2 Lean stages, under attestation schema v4.
+        // §22.13: a language-2.2 project with a production root is verified
+        // by Bend first, then by the language-1.2 Lean stages, under
+        // attestation schema v4.
         "VR-28" => {
             let schema = support::schema("attestation-v4");
             assert_eq!(
@@ -374,24 +463,17 @@ pub(crate) fn run(id: &str) {
             )
             .expect("JSON");
             assert_eq!(verdict["stdout"], lexlean::verify::bend::VERDICT_SUCCESS);
-            if support::lean_backed(id) && support::bend_backed(id) {
-                let fresh = P::copy_example("bend-semantic");
+            if support::lean_backed(id) && support::bend_backed(id) && verdict_available(id) {
                 let path = path_with(&bend_dir().expect("the pinned Bend"));
-                let verified = support::with_env(&[("PATH", Some(&path))], || {
-                    fresh
-                        .engine()
-                        .verify(VerifyRequest {
-                            selection: Selection::Entrypoints,
-                        })
-                        .expect("the example verifies")
-                });
-                let attestation_path = verified.root.join("attestation.json");
-                support::assert_json_file_schema("attestation-v4", &attestation_path);
-                let attestation: serde_json::Value = serde_json::from_slice(
-                    &std::fs::read(attestation_path.as_std_path()).expect("attestation"),
-                )
-                .expect("JSON");
+                let (attestation, root) = verified_attestation(&rooted_semantic(), &path);
+                support::assert_json_file_schema("attestation-v4", &root.join("attestation.json"));
                 assert_eq!(attestation["spec"], "lexlean/attestation/4");
+                for field in ["toolchain", "oleans", "compiler_input", "preservation"] {
+                    assert!(
+                        attestation.get(field).is_some(),
+                        "the Lean stages record `{field}`"
+                    );
+                }
                 assert_eq!(
                     attestation["bend"]["version_output"],
                     lexlean::BEND_VERSION_LINE
@@ -404,6 +486,79 @@ pub(crate) fn run(id: &str) {
                         .all(|row| row["premises"].is_array()),
                     "every row records its premises"
                 );
+            }
+        }
+        // §22.13: a project whose modules all lower to Bend and that declares
+        // no production root is verified by Bend alone.
+        "VR-29" => {
+            if support::posix_shell_backed(id) {
+                // An accepting Bend first on PATH and an empty elan home: the
+                // pinned Lean toolchain is resolved from the elan home alone
+                // (§22.2), so none is there to be found, and a run that
+                // reached a Lean stage fails on a host with Lean installed
+                // too. The rest of PATH stays, for the cases running beside
+                // this one.
+                let accepting = accepting_bend();
+                let bend_first = path_with(accepting.path());
+                let no_elan = tempfile::Builder::new()
+                    .prefix("lexlean-no-elan-")
+                    .tempdir()
+                    .expect("tempdir");
+                let no_elan = no_elan.path().display().to_string();
+                let without_lean = [
+                    ("PATH", Some(bend_first.as_str())),
+                    ("ELAN_HOME", Some(no_elan.as_str())),
+                ];
+                let peano = P::copy_example("bend-peano-arithmetic");
+                let (attestation, root) = verified_attestation_with(&peano, &without_lean);
+                assert_bend_only(&attestation, &root, "the language-2.0 example");
+                let row = attestation["declarations"]
+                    .as_array()
+                    .expect("rows")
+                    .iter()
+                    .find(|row| row["name"] == "PeanoArithmetic.Main.even_or_not")
+                    .expect("the theorem's row");
+                assert_eq!(row["premises"], serde_json::json!(["excluded-middle"]));
+                assert_eq!(
+                    row["observed"],
+                    serde_json::json!(["Classical.choice", "Quot.sound", "propext"]),
+                    "a premise is observed as the axioms it stands for"
+                );
+                let semantic = P::copy_example("bend-semantic");
+                let (attestation, root) = verified_attestation_with(&semantic, &without_lean);
+                assert_bend_only(&attestation, &root, "the language-2.2 example");
+                let names: Vec<&str> = attestation["declarations"]
+                    .as_array()
+                    .expect("rows")
+                    .iter()
+                    .filter_map(|row| row["name"].as_str())
+                    .collect();
+                for name in [
+                    "LanguageTwelve.Main.doubledSuccessor",
+                    "LanguageTwelve.Main.doubled_successor_two",
+                    "LanguageTwelve.Main.let_statement_unfolds",
+                ] {
+                    assert!(names.contains(&name), "{name} has a row: {names:?}");
+                }
+                // A production root's certificates are Lean proofs, so that
+                // project still needs the Lean toolchain.
+                let rooted = rooted_semantic();
+                let error = support::with_env(&without_lean, || {
+                    rooted
+                        .engine()
+                        .verify(VerifyRequest {
+                            selection: Selection::Entrypoints,
+                        })
+                        .err()
+                        .expect("verification fails")
+                });
+                support::expect_code(&error, "LLV7001");
+            }
+            if support::bend_backed(id) && verdict_available(id) {
+                let path = path_with(&bend_dir().expect("the pinned Bend"));
+                let (attestation, root) =
+                    verified_attestation(&P::copy_example("bend-peano-arithmetic"), &path);
+                assert_bend_only(&attestation, &root, "the live language-2.0 verification");
             }
         }
         other => panic!("no Bend verification case is wired for {other}"),

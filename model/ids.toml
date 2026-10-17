@@ -1410,7 +1410,13 @@ statement = "A language-2.0 theorem's assumption premises must be admitted by it
 id = "VR-28"
 level = "build"
 suite = "verification"
-statement = "Language-2.2 verification runs the Bend stages before the language-1.2 Lean stages, and a verified attestation is schema v4 carrying the language-1.2 records, the Bend toolchain, and each theorem's premises."
+statement = "Language-2.2 verification of a project with a production root or a module that does not lower to Bend runs the Bend stages before the language-1.2 Lean stages, and a verified attestation is schema v4 carrying the language-1.2 records, the Bend toolchain, and each theorem's premises."
+
+[[id]]
+id = "VR-29"
+level = "build"
+suite = "verification"
+statement = "A language-2.0 or 2.2 project whose every module lowers to Bend and that declares no production root is verified by Bend alone, running no Lean, Lake, or leanchecker process and needing no Lean toolchain, and its attestation is schema v3, recording the Bend toolchain, only Bend and PDF processes, and on each declaration row its premises and, as observed, the axioms they stand for."
 
 [[id]]
 id = "CL-01"

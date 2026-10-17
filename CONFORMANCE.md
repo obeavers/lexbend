@@ -579,7 +579,8 @@ the error registry does not sanction (R5, `ERRORS.md`).
 | `VR-25` | `build` | Language-2.0 verification checks every generated Bend module with the pinned Bend before any Lean process runs, and a refusal is LLV7020 remapped to its source span with the generated location as a note. |
 | `VR-26` | `build` | Language-2.0 verification rechecks the generated program with the proved BendTT kernel through a root importing every module and requires its exact success verdict, or fails with LLV7021. |
 | `VR-27` | `build` | A language-2.0 theorem's assumption premises must be admitted by its axiom policy, or verification fails with LLV7022 before any Lean process runs, and a verified attestation is schema v3 recording the Bend toolchain and each theorem's premises. |
-| `VR-28` | `build` | Language-2.2 verification runs the Bend stages before the language-1.2 Lean stages, and a verified attestation is schema v4 carrying the language-1.2 records, the Bend toolchain, and each theorem's premises. |
+| `VR-28` | `build` | Language-2.2 verification of a project with a production root or a module that does not lower to Bend runs the Bend stages before the language-1.2 Lean stages, and a verified attestation is schema v4 carrying the language-1.2 records, the Bend toolchain, and each theorem's premises. |
+| `VR-29` | `build` | A language-2.0 or 2.2 project whose every module lowers to Bend and that declares no production root is verified by Bend alone, running no Lean, Lake, or leanchecker process and needing no Lean toolchain, and its attestation is schema v3, recording the Bend toolchain, only Bend and PDF processes, and on each declaration row its premises and, as observed, the axioms they stand for. |
 
 ## Cited authorities
 
