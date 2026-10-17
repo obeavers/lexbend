@@ -1608,6 +1608,7 @@ fn substitute_names(term: BTerm, names: &BTreeMap<String, BTerm>) -> BTerm {
             BTerm::Apply(Box::new(go(*function)), args.into_iter().map(go).collect())
         }
         other @ (BTerm::Refl
+        | BTerm::U32(_)
         | BTerm::Nat(_)
         | BTerm::Kind(_)
         | BTerm::Hole

@@ -40,10 +40,10 @@ pub struct Closure {
 
 /// One converted function argument: its environment type, its closed code,
 /// and its environment value.
-struct Converted {
-    env_type: BTerm,
-    code: BTerm,
-    env: BTerm,
+pub(super) struct Converted {
+    pub env_type: BTerm,
+    pub code: BTerm,
+    pub env: BTerm,
 }
 
 fn unit_type() -> BTerm {
@@ -271,7 +271,11 @@ impl Lower<'_, '_> {
     }
 
     /// Convert one function argument.
-    fn convert(&mut self, argument: &SemanticTerm, scope: &Scope) -> Result<Converted, Diagnostic> {
+    pub(super) fn convert(
+        &mut self,
+        argument: &SemanticTerm,
+        scope: &Scope,
+    ) -> Result<Converted, Diagnostic> {
         match argument {
             SemanticTerm::Var { name } if scope.closures.contains_key(name) => {
                 let closure = &scope.closures[name];

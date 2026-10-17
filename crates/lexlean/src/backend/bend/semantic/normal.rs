@@ -632,6 +632,16 @@ fn head_of(term: &SemanticTerm) -> Option<(String, Vec<SemanticTerm>)> {
     })
 }
 
+/// Whether `term` holds a `match` anywhere.
+fn contains_match(term: &SemanticTerm) -> bool {
+    if matches!(term, SemanticTerm::Match { .. }) {
+        return true;
+    }
+    let mut found = false;
+    for_each_child(term, &mut |child| found |= contains_match(child));
+    found
+}
+
 /// Unfolds semantic terms against the declarations of a project.
 pub struct Normalizer<'l, 'p, 'a> {
     lower: &'l super::Lower<'p, 'a>,
@@ -726,7 +736,15 @@ impl<'l, 'p, 'a> Normalizer<'l, 'p, 'a> {
                     .map(|p| p.name.clone())
                     .zip(arguments)
                     .collect();
-                self.normalize(&substitute_all(&body, &map))
+                let unfolded = self.normalize(&substitute_all(&body, &map));
+                // A match left stuck would lower to a freshly lifted
+                // function, which Bend does not identify with the one the
+                // definition's own body lifts to; the call itself is what
+                // Bend's evaluation leaves, so it is kept.
+                if contains_match(&unfolded) {
+                    return stuck;
+                }
+                unfolded
             }
             SemanticTerm::Apply {
                 function,

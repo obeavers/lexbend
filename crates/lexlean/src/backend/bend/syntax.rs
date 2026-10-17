@@ -120,6 +120,8 @@ pub enum BTerm {
     Str(String),
     /// `~t`, a closed argument to a template binder.
     Template(Box<BTerm>),
+    /// `255`, a Base `U32` literal.
+    U32(u32),
     /// `(f)(a, b)`, the application of a function-valued term.
     Apply(Box<BTerm>, Vec<BTerm>),
 }
@@ -510,6 +512,11 @@ impl Printer<'_> {
             BTerm::Str(text) => {
                 self.piece(text, "string", Origin::Synthetic(SYNTAX_ORIGIN.to_owned()))
             }
+            BTerm::U32(value) => self.piece(
+                &value.to_string(),
+                "literal",
+                Origin::Synthetic(SYNTAX_ORIGIN.to_owned()),
+            ),
             BTerm::Template(inner) => {
                 self.sym("~");
                 self.term(inner, true, depth);

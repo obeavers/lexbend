@@ -53,3 +53,81 @@ type Sem.ReasoningFailure is Data:
 # fact ends in.
 def Sem.false_ne_true(-B: Type, e: {False{} == True{} : Bool}) -> B:
   L.Lean.Empty.elim(B, L.Lean.Bool.false_ne_true(e))
+
+# The higher-order collection primitives, closure-converted as every
+# function parameter of language 2.2 is: the step is a closed template
+# taking its environment `e` first, so it may run once per element. Each
+# computes what Lean's runtime definition does (`List.foldl` for the folds).
+def Sem.listFold(~A: Data, ~S: Data, ~E: Data, ~step: @+e: E -> @+s: S -> @+a: A -> S, +e: E, +values: List<&2, A>, +initial: S) -> S:
+  match values:
+    case Nil{}:
+      initial
+    case Con{head, tail}:
+      Sem.listFold(~A, ~S, ~E, ~step, e, tail, step(e, initial, head))
+
+def Sem.mapFold(~K: Data, ~V: Data, ~S: Data, ~E: Data, ~step: @+e: E -> @+s: S -> @+k: K -> @+v: V -> S, +e: E, +entries: List<&2, L.Lean.Prod(K, V)>, +initial: S) -> S:
+  match entries:
+    case Nil{}:
+      initial
+    case Con{head, tail}:
+      match head:
+        case (key, value):
+          Sem.mapFold(~K, ~V, ~S, ~E, ~step, e, tail, step(e, initial, key, value))
+
+def Sem.iterate(~S: Data, ~E: Data, ~step: @+e: E -> @+s: S -> S, +e: E, +count: Nat, +state: S) -> S:
+  match count:
+    case 0n:
+      state
+    case 1n+rest:
+      Sem.iterate(~S, ~E, ~step, e, rest, step(e, state))
+
+# Lean matches on `step state` before recurring; Bend matches only on a
+# parameter, so the step's result is computed one call ahead and passed in.
+def Sem.iterateUntil.go(~S: Data, ~E: Data, ~step: @+e: E -> @+s: S -> Maybe<&2, S>, +e: E, +fuel: Nat, +next: Maybe<&2, S>, +state: S) -> L.Lean.Prod(S, Bool):
+  match fuel:
+    case 0n:
+      (state, False{})
+    case 1n+rest:
+      match next:
+        case None{}:
+          (state, True{})
+        case Some{after}:
+          Sem.iterateUntil.go(~S, ~E, ~step, e, rest, step(e, after), after)
+
+def Sem.iterateUntil(~S: Data, ~E: Data, ~step: @+e: E -> @+s: S -> Maybe<&2, S>, +e: E, +fuel: Nat, +state: S) -> L.Lean.Prod(S, Bool):
+  Sem.iterateUntil.go(~S, ~E, ~step, e, fuel, step(e, state), state)
+
+# Equalities `linear_arithmetic` preprocesses, as Lean's `omega` does:
+# injectivity of `some`, and an equation of pairs from its components.
+def Sem.some_value(-A: Data, d: A, m: Maybe<&2, A>) -> A:
+  match m:
+    case None{}:
+      d
+    case Some{x}:
+      x
+
+def Sem.some_inj(-A: Data, +x: A, +y: A, e: {Some{x} == Some{y} : Maybe<&2, A>}) -> {x == y : A}:
+  %e : {x == Sem.some_value(A, x, _) : A}
+  {==}
+
+def Sem.pair_eq(-A: Data, -B: Data, +a: A, +b: B, +c: A, +d: B, p: {a == c : A}, q: {b == d : B}) -> {(a, b) == (c, d) : L.Lean.Prod(A, B)}:
+  %p : {(a, b) == (_, d) : L.Lean.Prod(A, B)}
+  %q : {(a, b) == (a, _) : L.Lean.Prod(A, B)}
+  {==}
+
+# The shape of an embedded tensor, as its artifact check states it: a level
+# of nesting has `n` rows of `m` entries when it has `n` rows and each row has
+# `m` entries; the next level down is the rows concatenated.
+def Sem.flatten(-A: Data, xss: List<&2, List<&2, A>>) -> List<&2, A>:
+  match xss:
+    case Nil{}:
+      Nil{}
+    case Con{h, t}:
+      L.Lean.List.append(A, h, Sem.flatten(A, t))
+
+def Sem.lengthsAre(-A: Data, xss: List<&2, List<&2, A>>, +m: Nat) -> Bool:
+  match xss:
+    case Nil{}:
+      True{}
+    case Con{h, t}:
+      L.Lean.Bool.and(L.Lean.Nat.beq(L.Lean.List.length(A, h), m), Sem.lengthsAre(A, t, m))

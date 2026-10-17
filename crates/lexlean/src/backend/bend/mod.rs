@@ -501,6 +501,7 @@ fn thread_term(term: &mut BTerm, aux: &BTreeSet<String>, premises_args: &[BTerm]
         BTerm::Block(body) => thread_body(body, aux, premises_args),
         BTerm::Name(_)
         | BTerm::Refl
+        | BTerm::U32(_)
         | BTerm::Nat(_)
         | BTerm::Kind(_)
         | BTerm::Hole
@@ -659,7 +660,7 @@ pub fn render_project(
     let mut table = AssumptionTable::new();
     let mut out = BTreeMap::new();
     let mut any_prelude = false;
-    let mut any_support = false;
+    let mut supports = BTreeSet::new();
     let semantic_project = semantic::SemanticProject::new(modules);
     for name in order {
         let checked = &modules[name];
@@ -667,10 +668,10 @@ pub fn render_project(
         // lowering (§18.11); a document module lowers as in language 2.0.
         if let Some(module) = &checked.document.semantic {
             if crate::is_surface_1_2(language) {
-                let (emitter, uses_prelude, uses_support) =
+                let (emitter, uses_prelude, used) =
                     semantic::render_module(checked, module, &semantic_project, name)?;
                 any_prelude |= uses_prelude;
-                any_support |= uses_support;
+                supports.extend(used);
                 out.insert(name.clone(), emitter);
             }
             continue;
@@ -698,7 +699,7 @@ pub fn render_project(
     Ok(RenderedBend {
         emitters: out,
         uses_prelude: any_prelude,
-        uses_support: any_support,
+        supports,
         premises,
     })
 }
@@ -710,9 +711,8 @@ pub struct RenderedBend {
     pub emitters: BTreeMap<String, Emitter>,
     /// Whether any module imports the prelude.
     pub uses_prelude: bool,
-    /// Language 2.2: whether any module imports the semantic support
-    /// module.
-    pub uses_support: bool,
+    /// Language 2.2: the support modules any module imports.
+    pub supports: BTreeSet<semantic::support::Support>,
     /// The assumption premises of every theorem, by full generated name.
     pub premises: BTreeMap<String, Vec<String>>,
 }

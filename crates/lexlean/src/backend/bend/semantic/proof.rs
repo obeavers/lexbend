@@ -284,9 +284,18 @@ impl Prover<'_, '_, '_> {
                 type_arguments,
                 arguments,
             )?)),
-            SemanticProof::LinearArithmetic { .. } => Err(fail(
-                "`linear_arithmetic` has no Bend lowering in this build of language 2.2",
-            )),
+            SemanticProof::LinearArithmetic { .. } => {
+                // The listed definitions unfold in normalization, which
+                // unfolds every non-recursive definition anyway.
+                let mut normalizer = Normalizer::new(self.lower);
+                let goal = normalizer.normalize(goal);
+                let premises: Vec<(String, SemanticTerm)> = ctx
+                    .premises
+                    .iter()
+                    .map(|(name, premise)| (name.clone(), normalizer.normalize(premise)))
+                    .collect();
+                Ok(Self::term_body(self.linear(ctx, &premises, &goal)?))
+            }
             SemanticProof::Congruence => Err(fail(
                 "`congruence` has no Bend lowering in this build of language 2.2",
             )),
@@ -296,8 +305,73 @@ impl Prover<'_, '_, '_> {
         }
     }
 
+    /// A normalized `linear_arithmetic` goal: a conjunction proved part by
+    /// part, a part whose sides coincide by reflexivity (it may be at any
+    /// type, as Lean's `omega` preprocessing closes it), and every other
+    /// part by reflection.
+    fn linear(
+        &mut self,
+        ctx: &Ctx,
+        premises: &[(String, SemanticTerm)],
+        goal: &SemanticTerm,
+    ) -> Result<BTerm, Diagnostic> {
+        if let Some((name, _)) = premises.iter().find(|(_, premise)| premise == goal) {
+            return Ok(var(name.clone()));
+        }
+        match goal {
+            SemanticTerm::PropAnd { left, right } => Ok(BTerm::Pair(
+                Box::new(self.linear(ctx, premises, left)?),
+                Box::new(self.linear(ctx, premises, right)?),
+            )),
+            SemanticTerm::Eq { left, right } if left == right => Ok(BTerm::Refl),
+            SemanticTerm::Eq { left, right } => match (left.as_ref(), right.as_ref()) {
+                (
+                    SemanticTerm::Pair { left: a, right: b },
+                    SemanticTerm::Pair { left: c, right: d },
+                ) => {
+                    let first = SemanticTerm::Eq {
+                        left: a.clone(),
+                        right: c.clone(),
+                    };
+                    let second = SemanticTerm::Eq {
+                        left: b.clone(),
+                        right: d.clone(),
+                    };
+                    let (p, q) = (
+                        self.linear(ctx, premises, &first)?,
+                        self.linear(ctx, premises, &second)?,
+                    );
+                    let (ta, tb) = (
+                        self.lower.infer(a, &ctx.scope)?,
+                        self.lower.infer(b, &ctx.scope)?,
+                    );
+                    let mut args = vec![self.lower.ty(&ta)?, self.lower.ty(&tb)?];
+                    for side in [a, b, c, d] {
+                        args.push(self.lower.term(side, &ctx.scope)?);
+                    }
+                    args.push(p);
+                    args.push(q);
+                    Ok(call(self.lower.support("Sem.pair_eq"), args))
+                }
+                _ => super::linear::prove(self.lower, &ctx.scope, premises, goal),
+            },
+            _ => super::linear::prove(self.lower, &ctx.scope, premises, goal),
+        }
+    }
+
     /// Decide a closed proposition by computation.
     fn decide(&mut self, ctx: &Ctx, goal: &SemanticTerm) -> Result<BTerm, Diagnostic> {
+        // Any goal holds under a false premise: Lean's `decide` sees the
+        // premise reverted into the goal, Bend sees it introduced, so the
+        // clash is derived from the premise.
+        let refuted = ctx
+            .premises
+            .iter()
+            .find(|(_, premise)| Normalizer::new(self.lower).truth(premise) == Some(false))
+            .cloned();
+        if let Some((name, premise)) = refuted {
+            return self.refute(ctx, &premise, &name, goal);
+        }
         let mut normalizer = Normalizer::new(self.lower);
         let unfolded = normalizer.normalize(goal);
         match &unfolded {

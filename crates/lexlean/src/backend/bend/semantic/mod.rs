@@ -22,11 +22,17 @@
 //!   Bend; a goal the lowering cannot discharge is refused with `LLB6008`
 //!   rather than emitted with a guess.
 
+pub mod check;
 pub mod closure;
+pub mod linear;
 pub mod mutual;
 pub mod names;
 pub mod normal;
 pub mod proof;
+pub mod runtime;
+pub mod support;
+
+use support::Support;
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -42,36 +48,6 @@ use crate::ir::semantic::{
     SemanticPrimitive, SemanticTerm, SemanticType,
 };
 use crate::link::CheckedModule;
-
-/// The embedded semantic support module.
-pub const SUPPORT_PATH: &str = "language/bend-prelude/Semantic.bend";
-
-/// Where a build publishes the support module.
-pub const SUPPORT_BUILD_PATH: &str = "modules/LexLeanSemantic.bend";
-
-/// The alias generated modules import the support module under.
-pub const SUPPORT_ALIAS: &str = "S";
-
-/// The support module's bytes as published: its import of the prelude names
-/// the prelude's build path, which differs from its source name.
-///
-/// # Errors
-///
-/// An internal diagnostic when the module is not embedded.
-pub fn support_artifact() -> Result<(&'static str, Vec<u8>), Diagnostic> {
-    let bytes = crate::embedded::FILES
-        .iter()
-        .find(|(path, _)| *path == SUPPORT_PATH)
-        .map(|(_, bytes)| *bytes)
-        .ok_or_else(|| fail("the semantic support module is not embedded"))?;
-    let text =
-        std::str::from_utf8(bytes).map_err(|_| fail("the semantic support module is not UTF-8"))?;
-    let published = text.replace(
-        "import ./LexLean.bend as L\n",
-        "import ./LexLeanPrelude.bend as L\n",
-    );
-    Ok((SUPPORT_BUILD_PATH, published.into_bytes()))
-}
 
 /// Every semantic module of a project, by source module name.
 pub struct SemanticProject<'a> {
@@ -188,8 +164,8 @@ pub struct Lower<'p, 'a> {
     imports: BTreeSet<String>,
     /// Whether the module names the prelude.
     pub uses_prelude: bool,
-    /// Whether the module names the support module.
-    pub uses_support: bool,
+    /// The support modules the module names.
+    pub supports: BTreeSet<Support>,
     aux: Vec<Item>,
     fresh: usize,
     /// The type parameters in scope, by name.
@@ -303,7 +279,7 @@ impl<'p, 'a> Lower<'p, 'a> {
             module: module.to_owned(),
             imports: BTreeSet::new(),
             uses_prelude: false,
-            uses_support: false,
+            supports: BTreeSet::new(),
             aux: Vec::new(),
             fresh: 0,
             type_parameters: BTreeSet::new(),
@@ -317,8 +293,8 @@ impl<'p, 'a> Lower<'p, 'a> {
     }
 
     fn support(&mut self, name: &str) -> String {
-        self.uses_support = true;
-        format!("{SUPPORT_ALIAS}.Sem.{name}")
+        self.supports.insert(Support::Semantic);
+        format!("{}.Sem.{name}", Support::Semantic.alias())
     }
 
     fn fresh(&mut self, stem: &str) -> String {
@@ -453,6 +429,15 @@ impl<'p, 'a> Lower<'p, 'a> {
             SemanticType::String => var("String"),
             SemanticType::Ordering => var("Cmp"),
             SemanticType::Int => var(self.prelude("Lean.Int")),
+            SemanticType::Int8
+            | SemanticType::Int16
+            | SemanticType::Int32
+            | SemanticType::Int64
+            | SemanticType::UInt8
+            | SemanticType::UInt16
+            | SemanticType::UInt32
+            | SemanticType::UInt64
+            | SemanticType::Bytes => self.runtime_type(ty)?,
             SemanticType::Option { value } => BTerm::Datatype(
                 synthetic("Maybe"),
                 vec!["&2".to_owned()],
@@ -500,11 +485,6 @@ impl<'p, 'a> Lower<'p, 'a> {
             }
             SemanticType::ContractViolation => var(self.support("ContractViolation")),
             SemanticType::ReasoningFailure => var(self.support("ReasoningFailure")),
-            other => {
-                return Err(fail(format!(
-                    "the semantic type `{other:?}` has no Bend representation in language 2.2"
-                )))
-            }
         })
     }
 
@@ -1589,13 +1569,16 @@ impl<'p, 'a> Lower<'p, 'a> {
                 let head = self.prelude(head);
                 call(head, self.arguments(arguments, scope)?)
             }
-            SemanticTerm::Integer { .. }
-            | SemanticTerm::Bytes { .. }
-            | SemanticTerm::Primitive { .. } => {
-                return Err(fail(
-                    "fixed-width integers, byte strings and runtime primitives have no Bend lowering in language 2.2",
-                ))
-            }
+            SemanticTerm::Primitive {
+                operation,
+                arguments,
+                result,
+            } => self.primitive(*operation, arguments, result, scope)?,
+            SemanticTerm::Integer {
+                representation,
+                value,
+            } => self.fixed_literal(*representation, value)?,
+            SemanticTerm::Bytes { hex } => self.bytes_literal(hex)?,
             SemanticTerm::CheckedApply { .. } => {
                 return Err(fail("a checked model application was not elaborated"))
             }
@@ -1607,8 +1590,8 @@ impl<'p, 'a> Lower<'p, 'a> {
         match prop {
             BTerm::Equal(..) => true,
             BTerm::Call(head, _) => {
-                head.text == format!("{SUPPORT_ALIAS}.Sem.le")
-                    || head.text == format!("{SUPPORT_ALIAS}.Sem.lt")
+                head.text == format!("{}.Sem.le", Support::Semantic.alias())
+                    || head.text == format!("{}.Sem.lt", Support::Semantic.alias())
                     || head.text == format!("{PRELUDE_ALIAS}.Lean.Prod")
             }
             _ => false,
@@ -2174,6 +2157,27 @@ impl<'p, 'a> Lower<'p, 'a> {
     }
 }
 
+/// The source span of a byte range of a module's normalized source.
+fn source_span(checked: &CheckedModule, (start, end): (usize, usize)) -> crate::diagnostic::Span {
+    let position = |byte: usize| {
+        let prefix = &checked.normalized[..byte.min(checked.normalized.len())];
+        let line = prefix.matches('\n').count() + 1;
+        let column = prefix.rsplit('\n').next().map_or(1, |tail| tail.chars().count() + 1);
+        (line, column)
+    };
+    let (line_start, column_start) = position(start);
+    let (line_end, column_end) = position(end);
+    crate::diagnostic::Span {
+        path: checked.document.source_path.clone(),
+        byte_start: start,
+        byte_end: end,
+        line_start,
+        column_start,
+        line_end,
+        column_end,
+    }
+}
+
 /// Render one semantic module's `.bend`, traced declaration by declaration
 /// to its source, as the semantic Lean module is.
 ///
@@ -2185,17 +2189,49 @@ pub fn render_module(
     module: &SemanticModule,
     project: &SemanticProject<'_>,
     name: &str,
-) -> Result<(Emitter, bool, bool), Diagnostic> {
+) -> Result<(Emitter, bool, BTreeSet<Support>), Diagnostic> {
     let mut lower = Lower::new(project, name);
     let mut chunks: Vec<String> = Vec::new();
+    let spans = crate::backend::semantic::notation_declaration_spans(&checked.normalized, "semanticmodule")
+        .or_else(|| crate::backend::semantic::declaration_spans_in(&checked.normalized, "\\semanticdata{"));
     for (index, source) in module.declarations.iter().enumerate() {
         let declarations: Vec<&SemanticDeclaration> = match module.elaborated(index) {
             Some(elaborated) => elaborated.iter().collect(),
             None => vec![source],
         };
+        // A lowering refusal names the declaration and points at it.
+        let locate = |mut diagnostic: Diagnostic, name: &str| {
+            diagnostic.message = format!("`{name}`: {}", diagnostic.message);
+            match spans.as_ref().and_then(|spans| spans.get(index)) {
+                Some(range) => diagnostic.with_span(source_span(checked, *range)),
+                None => diagnostic,
+            }
+        };
+        // The theorems a reasoning declaration generates are proved by fixed
+        // Lean tactic scripts over `LexLeanReasoning`, which has no Bend
+        // proof; lowering the declaration without them would drop the very
+        // guarantees it promises, so it is refused whole.
+        if let Some(theorem) = module.elaboration.theorems(index).first() {
+            return Err(locate(
+                fail(format!(
+                    "the reasoning declaration generates `{}`, whose proof has no Bend lowering; language 2.2 lowers no reasoning declaration",
+                    theorem.name
+                )),
+                source.name(),
+            ));
+        }
         let mut items = Vec::new();
         for declaration in declarations {
-            items.extend(lower.declaration_items(declaration)?);
+            let lowered = lower
+                .declaration_items(declaration)
+                .map_err(|diagnostic| locate(diagnostic, declaration.name()))?;
+            items.extend(lowered);
+        }
+        for check in module.elaboration.checks(index) {
+            let item = lower
+                .cross_check(check)
+                .map_err(|diagnostic| locate(diagnostic, &check.name))?;
+            items.push(item);
         }
         let mut text = String::new();
         for printed in print_items(&items) {
@@ -2212,14 +2248,14 @@ pub fn render_module(
             crate::backend::bend::relative(&own_path, path)
         ));
     };
-    if lower.uses_prelude || lower.uses_support {
+    if lower.uses_prelude || !lower.supports.is_empty() {
         import(
             crate::backend::bend::prelude::PRELUDE_BUILD_PATH,
             PRELUDE_ALIAS,
         );
     }
-    if lower.uses_support {
-        import(SUPPORT_BUILD_PATH, SUPPORT_ALIAS);
+    for support in &lower.supports {
+        import(support.build_path(), support.alias());
     }
     for (_, generated) in lower.imports() {
         import(
@@ -2250,7 +2286,7 @@ pub fn render_module(
     )?;
     Ok((
         emitter,
-        lower.uses_prelude || lower.uses_support,
-        lower.uses_support,
+        lower.uses_prelude || !lower.supports.is_empty(),
+        lower.supports,
     ))
 }

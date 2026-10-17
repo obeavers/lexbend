@@ -16,7 +16,7 @@ const TAKEN_ROOTS: &[&str] = &[
     "App", "Array", "Audio", "Bool", "Chan", "Char", "Cmp", "Either", "Empty", "Equal", "Event",
     "Exists", "F32", "File", "Image", "IO", "List", "Listener", "Map", "Maybe", "Nat", "Or",
     "Pair", "Poll", "Process", "Result", "Set", "Sigma", "Socket", "String", "TCP", "U32", "UDP",
-    "Unit", "Window", "Word", "Sem", "L", "S", "R", "ll",
+    "Unit", "Window", "Word", "Sem", "L", "S", "R", "LA", "ll",
 ];
 
 /// Bend's reserved words.
