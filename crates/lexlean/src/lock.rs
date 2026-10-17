@@ -88,6 +88,7 @@ impl Lock {
         let spec = match self.language.as_str() {
             "1.2" => "lexlean/lock/2",
             "2.0" => "lexlean/lock/3",
+            "2.2" => "lexlean/lock/4",
             _ => "lexlean/lock/1",
         };
         out.push_str(&format!("spec = {}\n", toml_string(spec)));
@@ -240,11 +241,12 @@ pub fn parse_lock(path: &str, bytes: &[u8]) -> Result<Lock, Vec<Diagnostic>> {
     let expected_spec = match raw.language.as_str() {
         "1.2" => "lexlean/lock/2",
         "2.0" => "lexlean/lock/3",
+        "2.2" => "lexlean/lock/4",
         _ => "lexlean/lock/1",
     };
     if !matches!(
         raw.spec.as_str(),
-        "lexlean/lock/1" | "lexlean/lock/2" | "lexlean/lock/3"
+        "lexlean/lock/1" | "lexlean/lock/2" | "lexlean/lock/3" | "lexlean/lock/4"
     ) {
         diagnostics.push(Diagnostic::new(
             code!("LLC0103"),

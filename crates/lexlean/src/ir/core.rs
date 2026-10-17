@@ -697,7 +697,7 @@ impl CoreModule {
     /// Read a module written in the authoring notation (SPEC.md §17.21.8),
     /// which is language 1.2's, and enforce the closed schema invariants.
     pub fn from_notation(text: &str, language: &str) -> Result<Self, String> {
-        if language != crate::LANGUAGE_1_2 {
+        if !crate::is_surface_1_2(language) {
             return Err(format!(
                 "the authoring notation of a coremodule is language 1.2; write `\\coredata` under language {language}"
             ));
@@ -859,7 +859,7 @@ impl CoreModule {
             return Err(format!("unsupported core-module schema `{}`", self.spec));
         }
         let version = self.version();
-        if version == 2 && language != "1.2" {
+        if version == 2 && !crate::is_surface_1_2(language) {
             return Err(format!(
                 "`{CORE_SPEC_2}` requires language 1.2, not `{language}`"
             ));

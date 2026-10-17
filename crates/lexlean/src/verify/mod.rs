@@ -3009,7 +3009,7 @@ pub fn run_part(
         (
             "spec",
             Json::Str(
-                if project.config.language == crate::LANGUAGE_1_2 {
+                if crate::is_surface_1_2(&project.config.language) {
                     "lexlean/attestation/2"
                 } else if crate::lowers_to_bend(&project.config.language) {
                     "lexlean/attestation/3"

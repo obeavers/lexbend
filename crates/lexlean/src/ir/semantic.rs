@@ -157,7 +157,7 @@ impl SemanticPrimitive {
 }
 
 impl SemanticInteger {
-    fn semantic_type(self) -> SemanticType {
+    pub(crate) fn semantic_type(self) -> SemanticType {
         match self {
             Self::Int => SemanticType::Int,
             Self::Int8 => SemanticType::Int8,
@@ -2218,7 +2218,7 @@ fn ignored_member(
 /// (§17.12). Language 1.0 has none.
 #[must_use]
 pub fn semantic_module_spec(language: &str) -> Option<&'static str> {
-    match language {
+    match crate::surface_language(language) {
         crate::LANGUAGE_1_1 => Some("lexlean/semantic-module/1"),
         crate::LANGUAGE_1_2 => Some("lexlean/semantic-module/2"),
         _ => None,
@@ -8208,7 +8208,7 @@ impl SemanticModule {
         )?;
         let mut module = module;
         module.elaboration = elaboration;
-        if language == crate::LANGUAGE_1_2 {
+        if crate::is_surface_1_2(language) {
             for declaration in &mut module.declarations {
                 declaration_terms_mut(declaration, &mut normalize_collection);
             }
@@ -8289,11 +8289,11 @@ impl SemanticModule {
                 .to_owned()
                 .into());
         }
-        if language == crate::LANGUAGE_1_2 {
+        if crate::is_surface_1_2(language) {
             check_binder_hygiene(self, module_prefix)?;
         }
         let mut env = Environment {
-            language_1_2: language == crate::LANGUAGE_1_2,
+            language_1_2: crate::is_surface_1_2(language),
             imports,
             ..Environment::default()
         };

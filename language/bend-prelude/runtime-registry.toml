@@ -1,0 +1,7245 @@
+spec = "lexlean/bend-runtime/1"
+module = "Runtime.bend"
+imports = ["Base", "./LexLean.bend"]
+
+# Each Bend name is qualified by the alias the emitted file imports Runtime.bend
+# under; names of LexLean.bend carry its own alias (`L.`) inside Runtime.bend.
+# `instance` names the monomorphized instance (empty for a non-class constant);
+# `A.B` for checkedConvert is source A, target B.
+
+[[constant]]
+lean = "UInt8"
+instance = ""
+bend = "Lean.UInt8"
+kind = "type"
+signature = "structure UInt8 (8-bit unsigned)"
+
+[[constant]]
+lean = "OfNat.ofNat"
+instance = "UInt8"
+bend = "Lean.UInt8.lit"
+kind = "def"
+signature = "(n : Nat) : UInt8  -- n <= 4294967295, passed as a U32 literal"
+
+[[constant]]
+lean = "UInt8.ofNat"
+instance = ""
+bend = "Lean.UInt8.ofNat"
+kind = "def"
+signature = "(n : Nat) : UInt8"
+
+[[constant]]
+lean = "UInt8.toNat"
+instance = ""
+bend = "Lean.UInt8.toNat"
+kind = "def"
+signature = "(a : UInt8) : Nat"
+
+[[constant]]
+lean = "UInt8.toInt8"
+instance = ""
+bend = "Lean.UInt8.toInt8"
+kind = "def"
+signature = "(a : UInt8) : Int8"
+
+[[constant]]
+lean = "UInt8.ofInt"
+instance = ""
+bend = "Lean.UInt8.ofInt"
+kind = "def"
+signature = "(i : Int) : UInt8"
+
+[[constant]]
+lean = "UInt8.add"
+instance = ""
+bend = "Lean.UInt8.add"
+kind = "def"
+signature = "(a b : UInt8) : UInt8"
+
+[[constant]]
+lean = "UInt8.sub"
+instance = ""
+bend = "Lean.UInt8.sub"
+kind = "def"
+signature = "(a b : UInt8) : UInt8"
+
+[[constant]]
+lean = "UInt8.mul"
+instance = ""
+bend = "Lean.UInt8.mul"
+kind = "def"
+signature = "(a b : UInt8) : UInt8"
+
+[[constant]]
+lean = "UInt8.div"
+instance = ""
+bend = "Lean.UInt8.div"
+kind = "def"
+signature = "(a b : UInt8) : UInt8"
+
+[[constant]]
+lean = "UInt8.mod"
+instance = ""
+bend = "Lean.UInt8.mod"
+kind = "def"
+signature = "(a b : UInt8) : UInt8"
+
+[[constant]]
+lean = "UInt8.land"
+instance = ""
+bend = "Lean.UInt8.land"
+kind = "def"
+signature = "(a b : UInt8) : UInt8"
+
+[[constant]]
+lean = "UInt8.lor"
+instance = ""
+bend = "Lean.UInt8.lor"
+kind = "def"
+signature = "(a b : UInt8) : UInt8"
+
+[[constant]]
+lean = "UInt8.xor"
+instance = ""
+bend = "Lean.UInt8.xor"
+kind = "def"
+signature = "(a b : UInt8) : UInt8"
+
+[[constant]]
+lean = "UInt8.shiftLeft"
+instance = ""
+bend = "Lean.UInt8.shiftLeft"
+kind = "def"
+signature = "(a b : UInt8) : UInt8"
+
+[[constant]]
+lean = "UInt8.shiftRight"
+instance = ""
+bend = "Lean.UInt8.shiftRight"
+kind = "def"
+signature = "(a b : UInt8) : UInt8"
+
+[[constant]]
+lean = "UInt8.neg"
+instance = ""
+bend = "Lean.UInt8.neg"
+kind = "def"
+signature = "(a : UInt8) : UInt8"
+
+[[constant]]
+lean = "UInt8.complement"
+instance = ""
+bend = "Lean.UInt8.complement"
+kind = "def"
+signature = "(a : UInt8) : UInt8"
+
+[[constant]]
+lean = "BEq.beq"
+instance = "UInt8"
+bend = "Lean.UInt8.beq"
+kind = "def"
+signature = "(a b : UInt8) : Bool"
+
+[[constant]]
+lean = "Ord.compare"
+instance = "UInt8"
+bend = "Lean.UInt8.cmp"
+kind = "def"
+signature = "(a b : UInt8) : Ordering"
+
+[[constant]]
+lean = "Decidable.decide (a < b)"
+instance = "UInt8"
+bend = "Lean.UInt8.decLt"
+kind = "def"
+signature = "(a b : UInt8) : Bool"
+
+[[constant]]
+lean = "Decidable.decide (a <= b)"
+instance = "UInt8"
+bend = "Lean.UInt8.decLe"
+kind = "def"
+signature = "(a b : UInt8) : Bool"
+
+[[constant]]
+lean = "LT.lt"
+instance = "UInt8"
+bend = "Lean.UInt8.lt"
+kind = "def"
+signature = "(a b : UInt8) : Prop"
+
+[[constant]]
+lean = "LE.le"
+instance = "UInt8"
+bend = "Lean.UInt8.le"
+kind = "def"
+signature = "(a b : UInt8) : Prop"
+
+[[constant]]
+lean = "UInt16"
+instance = ""
+bend = "Lean.UInt16"
+kind = "type"
+signature = "structure UInt16 (16-bit unsigned)"
+
+[[constant]]
+lean = "OfNat.ofNat"
+instance = "UInt16"
+bend = "Lean.UInt16.lit"
+kind = "def"
+signature = "(n : Nat) : UInt16  -- n <= 4294967295, passed as a U32 literal"
+
+[[constant]]
+lean = "UInt16.ofNat"
+instance = ""
+bend = "Lean.UInt16.ofNat"
+kind = "def"
+signature = "(n : Nat) : UInt16"
+
+[[constant]]
+lean = "UInt16.toNat"
+instance = ""
+bend = "Lean.UInt16.toNat"
+kind = "def"
+signature = "(a : UInt16) : Nat"
+
+[[constant]]
+lean = "UInt16.toInt16"
+instance = ""
+bend = "Lean.UInt16.toInt16"
+kind = "def"
+signature = "(a : UInt16) : Int16"
+
+[[constant]]
+lean = "UInt16.ofInt"
+instance = ""
+bend = "Lean.UInt16.ofInt"
+kind = "def"
+signature = "(i : Int) : UInt16"
+
+[[constant]]
+lean = "UInt16.add"
+instance = ""
+bend = "Lean.UInt16.add"
+kind = "def"
+signature = "(a b : UInt16) : UInt16"
+
+[[constant]]
+lean = "UInt16.sub"
+instance = ""
+bend = "Lean.UInt16.sub"
+kind = "def"
+signature = "(a b : UInt16) : UInt16"
+
+[[constant]]
+lean = "UInt16.mul"
+instance = ""
+bend = "Lean.UInt16.mul"
+kind = "def"
+signature = "(a b : UInt16) : UInt16"
+
+[[constant]]
+lean = "UInt16.div"
+instance = ""
+bend = "Lean.UInt16.div"
+kind = "def"
+signature = "(a b : UInt16) : UInt16"
+
+[[constant]]
+lean = "UInt16.mod"
+instance = ""
+bend = "Lean.UInt16.mod"
+kind = "def"
+signature = "(a b : UInt16) : UInt16"
+
+[[constant]]
+lean = "UInt16.land"
+instance = ""
+bend = "Lean.UInt16.land"
+kind = "def"
+signature = "(a b : UInt16) : UInt16"
+
+[[constant]]
+lean = "UInt16.lor"
+instance = ""
+bend = "Lean.UInt16.lor"
+kind = "def"
+signature = "(a b : UInt16) : UInt16"
+
+[[constant]]
+lean = "UInt16.xor"
+instance = ""
+bend = "Lean.UInt16.xor"
+kind = "def"
+signature = "(a b : UInt16) : UInt16"
+
+[[constant]]
+lean = "UInt16.shiftLeft"
+instance = ""
+bend = "Lean.UInt16.shiftLeft"
+kind = "def"
+signature = "(a b : UInt16) : UInt16"
+
+[[constant]]
+lean = "UInt16.shiftRight"
+instance = ""
+bend = "Lean.UInt16.shiftRight"
+kind = "def"
+signature = "(a b : UInt16) : UInt16"
+
+[[constant]]
+lean = "UInt16.neg"
+instance = ""
+bend = "Lean.UInt16.neg"
+kind = "def"
+signature = "(a : UInt16) : UInt16"
+
+[[constant]]
+lean = "UInt16.complement"
+instance = ""
+bend = "Lean.UInt16.complement"
+kind = "def"
+signature = "(a : UInt16) : UInt16"
+
+[[constant]]
+lean = "BEq.beq"
+instance = "UInt16"
+bend = "Lean.UInt16.beq"
+kind = "def"
+signature = "(a b : UInt16) : Bool"
+
+[[constant]]
+lean = "Ord.compare"
+instance = "UInt16"
+bend = "Lean.UInt16.cmp"
+kind = "def"
+signature = "(a b : UInt16) : Ordering"
+
+[[constant]]
+lean = "Decidable.decide (a < b)"
+instance = "UInt16"
+bend = "Lean.UInt16.decLt"
+kind = "def"
+signature = "(a b : UInt16) : Bool"
+
+[[constant]]
+lean = "Decidable.decide (a <= b)"
+instance = "UInt16"
+bend = "Lean.UInt16.decLe"
+kind = "def"
+signature = "(a b : UInt16) : Bool"
+
+[[constant]]
+lean = "LT.lt"
+instance = "UInt16"
+bend = "Lean.UInt16.lt"
+kind = "def"
+signature = "(a b : UInt16) : Prop"
+
+[[constant]]
+lean = "LE.le"
+instance = "UInt16"
+bend = "Lean.UInt16.le"
+kind = "def"
+signature = "(a b : UInt16) : Prop"
+
+[[constant]]
+lean = "UInt32"
+instance = ""
+bend = "U32"
+kind = "type"
+signature = "structure UInt32 (32-bit unsigned)"
+
+[[constant]]
+lean = "OfNat.ofNat"
+instance = "UInt32"
+bend = "Lean.UInt32.lit"
+kind = "def"
+signature = "(n : Nat) : UInt32  -- n <= 4294967295, passed as a U32 literal"
+
+[[constant]]
+lean = "UInt32.ofNat"
+instance = ""
+bend = "Lean.UInt32.ofNat"
+kind = "def"
+signature = "(n : Nat) : UInt32"
+
+[[constant]]
+lean = "UInt32.toNat"
+instance = ""
+bend = "Lean.UInt32.toNat"
+kind = "def"
+signature = "(a : UInt32) : Nat"
+
+[[constant]]
+lean = "UInt32.toInt32"
+instance = ""
+bend = "Lean.UInt32.toInt32"
+kind = "def"
+signature = "(a : UInt32) : Int32"
+
+[[constant]]
+lean = "UInt32.ofInt"
+instance = ""
+bend = "Lean.UInt32.ofInt"
+kind = "def"
+signature = "(i : Int) : UInt32"
+
+[[constant]]
+lean = "UInt32.add"
+instance = ""
+bend = "Lean.UInt32.add"
+kind = "def"
+signature = "(a b : UInt32) : UInt32"
+
+[[constant]]
+lean = "UInt32.sub"
+instance = ""
+bend = "Lean.UInt32.sub"
+kind = "def"
+signature = "(a b : UInt32) : UInt32"
+
+[[constant]]
+lean = "UInt32.mul"
+instance = ""
+bend = "Lean.UInt32.mul"
+kind = "def"
+signature = "(a b : UInt32) : UInt32"
+
+[[constant]]
+lean = "UInt32.div"
+instance = ""
+bend = "Lean.UInt32.div"
+kind = "def"
+signature = "(a b : UInt32) : UInt32"
+
+[[constant]]
+lean = "UInt32.mod"
+instance = ""
+bend = "Lean.UInt32.mod"
+kind = "def"
+signature = "(a b : UInt32) : UInt32"
+
+[[constant]]
+lean = "UInt32.land"
+instance = ""
+bend = "Lean.UInt32.land"
+kind = "def"
+signature = "(a b : UInt32) : UInt32"
+
+[[constant]]
+lean = "UInt32.lor"
+instance = ""
+bend = "Lean.UInt32.lor"
+kind = "def"
+signature = "(a b : UInt32) : UInt32"
+
+[[constant]]
+lean = "UInt32.xor"
+instance = ""
+bend = "Lean.UInt32.xor"
+kind = "def"
+signature = "(a b : UInt32) : UInt32"
+
+[[constant]]
+lean = "UInt32.shiftLeft"
+instance = ""
+bend = "Lean.UInt32.shiftLeft"
+kind = "def"
+signature = "(a b : UInt32) : UInt32"
+
+[[constant]]
+lean = "UInt32.shiftRight"
+instance = ""
+bend = "Lean.UInt32.shiftRight"
+kind = "def"
+signature = "(a b : UInt32) : UInt32"
+
+[[constant]]
+lean = "UInt32.neg"
+instance = ""
+bend = "Lean.UInt32.neg"
+kind = "def"
+signature = "(a : UInt32) : UInt32"
+
+[[constant]]
+lean = "UInt32.complement"
+instance = ""
+bend = "Lean.UInt32.complement"
+kind = "def"
+signature = "(a : UInt32) : UInt32"
+
+[[constant]]
+lean = "BEq.beq"
+instance = "UInt32"
+bend = "Lean.UInt32.beq"
+kind = "def"
+signature = "(a b : UInt32) : Bool"
+
+[[constant]]
+lean = "Ord.compare"
+instance = "UInt32"
+bend = "Lean.UInt32.cmp"
+kind = "def"
+signature = "(a b : UInt32) : Ordering"
+
+[[constant]]
+lean = "Decidable.decide (a < b)"
+instance = "UInt32"
+bend = "Lean.UInt32.decLt"
+kind = "def"
+signature = "(a b : UInt32) : Bool"
+
+[[constant]]
+lean = "Decidable.decide (a <= b)"
+instance = "UInt32"
+bend = "Lean.UInt32.decLe"
+kind = "def"
+signature = "(a b : UInt32) : Bool"
+
+[[constant]]
+lean = "LT.lt"
+instance = "UInt32"
+bend = "Lean.UInt32.lt"
+kind = "def"
+signature = "(a b : UInt32) : Prop"
+
+[[constant]]
+lean = "LE.le"
+instance = "UInt32"
+bend = "Lean.UInt32.le"
+kind = "def"
+signature = "(a b : UInt32) : Prop"
+
+[[constant]]
+lean = "UInt64"
+instance = ""
+bend = "Lean.UInt64"
+kind = "type"
+signature = "structure UInt64 (64-bit unsigned)"
+
+[[constant]]
+lean = "OfNat.ofNat"
+instance = "UInt64"
+bend = "Lean.UInt64.lit"
+kind = "def"
+signature = "(n : Nat) : UInt64  -- n <= 4294967295, passed as a U32 literal"
+
+[[constant]]
+lean = "OfNat.ofNat"
+instance = "UInt64.wide"
+bend = "Lean.UInt64.lit2"
+kind = "def"
+signature = "(n : Nat) : UInt64  -- n = hi * 2^32 + lo, passed as two U32 literals"
+
+[[constant]]
+lean = "UInt64.ofNat"
+instance = ""
+bend = "Lean.UInt64.ofNat"
+kind = "def"
+signature = "(n : Nat) : UInt64"
+
+[[constant]]
+lean = "UInt64.toNat"
+instance = ""
+bend = "Lean.UInt64.toNat"
+kind = "def"
+signature = "(a : UInt64) : Nat"
+
+[[constant]]
+lean = "UInt64.toInt64"
+instance = ""
+bend = "Lean.UInt64.toInt64"
+kind = "def"
+signature = "(a : UInt64) : Int64"
+
+[[constant]]
+lean = "UInt64.ofInt"
+instance = ""
+bend = "Lean.UInt64.ofInt"
+kind = "def"
+signature = "(i : Int) : UInt64"
+
+[[constant]]
+lean = "UInt64.add"
+instance = ""
+bend = "Lean.UInt64.add"
+kind = "def"
+signature = "(a b : UInt64) : UInt64"
+
+[[constant]]
+lean = "UInt64.sub"
+instance = ""
+bend = "Lean.UInt64.sub"
+kind = "def"
+signature = "(a b : UInt64) : UInt64"
+
+[[constant]]
+lean = "UInt64.mul"
+instance = ""
+bend = "Lean.UInt64.mul"
+kind = "def"
+signature = "(a b : UInt64) : UInt64"
+
+[[constant]]
+lean = "UInt64.div"
+instance = ""
+bend = "Lean.UInt64.div"
+kind = "def"
+signature = "(a b : UInt64) : UInt64"
+
+[[constant]]
+lean = "UInt64.mod"
+instance = ""
+bend = "Lean.UInt64.mod"
+kind = "def"
+signature = "(a b : UInt64) : UInt64"
+
+[[constant]]
+lean = "UInt64.land"
+instance = ""
+bend = "Lean.UInt64.land"
+kind = "def"
+signature = "(a b : UInt64) : UInt64"
+
+[[constant]]
+lean = "UInt64.lor"
+instance = ""
+bend = "Lean.UInt64.lor"
+kind = "def"
+signature = "(a b : UInt64) : UInt64"
+
+[[constant]]
+lean = "UInt64.xor"
+instance = ""
+bend = "Lean.UInt64.xor"
+kind = "def"
+signature = "(a b : UInt64) : UInt64"
+
+[[constant]]
+lean = "UInt64.shiftLeft"
+instance = ""
+bend = "Lean.UInt64.shiftLeft"
+kind = "def"
+signature = "(a b : UInt64) : UInt64"
+
+[[constant]]
+lean = "UInt64.shiftRight"
+instance = ""
+bend = "Lean.UInt64.shiftRight"
+kind = "def"
+signature = "(a b : UInt64) : UInt64"
+
+[[constant]]
+lean = "UInt64.neg"
+instance = ""
+bend = "Lean.UInt64.neg"
+kind = "def"
+signature = "(a : UInt64) : UInt64"
+
+[[constant]]
+lean = "UInt64.complement"
+instance = ""
+bend = "Lean.UInt64.complement"
+kind = "def"
+signature = "(a : UInt64) : UInt64"
+
+[[constant]]
+lean = "BEq.beq"
+instance = "UInt64"
+bend = "Lean.UInt64.beq"
+kind = "def"
+signature = "(a b : UInt64) : Bool"
+
+[[constant]]
+lean = "Ord.compare"
+instance = "UInt64"
+bend = "Lean.UInt64.cmp"
+kind = "def"
+signature = "(a b : UInt64) : Ordering"
+
+[[constant]]
+lean = "Decidable.decide (a < b)"
+instance = "UInt64"
+bend = "Lean.UInt64.decLt"
+kind = "def"
+signature = "(a b : UInt64) : Bool"
+
+[[constant]]
+lean = "Decidable.decide (a <= b)"
+instance = "UInt64"
+bend = "Lean.UInt64.decLe"
+kind = "def"
+signature = "(a b : UInt64) : Bool"
+
+[[constant]]
+lean = "LT.lt"
+instance = "UInt64"
+bend = "Lean.UInt64.lt"
+kind = "def"
+signature = "(a b : UInt64) : Prop"
+
+[[constant]]
+lean = "LE.le"
+instance = "UInt64"
+bend = "Lean.UInt64.le"
+kind = "def"
+signature = "(a b : UInt64) : Prop"
+
+[[constant]]
+lean = "Int8"
+instance = ""
+bend = "Lean.Int8"
+kind = "type"
+signature = "structure Int8 (8-bit twos complement)"
+
+[[constant]]
+lean = "OfNat.ofNat"
+instance = "Int8"
+bend = "Lean.Int8.lit"
+kind = "def"
+signature = "(n : Nat) : Int8  -- n <= 4294967295, passed as a U32 literal"
+
+[[constant]]
+lean = "Int8.ofNat"
+instance = ""
+bend = "Lean.Int8.ofNat"
+kind = "def"
+signature = "(n : Nat) : Int8"
+
+[[constant]]
+lean = "Int8.toInt"
+instance = ""
+bend = "Lean.Int8.toInt"
+kind = "def"
+signature = "(a : Int8) : Int"
+
+[[constant]]
+lean = "Int8.toNatClampNeg"
+instance = ""
+bend = "Lean.Int8.toNatClampNeg"
+kind = "def"
+signature = "(a : Int8) : Nat"
+
+[[constant]]
+lean = "Int8.toUInt8"
+instance = ""
+bend = "Lean.Int8.toUInt8"
+kind = "def"
+signature = "(a : Int8) : UInt8"
+
+[[constant]]
+lean = "Int8.ofInt"
+instance = ""
+bend = "Lean.Int8.ofInt"
+kind = "def"
+signature = "(i : Int) : Int8"
+
+[[constant]]
+lean = "Int8.add"
+instance = ""
+bend = "Lean.Int8.add"
+kind = "def"
+signature = "(a b : Int8) : Int8"
+
+[[constant]]
+lean = "Int8.sub"
+instance = ""
+bend = "Lean.Int8.sub"
+kind = "def"
+signature = "(a b : Int8) : Int8"
+
+[[constant]]
+lean = "Int8.mul"
+instance = ""
+bend = "Lean.Int8.mul"
+kind = "def"
+signature = "(a b : Int8) : Int8"
+
+[[constant]]
+lean = "Int8.div"
+instance = ""
+bend = "Lean.Int8.div"
+kind = "def"
+signature = "(a b : Int8) : Int8"
+
+[[constant]]
+lean = "Int8.mod"
+instance = ""
+bend = "Lean.Int8.mod"
+kind = "def"
+signature = "(a b : Int8) : Int8"
+
+[[constant]]
+lean = "Int8.land"
+instance = ""
+bend = "Lean.Int8.land"
+kind = "def"
+signature = "(a b : Int8) : Int8"
+
+[[constant]]
+lean = "Int8.lor"
+instance = ""
+bend = "Lean.Int8.lor"
+kind = "def"
+signature = "(a b : Int8) : Int8"
+
+[[constant]]
+lean = "Int8.xor"
+instance = ""
+bend = "Lean.Int8.xor"
+kind = "def"
+signature = "(a b : Int8) : Int8"
+
+[[constant]]
+lean = "Int8.shiftLeft"
+instance = ""
+bend = "Lean.Int8.shiftLeft"
+kind = "def"
+signature = "(a b : Int8) : Int8"
+
+[[constant]]
+lean = "Int8.shiftRight"
+instance = ""
+bend = "Lean.Int8.shiftRight"
+kind = "def"
+signature = "(a b : Int8) : Int8"
+
+[[constant]]
+lean = "Int8.neg"
+instance = ""
+bend = "Lean.Int8.neg"
+kind = "def"
+signature = "(a : Int8) : Int8"
+
+[[constant]]
+lean = "Int8.complement"
+instance = ""
+bend = "Lean.Int8.complement"
+kind = "def"
+signature = "(a : Int8) : Int8"
+
+[[constant]]
+lean = "BEq.beq"
+instance = "Int8"
+bend = "Lean.Int8.beq"
+kind = "def"
+signature = "(a b : Int8) : Bool"
+
+[[constant]]
+lean = "Ord.compare"
+instance = "Int8"
+bend = "Lean.Int8.cmp"
+kind = "def"
+signature = "(a b : Int8) : Ordering"
+
+[[constant]]
+lean = "Decidable.decide (a < b)"
+instance = "Int8"
+bend = "Lean.Int8.decLt"
+kind = "def"
+signature = "(a b : Int8) : Bool"
+
+[[constant]]
+lean = "Decidable.decide (a <= b)"
+instance = "Int8"
+bend = "Lean.Int8.decLe"
+kind = "def"
+signature = "(a b : Int8) : Bool"
+
+[[constant]]
+lean = "LT.lt"
+instance = "Int8"
+bend = "Lean.Int8.lt"
+kind = "def"
+signature = "(a b : Int8) : Prop"
+
+[[constant]]
+lean = "LE.le"
+instance = "Int8"
+bend = "Lean.Int8.le"
+kind = "def"
+signature = "(a b : Int8) : Prop"
+
+[[constant]]
+lean = "Int16"
+instance = ""
+bend = "Lean.Int16"
+kind = "type"
+signature = "structure Int16 (16-bit twos complement)"
+
+[[constant]]
+lean = "OfNat.ofNat"
+instance = "Int16"
+bend = "Lean.Int16.lit"
+kind = "def"
+signature = "(n : Nat) : Int16  -- n <= 4294967295, passed as a U32 literal"
+
+[[constant]]
+lean = "Int16.ofNat"
+instance = ""
+bend = "Lean.Int16.ofNat"
+kind = "def"
+signature = "(n : Nat) : Int16"
+
+[[constant]]
+lean = "Int16.toInt"
+instance = ""
+bend = "Lean.Int16.toInt"
+kind = "def"
+signature = "(a : Int16) : Int"
+
+[[constant]]
+lean = "Int16.toNatClampNeg"
+instance = ""
+bend = "Lean.Int16.toNatClampNeg"
+kind = "def"
+signature = "(a : Int16) : Nat"
+
+[[constant]]
+lean = "Int16.toUInt16"
+instance = ""
+bend = "Lean.Int16.toUInt16"
+kind = "def"
+signature = "(a : Int16) : UInt16"
+
+[[constant]]
+lean = "Int16.ofInt"
+instance = ""
+bend = "Lean.Int16.ofInt"
+kind = "def"
+signature = "(i : Int) : Int16"
+
+[[constant]]
+lean = "Int16.add"
+instance = ""
+bend = "Lean.Int16.add"
+kind = "def"
+signature = "(a b : Int16) : Int16"
+
+[[constant]]
+lean = "Int16.sub"
+instance = ""
+bend = "Lean.Int16.sub"
+kind = "def"
+signature = "(a b : Int16) : Int16"
+
+[[constant]]
+lean = "Int16.mul"
+instance = ""
+bend = "Lean.Int16.mul"
+kind = "def"
+signature = "(a b : Int16) : Int16"
+
+[[constant]]
+lean = "Int16.div"
+instance = ""
+bend = "Lean.Int16.div"
+kind = "def"
+signature = "(a b : Int16) : Int16"
+
+[[constant]]
+lean = "Int16.mod"
+instance = ""
+bend = "Lean.Int16.mod"
+kind = "def"
+signature = "(a b : Int16) : Int16"
+
+[[constant]]
+lean = "Int16.land"
+instance = ""
+bend = "Lean.Int16.land"
+kind = "def"
+signature = "(a b : Int16) : Int16"
+
+[[constant]]
+lean = "Int16.lor"
+instance = ""
+bend = "Lean.Int16.lor"
+kind = "def"
+signature = "(a b : Int16) : Int16"
+
+[[constant]]
+lean = "Int16.xor"
+instance = ""
+bend = "Lean.Int16.xor"
+kind = "def"
+signature = "(a b : Int16) : Int16"
+
+[[constant]]
+lean = "Int16.shiftLeft"
+instance = ""
+bend = "Lean.Int16.shiftLeft"
+kind = "def"
+signature = "(a b : Int16) : Int16"
+
+[[constant]]
+lean = "Int16.shiftRight"
+instance = ""
+bend = "Lean.Int16.shiftRight"
+kind = "def"
+signature = "(a b : Int16) : Int16"
+
+[[constant]]
+lean = "Int16.neg"
+instance = ""
+bend = "Lean.Int16.neg"
+kind = "def"
+signature = "(a : Int16) : Int16"
+
+[[constant]]
+lean = "Int16.complement"
+instance = ""
+bend = "Lean.Int16.complement"
+kind = "def"
+signature = "(a : Int16) : Int16"
+
+[[constant]]
+lean = "BEq.beq"
+instance = "Int16"
+bend = "Lean.Int16.beq"
+kind = "def"
+signature = "(a b : Int16) : Bool"
+
+[[constant]]
+lean = "Ord.compare"
+instance = "Int16"
+bend = "Lean.Int16.cmp"
+kind = "def"
+signature = "(a b : Int16) : Ordering"
+
+[[constant]]
+lean = "Decidable.decide (a < b)"
+instance = "Int16"
+bend = "Lean.Int16.decLt"
+kind = "def"
+signature = "(a b : Int16) : Bool"
+
+[[constant]]
+lean = "Decidable.decide (a <= b)"
+instance = "Int16"
+bend = "Lean.Int16.decLe"
+kind = "def"
+signature = "(a b : Int16) : Bool"
+
+[[constant]]
+lean = "LT.lt"
+instance = "Int16"
+bend = "Lean.Int16.lt"
+kind = "def"
+signature = "(a b : Int16) : Prop"
+
+[[constant]]
+lean = "LE.le"
+instance = "Int16"
+bend = "Lean.Int16.le"
+kind = "def"
+signature = "(a b : Int16) : Prop"
+
+[[constant]]
+lean = "Int32"
+instance = ""
+bend = "Lean.Int32"
+kind = "type"
+signature = "structure Int32 (32-bit twos complement)"
+
+[[constant]]
+lean = "OfNat.ofNat"
+instance = "Int32"
+bend = "Lean.Int32.lit"
+kind = "def"
+signature = "(n : Nat) : Int32  -- n <= 4294967295, passed as a U32 literal"
+
+[[constant]]
+lean = "Int32.ofNat"
+instance = ""
+bend = "Lean.Int32.ofNat"
+kind = "def"
+signature = "(n : Nat) : Int32"
+
+[[constant]]
+lean = "Int32.toInt"
+instance = ""
+bend = "Lean.Int32.toInt"
+kind = "def"
+signature = "(a : Int32) : Int"
+
+[[constant]]
+lean = "Int32.toNatClampNeg"
+instance = ""
+bend = "Lean.Int32.toNatClampNeg"
+kind = "def"
+signature = "(a : Int32) : Nat"
+
+[[constant]]
+lean = "Int32.toUInt32"
+instance = ""
+bend = "Lean.Int32.toUInt32"
+kind = "def"
+signature = "(a : Int32) : UInt32"
+
+[[constant]]
+lean = "Int32.ofInt"
+instance = ""
+bend = "Lean.Int32.ofInt"
+kind = "def"
+signature = "(i : Int) : Int32"
+
+[[constant]]
+lean = "Int32.add"
+instance = ""
+bend = "Lean.Int32.add"
+kind = "def"
+signature = "(a b : Int32) : Int32"
+
+[[constant]]
+lean = "Int32.sub"
+instance = ""
+bend = "Lean.Int32.sub"
+kind = "def"
+signature = "(a b : Int32) : Int32"
+
+[[constant]]
+lean = "Int32.mul"
+instance = ""
+bend = "Lean.Int32.mul"
+kind = "def"
+signature = "(a b : Int32) : Int32"
+
+[[constant]]
+lean = "Int32.div"
+instance = ""
+bend = "Lean.Int32.div"
+kind = "def"
+signature = "(a b : Int32) : Int32"
+
+[[constant]]
+lean = "Int32.mod"
+instance = ""
+bend = "Lean.Int32.mod"
+kind = "def"
+signature = "(a b : Int32) : Int32"
+
+[[constant]]
+lean = "Int32.land"
+instance = ""
+bend = "Lean.Int32.land"
+kind = "def"
+signature = "(a b : Int32) : Int32"
+
+[[constant]]
+lean = "Int32.lor"
+instance = ""
+bend = "Lean.Int32.lor"
+kind = "def"
+signature = "(a b : Int32) : Int32"
+
+[[constant]]
+lean = "Int32.xor"
+instance = ""
+bend = "Lean.Int32.xor"
+kind = "def"
+signature = "(a b : Int32) : Int32"
+
+[[constant]]
+lean = "Int32.shiftLeft"
+instance = ""
+bend = "Lean.Int32.shiftLeft"
+kind = "def"
+signature = "(a b : Int32) : Int32"
+
+[[constant]]
+lean = "Int32.shiftRight"
+instance = ""
+bend = "Lean.Int32.shiftRight"
+kind = "def"
+signature = "(a b : Int32) : Int32"
+
+[[constant]]
+lean = "Int32.neg"
+instance = ""
+bend = "Lean.Int32.neg"
+kind = "def"
+signature = "(a : Int32) : Int32"
+
+[[constant]]
+lean = "Int32.complement"
+instance = ""
+bend = "Lean.Int32.complement"
+kind = "def"
+signature = "(a : Int32) : Int32"
+
+[[constant]]
+lean = "BEq.beq"
+instance = "Int32"
+bend = "Lean.Int32.beq"
+kind = "def"
+signature = "(a b : Int32) : Bool"
+
+[[constant]]
+lean = "Ord.compare"
+instance = "Int32"
+bend = "Lean.Int32.cmp"
+kind = "def"
+signature = "(a b : Int32) : Ordering"
+
+[[constant]]
+lean = "Decidable.decide (a < b)"
+instance = "Int32"
+bend = "Lean.Int32.decLt"
+kind = "def"
+signature = "(a b : Int32) : Bool"
+
+[[constant]]
+lean = "Decidable.decide (a <= b)"
+instance = "Int32"
+bend = "Lean.Int32.decLe"
+kind = "def"
+signature = "(a b : Int32) : Bool"
+
+[[constant]]
+lean = "LT.lt"
+instance = "Int32"
+bend = "Lean.Int32.lt"
+kind = "def"
+signature = "(a b : Int32) : Prop"
+
+[[constant]]
+lean = "LE.le"
+instance = "Int32"
+bend = "Lean.Int32.le"
+kind = "def"
+signature = "(a b : Int32) : Prop"
+
+[[constant]]
+lean = "Int64"
+instance = ""
+bend = "Lean.Int64"
+kind = "type"
+signature = "structure Int64 (64-bit twos complement)"
+
+[[constant]]
+lean = "OfNat.ofNat"
+instance = "Int64"
+bend = "Lean.Int64.lit"
+kind = "def"
+signature = "(n : Nat) : Int64  -- n <= 4294967295, passed as a U32 literal"
+
+[[constant]]
+lean = "OfNat.ofNat"
+instance = "Int64.wide"
+bend = "Lean.Int64.lit2"
+kind = "def"
+signature = "(n : Nat) : Int64  -- n = hi * 2^32 + lo, passed as two U32 literals"
+
+[[constant]]
+lean = "Int64.ofNat"
+instance = ""
+bend = "Lean.Int64.ofNat"
+kind = "def"
+signature = "(n : Nat) : Int64"
+
+[[constant]]
+lean = "Int64.toInt"
+instance = ""
+bend = "Lean.Int64.toInt"
+kind = "def"
+signature = "(a : Int64) : Int"
+
+[[constant]]
+lean = "Int64.toNatClampNeg"
+instance = ""
+bend = "Lean.Int64.toNatClampNeg"
+kind = "def"
+signature = "(a : Int64) : Nat"
+
+[[constant]]
+lean = "Int64.toUInt64"
+instance = ""
+bend = "Lean.Int64.toUInt64"
+kind = "def"
+signature = "(a : Int64) : UInt64"
+
+[[constant]]
+lean = "Int64.ofInt"
+instance = ""
+bend = "Lean.Int64.ofInt"
+kind = "def"
+signature = "(i : Int) : Int64"
+
+[[constant]]
+lean = "Int64.add"
+instance = ""
+bend = "Lean.Int64.add"
+kind = "def"
+signature = "(a b : Int64) : Int64"
+
+[[constant]]
+lean = "Int64.sub"
+instance = ""
+bend = "Lean.Int64.sub"
+kind = "def"
+signature = "(a b : Int64) : Int64"
+
+[[constant]]
+lean = "Int64.mul"
+instance = ""
+bend = "Lean.Int64.mul"
+kind = "def"
+signature = "(a b : Int64) : Int64"
+
+[[constant]]
+lean = "Int64.div"
+instance = ""
+bend = "Lean.Int64.div"
+kind = "def"
+signature = "(a b : Int64) : Int64"
+
+[[constant]]
+lean = "Int64.mod"
+instance = ""
+bend = "Lean.Int64.mod"
+kind = "def"
+signature = "(a b : Int64) : Int64"
+
+[[constant]]
+lean = "Int64.land"
+instance = ""
+bend = "Lean.Int64.land"
+kind = "def"
+signature = "(a b : Int64) : Int64"
+
+[[constant]]
+lean = "Int64.lor"
+instance = ""
+bend = "Lean.Int64.lor"
+kind = "def"
+signature = "(a b : Int64) : Int64"
+
+[[constant]]
+lean = "Int64.xor"
+instance = ""
+bend = "Lean.Int64.xor"
+kind = "def"
+signature = "(a b : Int64) : Int64"
+
+[[constant]]
+lean = "Int64.shiftLeft"
+instance = ""
+bend = "Lean.Int64.shiftLeft"
+kind = "def"
+signature = "(a b : Int64) : Int64"
+
+[[constant]]
+lean = "Int64.shiftRight"
+instance = ""
+bend = "Lean.Int64.shiftRight"
+kind = "def"
+signature = "(a b : Int64) : Int64"
+
+[[constant]]
+lean = "Int64.neg"
+instance = ""
+bend = "Lean.Int64.neg"
+kind = "def"
+signature = "(a : Int64) : Int64"
+
+[[constant]]
+lean = "Int64.complement"
+instance = ""
+bend = "Lean.Int64.complement"
+kind = "def"
+signature = "(a : Int64) : Int64"
+
+[[constant]]
+lean = "BEq.beq"
+instance = "Int64"
+bend = "Lean.Int64.beq"
+kind = "def"
+signature = "(a b : Int64) : Bool"
+
+[[constant]]
+lean = "Ord.compare"
+instance = "Int64"
+bend = "Lean.Int64.cmp"
+kind = "def"
+signature = "(a b : Int64) : Ordering"
+
+[[constant]]
+lean = "Decidable.decide (a < b)"
+instance = "Int64"
+bend = "Lean.Int64.decLt"
+kind = "def"
+signature = "(a b : Int64) : Bool"
+
+[[constant]]
+lean = "Decidable.decide (a <= b)"
+instance = "Int64"
+bend = "Lean.Int64.decLe"
+kind = "def"
+signature = "(a b : Int64) : Bool"
+
+[[constant]]
+lean = "LT.lt"
+instance = "Int64"
+bend = "Lean.Int64.lt"
+kind = "def"
+signature = "(a b : Int64) : Prop"
+
+[[constant]]
+lean = "LE.le"
+instance = "Int64"
+bend = "Lean.Int64.le"
+kind = "def"
+signature = "(a b : Int64) : Prop"
+
+[[constant]]
+lean = "LexLeanRuntime.ToMathInt.toInt"
+instance = "Int"
+bend = "LexLeanRuntime.ToMathInt.toInt.Int"
+kind = "def"
+signature = "(value : Int) : Int"
+
+[[constant]]
+lean = "LexLeanRuntime.ToMathInt.toInt"
+instance = "UInt8"
+bend = "LexLeanRuntime.ToMathInt.toInt.UInt8"
+kind = "def"
+signature = "(value : UInt8) : Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.fromInt"
+instance = "UInt8"
+bend = "LexLeanRuntime.Fixed.fromInt.UInt8"
+kind = "def"
+signature = "(value : Int) : UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.minimum"
+instance = "UInt8"
+bend = "LexLeanRuntime.Fixed.minimum.UInt8"
+kind = "def"
+signature = ": Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.maximum"
+instance = "UInt8"
+bend = "LexLeanRuntime.Fixed.maximum.UInt8"
+kind = "def"
+signature = ": Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitAnd"
+instance = "UInt8"
+bend = "LexLeanRuntime.Fixed.bitAnd.UInt8"
+kind = "def"
+signature = "(left right : UInt8) : UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitOr"
+instance = "UInt8"
+bend = "LexLeanRuntime.Fixed.bitOr.UInt8"
+kind = "def"
+signature = "(left right : UInt8) : UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitXor"
+instance = "UInt8"
+bend = "LexLeanRuntime.Fixed.bitXor.UInt8"
+kind = "def"
+signature = "(left right : UInt8) : UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitNot"
+instance = "UInt8"
+bend = "LexLeanRuntime.Fixed.bitNot.UInt8"
+kind = "def"
+signature = "(value : UInt8) : UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.shiftLeft"
+instance = "UInt8"
+bend = "LexLeanRuntime.Fixed.shiftLeft.UInt8"
+kind = "def"
+signature = "(value : UInt8) (amount : UInt32) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.shiftRight"
+instance = "UInt8"
+bend = "LexLeanRuntime.Fixed.shiftRight.UInt8"
+kind = "def"
+signature = "(value : UInt8) (amount : UInt32) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedFromInt"
+instance = "UInt8"
+bend = "LexLeanRuntime.checkedFromInt.UInt8"
+kind = "def"
+signature = "(value : Int) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedAdd"
+instance = "UInt8"
+bend = "LexLeanRuntime.checkedAdd.UInt8"
+kind = "def"
+signature = "(left right : UInt8) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedSubtract"
+instance = "UInt8"
+bend = "LexLeanRuntime.checkedSubtract.UInt8"
+kind = "def"
+signature = "(left right : UInt8) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedMultiply"
+instance = "UInt8"
+bend = "LexLeanRuntime.checkedMultiply.UInt8"
+kind = "def"
+signature = "(left right : UInt8) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedNegate"
+instance = "UInt8"
+bend = "LexLeanRuntime.checkedNegate.UInt8"
+kind = "def"
+signature = "(value : UInt8) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedQuotient"
+instance = "UInt8"
+bend = "LexLeanRuntime.checkedQuotient.UInt8"
+kind = "def"
+signature = "(left right : UInt8) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.ToMathInt.toInt"
+instance = "UInt16"
+bend = "LexLeanRuntime.ToMathInt.toInt.UInt16"
+kind = "def"
+signature = "(value : UInt16) : Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.fromInt"
+instance = "UInt16"
+bend = "LexLeanRuntime.Fixed.fromInt.UInt16"
+kind = "def"
+signature = "(value : Int) : UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.minimum"
+instance = "UInt16"
+bend = "LexLeanRuntime.Fixed.minimum.UInt16"
+kind = "def"
+signature = ": Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.maximum"
+instance = "UInt16"
+bend = "LexLeanRuntime.Fixed.maximum.UInt16"
+kind = "def"
+signature = ": Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitAnd"
+instance = "UInt16"
+bend = "LexLeanRuntime.Fixed.bitAnd.UInt16"
+kind = "def"
+signature = "(left right : UInt16) : UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitOr"
+instance = "UInt16"
+bend = "LexLeanRuntime.Fixed.bitOr.UInt16"
+kind = "def"
+signature = "(left right : UInt16) : UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitXor"
+instance = "UInt16"
+bend = "LexLeanRuntime.Fixed.bitXor.UInt16"
+kind = "def"
+signature = "(left right : UInt16) : UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitNot"
+instance = "UInt16"
+bend = "LexLeanRuntime.Fixed.bitNot.UInt16"
+kind = "def"
+signature = "(value : UInt16) : UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.shiftLeft"
+instance = "UInt16"
+bend = "LexLeanRuntime.Fixed.shiftLeft.UInt16"
+kind = "def"
+signature = "(value : UInt16) (amount : UInt32) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.shiftRight"
+instance = "UInt16"
+bend = "LexLeanRuntime.Fixed.shiftRight.UInt16"
+kind = "def"
+signature = "(value : UInt16) (amount : UInt32) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedFromInt"
+instance = "UInt16"
+bend = "LexLeanRuntime.checkedFromInt.UInt16"
+kind = "def"
+signature = "(value : Int) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedAdd"
+instance = "UInt16"
+bend = "LexLeanRuntime.checkedAdd.UInt16"
+kind = "def"
+signature = "(left right : UInt16) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedSubtract"
+instance = "UInt16"
+bend = "LexLeanRuntime.checkedSubtract.UInt16"
+kind = "def"
+signature = "(left right : UInt16) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedMultiply"
+instance = "UInt16"
+bend = "LexLeanRuntime.checkedMultiply.UInt16"
+kind = "def"
+signature = "(left right : UInt16) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedNegate"
+instance = "UInt16"
+bend = "LexLeanRuntime.checkedNegate.UInt16"
+kind = "def"
+signature = "(value : UInt16) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedQuotient"
+instance = "UInt16"
+bend = "LexLeanRuntime.checkedQuotient.UInt16"
+kind = "def"
+signature = "(left right : UInt16) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.ToMathInt.toInt"
+instance = "UInt32"
+bend = "LexLeanRuntime.ToMathInt.toInt.UInt32"
+kind = "def"
+signature = "(value : UInt32) : Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.fromInt"
+instance = "UInt32"
+bend = "LexLeanRuntime.Fixed.fromInt.UInt32"
+kind = "def"
+signature = "(value : Int) : UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.minimum"
+instance = "UInt32"
+bend = "LexLeanRuntime.Fixed.minimum.UInt32"
+kind = "def"
+signature = ": Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.maximum"
+instance = "UInt32"
+bend = "LexLeanRuntime.Fixed.maximum.UInt32"
+kind = "def"
+signature = ": Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitAnd"
+instance = "UInt32"
+bend = "LexLeanRuntime.Fixed.bitAnd.UInt32"
+kind = "def"
+signature = "(left right : UInt32) : UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitOr"
+instance = "UInt32"
+bend = "LexLeanRuntime.Fixed.bitOr.UInt32"
+kind = "def"
+signature = "(left right : UInt32) : UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitXor"
+instance = "UInt32"
+bend = "LexLeanRuntime.Fixed.bitXor.UInt32"
+kind = "def"
+signature = "(left right : UInt32) : UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitNot"
+instance = "UInt32"
+bend = "LexLeanRuntime.Fixed.bitNot.UInt32"
+kind = "def"
+signature = "(value : UInt32) : UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.shiftLeft"
+instance = "UInt32"
+bend = "LexLeanRuntime.Fixed.shiftLeft.UInt32"
+kind = "def"
+signature = "(value : UInt32) (amount : UInt32) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.shiftRight"
+instance = "UInt32"
+bend = "LexLeanRuntime.Fixed.shiftRight.UInt32"
+kind = "def"
+signature = "(value : UInt32) (amount : UInt32) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedFromInt"
+instance = "UInt32"
+bend = "LexLeanRuntime.checkedFromInt.UInt32"
+kind = "def"
+signature = "(value : Int) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedAdd"
+instance = "UInt32"
+bend = "LexLeanRuntime.checkedAdd.UInt32"
+kind = "def"
+signature = "(left right : UInt32) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedSubtract"
+instance = "UInt32"
+bend = "LexLeanRuntime.checkedSubtract.UInt32"
+kind = "def"
+signature = "(left right : UInt32) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedMultiply"
+instance = "UInt32"
+bend = "LexLeanRuntime.checkedMultiply.UInt32"
+kind = "def"
+signature = "(left right : UInt32) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedNegate"
+instance = "UInt32"
+bend = "LexLeanRuntime.checkedNegate.UInt32"
+kind = "def"
+signature = "(value : UInt32) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedQuotient"
+instance = "UInt32"
+bend = "LexLeanRuntime.checkedQuotient.UInt32"
+kind = "def"
+signature = "(left right : UInt32) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.ToMathInt.toInt"
+instance = "UInt64"
+bend = "LexLeanRuntime.ToMathInt.toInt.UInt64"
+kind = "def"
+signature = "(value : UInt64) : Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.fromInt"
+instance = "UInt64"
+bend = "LexLeanRuntime.Fixed.fromInt.UInt64"
+kind = "def"
+signature = "(value : Int) : UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.minimum"
+instance = "UInt64"
+bend = "LexLeanRuntime.Fixed.minimum.UInt64"
+kind = "def"
+signature = ": Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.maximum"
+instance = "UInt64"
+bend = "LexLeanRuntime.Fixed.maximum.UInt64"
+kind = "def"
+signature = ": Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitAnd"
+instance = "UInt64"
+bend = "LexLeanRuntime.Fixed.bitAnd.UInt64"
+kind = "def"
+signature = "(left right : UInt64) : UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitOr"
+instance = "UInt64"
+bend = "LexLeanRuntime.Fixed.bitOr.UInt64"
+kind = "def"
+signature = "(left right : UInt64) : UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitXor"
+instance = "UInt64"
+bend = "LexLeanRuntime.Fixed.bitXor.UInt64"
+kind = "def"
+signature = "(left right : UInt64) : UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitNot"
+instance = "UInt64"
+bend = "LexLeanRuntime.Fixed.bitNot.UInt64"
+kind = "def"
+signature = "(value : UInt64) : UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.shiftLeft"
+instance = "UInt64"
+bend = "LexLeanRuntime.Fixed.shiftLeft.UInt64"
+kind = "def"
+signature = "(value : UInt64) (amount : UInt32) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.shiftRight"
+instance = "UInt64"
+bend = "LexLeanRuntime.Fixed.shiftRight.UInt64"
+kind = "def"
+signature = "(value : UInt64) (amount : UInt32) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedFromInt"
+instance = "UInt64"
+bend = "LexLeanRuntime.checkedFromInt.UInt64"
+kind = "def"
+signature = "(value : Int) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedAdd"
+instance = "UInt64"
+bend = "LexLeanRuntime.checkedAdd.UInt64"
+kind = "def"
+signature = "(left right : UInt64) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedSubtract"
+instance = "UInt64"
+bend = "LexLeanRuntime.checkedSubtract.UInt64"
+kind = "def"
+signature = "(left right : UInt64) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedMultiply"
+instance = "UInt64"
+bend = "LexLeanRuntime.checkedMultiply.UInt64"
+kind = "def"
+signature = "(left right : UInt64) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedNegate"
+instance = "UInt64"
+bend = "LexLeanRuntime.checkedNegate.UInt64"
+kind = "def"
+signature = "(value : UInt64) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedQuotient"
+instance = "UInt64"
+bend = "LexLeanRuntime.checkedQuotient.UInt64"
+kind = "def"
+signature = "(left right : UInt64) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.ToMathInt.toInt"
+instance = "Int8"
+bend = "LexLeanRuntime.ToMathInt.toInt.Int8"
+kind = "def"
+signature = "(value : Int8) : Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.fromInt"
+instance = "Int8"
+bend = "LexLeanRuntime.Fixed.fromInt.Int8"
+kind = "def"
+signature = "(value : Int) : Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.minimum"
+instance = "Int8"
+bend = "LexLeanRuntime.Fixed.minimum.Int8"
+kind = "def"
+signature = ": Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.maximum"
+instance = "Int8"
+bend = "LexLeanRuntime.Fixed.maximum.Int8"
+kind = "def"
+signature = ": Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitAnd"
+instance = "Int8"
+bend = "LexLeanRuntime.Fixed.bitAnd.Int8"
+kind = "def"
+signature = "(left right : Int8) : Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitOr"
+instance = "Int8"
+bend = "LexLeanRuntime.Fixed.bitOr.Int8"
+kind = "def"
+signature = "(left right : Int8) : Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitXor"
+instance = "Int8"
+bend = "LexLeanRuntime.Fixed.bitXor.Int8"
+kind = "def"
+signature = "(left right : Int8) : Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitNot"
+instance = "Int8"
+bend = "LexLeanRuntime.Fixed.bitNot.Int8"
+kind = "def"
+signature = "(value : Int8) : Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.shiftLeft"
+instance = "Int8"
+bend = "LexLeanRuntime.Fixed.shiftLeft.Int8"
+kind = "def"
+signature = "(value : Int8) (amount : UInt32) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.shiftRight"
+instance = "Int8"
+bend = "LexLeanRuntime.Fixed.shiftRight.Int8"
+kind = "def"
+signature = "(value : Int8) (amount : UInt32) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedFromInt"
+instance = "Int8"
+bend = "LexLeanRuntime.checkedFromInt.Int8"
+kind = "def"
+signature = "(value : Int) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedAdd"
+instance = "Int8"
+bend = "LexLeanRuntime.checkedAdd.Int8"
+kind = "def"
+signature = "(left right : Int8) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedSubtract"
+instance = "Int8"
+bend = "LexLeanRuntime.checkedSubtract.Int8"
+kind = "def"
+signature = "(left right : Int8) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedMultiply"
+instance = "Int8"
+bend = "LexLeanRuntime.checkedMultiply.Int8"
+kind = "def"
+signature = "(left right : Int8) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedNegate"
+instance = "Int8"
+bend = "LexLeanRuntime.checkedNegate.Int8"
+kind = "def"
+signature = "(value : Int8) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedQuotient"
+instance = "Int8"
+bend = "LexLeanRuntime.checkedQuotient.Int8"
+kind = "def"
+signature = "(left right : Int8) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.ToMathInt.toInt"
+instance = "Int16"
+bend = "LexLeanRuntime.ToMathInt.toInt.Int16"
+kind = "def"
+signature = "(value : Int16) : Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.fromInt"
+instance = "Int16"
+bend = "LexLeanRuntime.Fixed.fromInt.Int16"
+kind = "def"
+signature = "(value : Int) : Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.minimum"
+instance = "Int16"
+bend = "LexLeanRuntime.Fixed.minimum.Int16"
+kind = "def"
+signature = ": Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.maximum"
+instance = "Int16"
+bend = "LexLeanRuntime.Fixed.maximum.Int16"
+kind = "def"
+signature = ": Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitAnd"
+instance = "Int16"
+bend = "LexLeanRuntime.Fixed.bitAnd.Int16"
+kind = "def"
+signature = "(left right : Int16) : Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitOr"
+instance = "Int16"
+bend = "LexLeanRuntime.Fixed.bitOr.Int16"
+kind = "def"
+signature = "(left right : Int16) : Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitXor"
+instance = "Int16"
+bend = "LexLeanRuntime.Fixed.bitXor.Int16"
+kind = "def"
+signature = "(left right : Int16) : Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitNot"
+instance = "Int16"
+bend = "LexLeanRuntime.Fixed.bitNot.Int16"
+kind = "def"
+signature = "(value : Int16) : Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.shiftLeft"
+instance = "Int16"
+bend = "LexLeanRuntime.Fixed.shiftLeft.Int16"
+kind = "def"
+signature = "(value : Int16) (amount : UInt32) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.shiftRight"
+instance = "Int16"
+bend = "LexLeanRuntime.Fixed.shiftRight.Int16"
+kind = "def"
+signature = "(value : Int16) (amount : UInt32) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedFromInt"
+instance = "Int16"
+bend = "LexLeanRuntime.checkedFromInt.Int16"
+kind = "def"
+signature = "(value : Int) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedAdd"
+instance = "Int16"
+bend = "LexLeanRuntime.checkedAdd.Int16"
+kind = "def"
+signature = "(left right : Int16) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedSubtract"
+instance = "Int16"
+bend = "LexLeanRuntime.checkedSubtract.Int16"
+kind = "def"
+signature = "(left right : Int16) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedMultiply"
+instance = "Int16"
+bend = "LexLeanRuntime.checkedMultiply.Int16"
+kind = "def"
+signature = "(left right : Int16) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedNegate"
+instance = "Int16"
+bend = "LexLeanRuntime.checkedNegate.Int16"
+kind = "def"
+signature = "(value : Int16) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedQuotient"
+instance = "Int16"
+bend = "LexLeanRuntime.checkedQuotient.Int16"
+kind = "def"
+signature = "(left right : Int16) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.ToMathInt.toInt"
+instance = "Int32"
+bend = "LexLeanRuntime.ToMathInt.toInt.Int32"
+kind = "def"
+signature = "(value : Int32) : Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.fromInt"
+instance = "Int32"
+bend = "LexLeanRuntime.Fixed.fromInt.Int32"
+kind = "def"
+signature = "(value : Int) : Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.minimum"
+instance = "Int32"
+bend = "LexLeanRuntime.Fixed.minimum.Int32"
+kind = "def"
+signature = ": Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.maximum"
+instance = "Int32"
+bend = "LexLeanRuntime.Fixed.maximum.Int32"
+kind = "def"
+signature = ": Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitAnd"
+instance = "Int32"
+bend = "LexLeanRuntime.Fixed.bitAnd.Int32"
+kind = "def"
+signature = "(left right : Int32) : Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitOr"
+instance = "Int32"
+bend = "LexLeanRuntime.Fixed.bitOr.Int32"
+kind = "def"
+signature = "(left right : Int32) : Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitXor"
+instance = "Int32"
+bend = "LexLeanRuntime.Fixed.bitXor.Int32"
+kind = "def"
+signature = "(left right : Int32) : Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitNot"
+instance = "Int32"
+bend = "LexLeanRuntime.Fixed.bitNot.Int32"
+kind = "def"
+signature = "(value : Int32) : Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.shiftLeft"
+instance = "Int32"
+bend = "LexLeanRuntime.Fixed.shiftLeft.Int32"
+kind = "def"
+signature = "(value : Int32) (amount : UInt32) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.shiftRight"
+instance = "Int32"
+bend = "LexLeanRuntime.Fixed.shiftRight.Int32"
+kind = "def"
+signature = "(value : Int32) (amount : UInt32) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedFromInt"
+instance = "Int32"
+bend = "LexLeanRuntime.checkedFromInt.Int32"
+kind = "def"
+signature = "(value : Int) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedAdd"
+instance = "Int32"
+bend = "LexLeanRuntime.checkedAdd.Int32"
+kind = "def"
+signature = "(left right : Int32) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedSubtract"
+instance = "Int32"
+bend = "LexLeanRuntime.checkedSubtract.Int32"
+kind = "def"
+signature = "(left right : Int32) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedMultiply"
+instance = "Int32"
+bend = "LexLeanRuntime.checkedMultiply.Int32"
+kind = "def"
+signature = "(left right : Int32) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedNegate"
+instance = "Int32"
+bend = "LexLeanRuntime.checkedNegate.Int32"
+kind = "def"
+signature = "(value : Int32) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedQuotient"
+instance = "Int32"
+bend = "LexLeanRuntime.checkedQuotient.Int32"
+kind = "def"
+signature = "(left right : Int32) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.ToMathInt.toInt"
+instance = "Int64"
+bend = "LexLeanRuntime.ToMathInt.toInt.Int64"
+kind = "def"
+signature = "(value : Int64) : Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.fromInt"
+instance = "Int64"
+bend = "LexLeanRuntime.Fixed.fromInt.Int64"
+kind = "def"
+signature = "(value : Int) : Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.minimum"
+instance = "Int64"
+bend = "LexLeanRuntime.Fixed.minimum.Int64"
+kind = "def"
+signature = ": Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.maximum"
+instance = "Int64"
+bend = "LexLeanRuntime.Fixed.maximum.Int64"
+kind = "def"
+signature = ": Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitAnd"
+instance = "Int64"
+bend = "LexLeanRuntime.Fixed.bitAnd.Int64"
+kind = "def"
+signature = "(left right : Int64) : Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitOr"
+instance = "Int64"
+bend = "LexLeanRuntime.Fixed.bitOr.Int64"
+kind = "def"
+signature = "(left right : Int64) : Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitXor"
+instance = "Int64"
+bend = "LexLeanRuntime.Fixed.bitXor.Int64"
+kind = "def"
+signature = "(left right : Int64) : Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.bitNot"
+instance = "Int64"
+bend = "LexLeanRuntime.Fixed.bitNot.Int64"
+kind = "def"
+signature = "(value : Int64) : Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.shiftLeft"
+instance = "Int64"
+bend = "LexLeanRuntime.Fixed.shiftLeft.Int64"
+kind = "def"
+signature = "(value : Int64) (amount : UInt32) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.Fixed.shiftRight"
+instance = "Int64"
+bend = "LexLeanRuntime.Fixed.shiftRight.Int64"
+kind = "def"
+signature = "(value : Int64) (amount : UInt32) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedFromInt"
+instance = "Int64"
+bend = "LexLeanRuntime.checkedFromInt.Int64"
+kind = "def"
+signature = "(value : Int) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedAdd"
+instance = "Int64"
+bend = "LexLeanRuntime.checkedAdd.Int64"
+kind = "def"
+signature = "(left right : Int64) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedSubtract"
+instance = "Int64"
+bend = "LexLeanRuntime.checkedSubtract.Int64"
+kind = "def"
+signature = "(left right : Int64) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedMultiply"
+instance = "Int64"
+bend = "LexLeanRuntime.checkedMultiply.Int64"
+kind = "def"
+signature = "(left right : Int64) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedNegate"
+instance = "Int64"
+bend = "LexLeanRuntime.checkedNegate.Int64"
+kind = "def"
+signature = "(value : Int64) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedQuotient"
+instance = "Int64"
+bend = "LexLeanRuntime.checkedQuotient.Int64"
+kind = "def"
+signature = "(left right : Int64) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int.UInt8"
+bend = "LexLeanRuntime.checkedConvert.Int.UInt8"
+kind = "def"
+signature = "(value : Int) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int.UInt16"
+bend = "LexLeanRuntime.checkedConvert.Int.UInt16"
+kind = "def"
+signature = "(value : Int) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int.UInt32"
+bend = "LexLeanRuntime.checkedConvert.Int.UInt32"
+kind = "def"
+signature = "(value : Int) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int.UInt64"
+bend = "LexLeanRuntime.checkedConvert.Int.UInt64"
+kind = "def"
+signature = "(value : Int) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int.Int8"
+bend = "LexLeanRuntime.checkedConvert.Int.Int8"
+kind = "def"
+signature = "(value : Int) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int.Int16"
+bend = "LexLeanRuntime.checkedConvert.Int.Int16"
+kind = "def"
+signature = "(value : Int) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int.Int32"
+bend = "LexLeanRuntime.checkedConvert.Int.Int32"
+kind = "def"
+signature = "(value : Int) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int.Int64"
+bend = "LexLeanRuntime.checkedConvert.Int.Int64"
+kind = "def"
+signature = "(value : Int) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt8.UInt8"
+bend = "LexLeanRuntime.checkedConvert.UInt8.UInt8"
+kind = "def"
+signature = "(value : UInt8) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt8.UInt16"
+bend = "LexLeanRuntime.checkedConvert.UInt8.UInt16"
+kind = "def"
+signature = "(value : UInt8) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt8.UInt32"
+bend = "LexLeanRuntime.checkedConvert.UInt8.UInt32"
+kind = "def"
+signature = "(value : UInt8) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt8.UInt64"
+bend = "LexLeanRuntime.checkedConvert.UInt8.UInt64"
+kind = "def"
+signature = "(value : UInt8) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt8.Int8"
+bend = "LexLeanRuntime.checkedConvert.UInt8.Int8"
+kind = "def"
+signature = "(value : UInt8) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt8.Int16"
+bend = "LexLeanRuntime.checkedConvert.UInt8.Int16"
+kind = "def"
+signature = "(value : UInt8) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt8.Int32"
+bend = "LexLeanRuntime.checkedConvert.UInt8.Int32"
+kind = "def"
+signature = "(value : UInt8) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt8.Int64"
+bend = "LexLeanRuntime.checkedConvert.UInt8.Int64"
+kind = "def"
+signature = "(value : UInt8) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt16.UInt8"
+bend = "LexLeanRuntime.checkedConvert.UInt16.UInt8"
+kind = "def"
+signature = "(value : UInt16) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt16.UInt16"
+bend = "LexLeanRuntime.checkedConvert.UInt16.UInt16"
+kind = "def"
+signature = "(value : UInt16) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt16.UInt32"
+bend = "LexLeanRuntime.checkedConvert.UInt16.UInt32"
+kind = "def"
+signature = "(value : UInt16) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt16.UInt64"
+bend = "LexLeanRuntime.checkedConvert.UInt16.UInt64"
+kind = "def"
+signature = "(value : UInt16) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt16.Int8"
+bend = "LexLeanRuntime.checkedConvert.UInt16.Int8"
+kind = "def"
+signature = "(value : UInt16) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt16.Int16"
+bend = "LexLeanRuntime.checkedConvert.UInt16.Int16"
+kind = "def"
+signature = "(value : UInt16) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt16.Int32"
+bend = "LexLeanRuntime.checkedConvert.UInt16.Int32"
+kind = "def"
+signature = "(value : UInt16) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt16.Int64"
+bend = "LexLeanRuntime.checkedConvert.UInt16.Int64"
+kind = "def"
+signature = "(value : UInt16) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt32.UInt8"
+bend = "LexLeanRuntime.checkedConvert.UInt32.UInt8"
+kind = "def"
+signature = "(value : UInt32) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt32.UInt16"
+bend = "LexLeanRuntime.checkedConvert.UInt32.UInt16"
+kind = "def"
+signature = "(value : UInt32) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt32.UInt32"
+bend = "LexLeanRuntime.checkedConvert.UInt32.UInt32"
+kind = "def"
+signature = "(value : UInt32) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt32.UInt64"
+bend = "LexLeanRuntime.checkedConvert.UInt32.UInt64"
+kind = "def"
+signature = "(value : UInt32) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt32.Int8"
+bend = "LexLeanRuntime.checkedConvert.UInt32.Int8"
+kind = "def"
+signature = "(value : UInt32) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt32.Int16"
+bend = "LexLeanRuntime.checkedConvert.UInt32.Int16"
+kind = "def"
+signature = "(value : UInt32) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt32.Int32"
+bend = "LexLeanRuntime.checkedConvert.UInt32.Int32"
+kind = "def"
+signature = "(value : UInt32) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt32.Int64"
+bend = "LexLeanRuntime.checkedConvert.UInt32.Int64"
+kind = "def"
+signature = "(value : UInt32) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt64.UInt8"
+bend = "LexLeanRuntime.checkedConvert.UInt64.UInt8"
+kind = "def"
+signature = "(value : UInt64) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt64.UInt16"
+bend = "LexLeanRuntime.checkedConvert.UInt64.UInt16"
+kind = "def"
+signature = "(value : UInt64) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt64.UInt32"
+bend = "LexLeanRuntime.checkedConvert.UInt64.UInt32"
+kind = "def"
+signature = "(value : UInt64) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt64.UInt64"
+bend = "LexLeanRuntime.checkedConvert.UInt64.UInt64"
+kind = "def"
+signature = "(value : UInt64) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt64.Int8"
+bend = "LexLeanRuntime.checkedConvert.UInt64.Int8"
+kind = "def"
+signature = "(value : UInt64) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt64.Int16"
+bend = "LexLeanRuntime.checkedConvert.UInt64.Int16"
+kind = "def"
+signature = "(value : UInt64) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt64.Int32"
+bend = "LexLeanRuntime.checkedConvert.UInt64.Int32"
+kind = "def"
+signature = "(value : UInt64) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "UInt64.Int64"
+bend = "LexLeanRuntime.checkedConvert.UInt64.Int64"
+kind = "def"
+signature = "(value : UInt64) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int8.UInt8"
+bend = "LexLeanRuntime.checkedConvert.Int8.UInt8"
+kind = "def"
+signature = "(value : Int8) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int8.UInt16"
+bend = "LexLeanRuntime.checkedConvert.Int8.UInt16"
+kind = "def"
+signature = "(value : Int8) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int8.UInt32"
+bend = "LexLeanRuntime.checkedConvert.Int8.UInt32"
+kind = "def"
+signature = "(value : Int8) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int8.UInt64"
+bend = "LexLeanRuntime.checkedConvert.Int8.UInt64"
+kind = "def"
+signature = "(value : Int8) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int8.Int8"
+bend = "LexLeanRuntime.checkedConvert.Int8.Int8"
+kind = "def"
+signature = "(value : Int8) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int8.Int16"
+bend = "LexLeanRuntime.checkedConvert.Int8.Int16"
+kind = "def"
+signature = "(value : Int8) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int8.Int32"
+bend = "LexLeanRuntime.checkedConvert.Int8.Int32"
+kind = "def"
+signature = "(value : Int8) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int8.Int64"
+bend = "LexLeanRuntime.checkedConvert.Int8.Int64"
+kind = "def"
+signature = "(value : Int8) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int16.UInt8"
+bend = "LexLeanRuntime.checkedConvert.Int16.UInt8"
+kind = "def"
+signature = "(value : Int16) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int16.UInt16"
+bend = "LexLeanRuntime.checkedConvert.Int16.UInt16"
+kind = "def"
+signature = "(value : Int16) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int16.UInt32"
+bend = "LexLeanRuntime.checkedConvert.Int16.UInt32"
+kind = "def"
+signature = "(value : Int16) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int16.UInt64"
+bend = "LexLeanRuntime.checkedConvert.Int16.UInt64"
+kind = "def"
+signature = "(value : Int16) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int16.Int8"
+bend = "LexLeanRuntime.checkedConvert.Int16.Int8"
+kind = "def"
+signature = "(value : Int16) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int16.Int16"
+bend = "LexLeanRuntime.checkedConvert.Int16.Int16"
+kind = "def"
+signature = "(value : Int16) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int16.Int32"
+bend = "LexLeanRuntime.checkedConvert.Int16.Int32"
+kind = "def"
+signature = "(value : Int16) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int16.Int64"
+bend = "LexLeanRuntime.checkedConvert.Int16.Int64"
+kind = "def"
+signature = "(value : Int16) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int32.UInt8"
+bend = "LexLeanRuntime.checkedConvert.Int32.UInt8"
+kind = "def"
+signature = "(value : Int32) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int32.UInt16"
+bend = "LexLeanRuntime.checkedConvert.Int32.UInt16"
+kind = "def"
+signature = "(value : Int32) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int32.UInt32"
+bend = "LexLeanRuntime.checkedConvert.Int32.UInt32"
+kind = "def"
+signature = "(value : Int32) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int32.UInt64"
+bend = "LexLeanRuntime.checkedConvert.Int32.UInt64"
+kind = "def"
+signature = "(value : Int32) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int32.Int8"
+bend = "LexLeanRuntime.checkedConvert.Int32.Int8"
+kind = "def"
+signature = "(value : Int32) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int32.Int16"
+bend = "LexLeanRuntime.checkedConvert.Int32.Int16"
+kind = "def"
+signature = "(value : Int32) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int32.Int32"
+bend = "LexLeanRuntime.checkedConvert.Int32.Int32"
+kind = "def"
+signature = "(value : Int32) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int32.Int64"
+bend = "LexLeanRuntime.checkedConvert.Int32.Int64"
+kind = "def"
+signature = "(value : Int32) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int64.UInt8"
+bend = "LexLeanRuntime.checkedConvert.Int64.UInt8"
+kind = "def"
+signature = "(value : Int64) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int64.UInt16"
+bend = "LexLeanRuntime.checkedConvert.Int64.UInt16"
+kind = "def"
+signature = "(value : Int64) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int64.UInt32"
+bend = "LexLeanRuntime.checkedConvert.Int64.UInt32"
+kind = "def"
+signature = "(value : Int64) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int64.UInt64"
+bend = "LexLeanRuntime.checkedConvert.Int64.UInt64"
+kind = "def"
+signature = "(value : Int64) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int64.Int8"
+bend = "LexLeanRuntime.checkedConvert.Int64.Int8"
+kind = "def"
+signature = "(value : Int64) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int64.Int16"
+bend = "LexLeanRuntime.checkedConvert.Int64.Int16"
+kind = "def"
+signature = "(value : Int64) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int64.Int32"
+bend = "LexLeanRuntime.checkedConvert.Int64.Int32"
+kind = "def"
+signature = "(value : Int64) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedConvert"
+instance = "Int64.Int64"
+bend = "LexLeanRuntime.checkedConvert.Int64.Int64"
+kind = "def"
+signature = "(value : Int64) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedAddInt64"
+instance = ""
+bend = "LexLeanRuntime.checkedAddInt64"
+kind = "def"
+signature = "(left right : Int64) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedSubtractInt64"
+instance = ""
+bend = "LexLeanRuntime.checkedSubtractInt64"
+kind = "def"
+signature = "(left right : Int64) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedNegateInt64"
+instance = ""
+bend = "LexLeanRuntime.checkedNegateInt64"
+kind = "def"
+signature = "(value : Int64) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.magnitudeInt64"
+instance = ""
+bend = "LexLeanRuntime.magnitudeInt64"
+kind = "def"
+signature = "(value : Int64) : UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.signedMagnitudeInt64"
+instance = ""
+bend = "LexLeanRuntime.signedMagnitudeInt64"
+kind = "def"
+signature = "(negative : Bool) (value : UInt64) : Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.divideMagnitudeInt64"
+instance = ""
+bend = "LexLeanRuntime.divideMagnitudeInt64"
+kind = "def"
+signature = ": Nat -> UInt64 -> UInt64 -> UInt64 -> UInt64 -> UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedQuotientInt64"
+instance = ""
+bend = "LexLeanRuntime.checkedQuotientInt64"
+kind = "def"
+signature = "(left right : Int64) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.multiplyMagnitudeInt64"
+instance = ""
+bend = "LexLeanRuntime.multiplyMagnitudeInt64"
+kind = "def"
+signature = ": Nat -> UInt64 -> UInt64 -> UInt64 -> Bool -> Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.checkedMultiplyInt64"
+instance = ""
+bend = "LexLeanRuntime.checkedMultiplyInt64"
+kind = "def"
+signature = "(left right : Int64) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.subtract"
+instance = "Nat"
+bend = "LexLeanRuntime.subtract.Nat"
+kind = "def"
+signature = "(left right : Nat) : Nat"
+
+[[constant]]
+lean = "LexLeanRuntime.multiply"
+instance = "Nat"
+bend = "LexLeanRuntime.multiply.Nat"
+kind = "def"
+signature = "(left right : Nat) : Nat"
+
+[[constant]]
+lean = "LexLeanRuntime.subtract"
+instance = "Int"
+bend = "LexLeanRuntime.subtract.Int"
+kind = "def"
+signature = "(left right : Int) : Int"
+
+[[constant]]
+lean = "LexLeanRuntime.multiply"
+instance = "Int"
+bend = "LexLeanRuntime.multiply.Int"
+kind = "def"
+signature = "(left right : Int) : Int"
+
+[[constant]]
+lean = "LexLeanRuntime.negate"
+instance = "Int"
+bend = "LexLeanRuntime.negate.Int"
+kind = "def"
+signature = "(value : Int) : Int"
+
+[[constant]]
+lean = "LexLeanRuntime.subtract"
+instance = "UInt8"
+bend = "LexLeanRuntime.subtract.UInt8"
+kind = "def"
+signature = "(left right : UInt8) : UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.multiply"
+instance = "UInt8"
+bend = "LexLeanRuntime.multiply.UInt8"
+kind = "def"
+signature = "(left right : UInt8) : UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.negate"
+instance = "UInt8"
+bend = "LexLeanRuntime.negate.UInt8"
+kind = "def"
+signature = "(value : UInt8) : UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.subtract"
+instance = "UInt16"
+bend = "LexLeanRuntime.subtract.UInt16"
+kind = "def"
+signature = "(left right : UInt16) : UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.multiply"
+instance = "UInt16"
+bend = "LexLeanRuntime.multiply.UInt16"
+kind = "def"
+signature = "(left right : UInt16) : UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.negate"
+instance = "UInt16"
+bend = "LexLeanRuntime.negate.UInt16"
+kind = "def"
+signature = "(value : UInt16) : UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.subtract"
+instance = "UInt32"
+bend = "LexLeanRuntime.subtract.UInt32"
+kind = "def"
+signature = "(left right : UInt32) : UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.multiply"
+instance = "UInt32"
+bend = "LexLeanRuntime.multiply.UInt32"
+kind = "def"
+signature = "(left right : UInt32) : UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.negate"
+instance = "UInt32"
+bend = "LexLeanRuntime.negate.UInt32"
+kind = "def"
+signature = "(value : UInt32) : UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.subtract"
+instance = "UInt64"
+bend = "LexLeanRuntime.subtract.UInt64"
+kind = "def"
+signature = "(left right : UInt64) : UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.multiply"
+instance = "UInt64"
+bend = "LexLeanRuntime.multiply.UInt64"
+kind = "def"
+signature = "(left right : UInt64) : UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.negate"
+instance = "UInt64"
+bend = "LexLeanRuntime.negate.UInt64"
+kind = "def"
+signature = "(value : UInt64) : UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.subtract"
+instance = "Int8"
+bend = "LexLeanRuntime.subtract.Int8"
+kind = "def"
+signature = "(left right : Int8) : Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.multiply"
+instance = "Int8"
+bend = "LexLeanRuntime.multiply.Int8"
+kind = "def"
+signature = "(left right : Int8) : Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.negate"
+instance = "Int8"
+bend = "LexLeanRuntime.negate.Int8"
+kind = "def"
+signature = "(value : Int8) : Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.subtract"
+instance = "Int16"
+bend = "LexLeanRuntime.subtract.Int16"
+kind = "def"
+signature = "(left right : Int16) : Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.multiply"
+instance = "Int16"
+bend = "LexLeanRuntime.multiply.Int16"
+kind = "def"
+signature = "(left right : Int16) : Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.negate"
+instance = "Int16"
+bend = "LexLeanRuntime.negate.Int16"
+kind = "def"
+signature = "(value : Int16) : Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.subtract"
+instance = "Int32"
+bend = "LexLeanRuntime.subtract.Int32"
+kind = "def"
+signature = "(left right : Int32) : Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.multiply"
+instance = "Int32"
+bend = "LexLeanRuntime.multiply.Int32"
+kind = "def"
+signature = "(left right : Int32) : Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.negate"
+instance = "Int32"
+bend = "LexLeanRuntime.negate.Int32"
+kind = "def"
+signature = "(value : Int32) : Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.subtract"
+instance = "Int64"
+bend = "LexLeanRuntime.subtract.Int64"
+kind = "def"
+signature = "(left right : Int64) : Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.multiply"
+instance = "Int64"
+bend = "LexLeanRuntime.multiply.Int64"
+kind = "def"
+signature = "(left right : Int64) : Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.negate"
+instance = "Int64"
+bend = "LexLeanRuntime.negate.Int64"
+kind = "def"
+signature = "(value : Int64) : Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.quotient"
+instance = "Nat"
+bend = "LexLeanRuntime.quotient.Nat"
+kind = "def"
+signature = "(left right zeroCase : Nat) : Nat"
+
+[[constant]]
+lean = "LexLeanRuntime.Quotient.quotient"
+instance = "Nat"
+bend = "LexLeanRuntime.Quotient.quotient.Nat"
+kind = "def"
+signature = "(left right : Nat) : Nat"
+
+[[constant]]
+lean = "LexLeanRuntime.remainder"
+instance = "Nat"
+bend = "LexLeanRuntime.remainder.Nat"
+kind = "def"
+signature = "(left right zeroCase : Nat) : Nat"
+
+[[constant]]
+lean = "LexLeanRuntime.Quotient.remainder"
+instance = "Nat"
+bend = "LexLeanRuntime.Quotient.remainder.Nat"
+kind = "def"
+signature = "(left right : Nat) : Nat"
+
+[[constant]]
+lean = "LexLeanRuntime.Quotient.isZero"
+instance = "Nat"
+bend = "LexLeanRuntime.Quotient.isZero.Nat"
+kind = "def"
+signature = "(value : Nat) : Bool"
+
+[[constant]]
+lean = "LexLeanRuntime.quotient"
+instance = "Int"
+bend = "LexLeanRuntime.quotient.Int"
+kind = "def"
+signature = "(left right zeroCase : Int) : Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Quotient.quotient"
+instance = "Int"
+bend = "LexLeanRuntime.Quotient.quotient.Int"
+kind = "def"
+signature = "(left right : Int) : Int"
+
+[[constant]]
+lean = "LexLeanRuntime.remainder"
+instance = "Int"
+bend = "LexLeanRuntime.remainder.Int"
+kind = "def"
+signature = "(left right zeroCase : Int) : Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Quotient.remainder"
+instance = "Int"
+bend = "LexLeanRuntime.Quotient.remainder.Int"
+kind = "def"
+signature = "(left right : Int) : Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Quotient.isZero"
+instance = "Int"
+bend = "LexLeanRuntime.Quotient.isZero.Int"
+kind = "def"
+signature = "(value : Int) : Bool"
+
+[[constant]]
+lean = "LexLeanRuntime.bitAnd"
+instance = "UInt8"
+bend = "LexLeanRuntime.bitAnd.UInt8"
+kind = "def"
+signature = "(left right : UInt8) : UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.bitOr"
+instance = "UInt8"
+bend = "LexLeanRuntime.bitOr.UInt8"
+kind = "def"
+signature = "(left right : UInt8) : UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.bitXor"
+instance = "UInt8"
+bend = "LexLeanRuntime.bitXor.UInt8"
+kind = "def"
+signature = "(left right : UInt8) : UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.bitNot"
+instance = "UInt8"
+bend = "LexLeanRuntime.bitNot.UInt8"
+kind = "def"
+signature = "(value : UInt8) : UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.shiftLeft"
+instance = "UInt8"
+bend = "LexLeanRuntime.shiftLeft.UInt8"
+kind = "def"
+signature = "(value : UInt8) (amount : UInt32) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.shiftRight"
+instance = "UInt8"
+bend = "LexLeanRuntime.shiftRight.UInt8"
+kind = "def"
+signature = "(value : UInt8) (amount : UInt32) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.bitAnd"
+instance = "UInt16"
+bend = "LexLeanRuntime.bitAnd.UInt16"
+kind = "def"
+signature = "(left right : UInt16) : UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.bitOr"
+instance = "UInt16"
+bend = "LexLeanRuntime.bitOr.UInt16"
+kind = "def"
+signature = "(left right : UInt16) : UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.bitXor"
+instance = "UInt16"
+bend = "LexLeanRuntime.bitXor.UInt16"
+kind = "def"
+signature = "(left right : UInt16) : UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.bitNot"
+instance = "UInt16"
+bend = "LexLeanRuntime.bitNot.UInt16"
+kind = "def"
+signature = "(value : UInt16) : UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.shiftLeft"
+instance = "UInt16"
+bend = "LexLeanRuntime.shiftLeft.UInt16"
+kind = "def"
+signature = "(value : UInt16) (amount : UInt32) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.shiftRight"
+instance = "UInt16"
+bend = "LexLeanRuntime.shiftRight.UInt16"
+kind = "def"
+signature = "(value : UInt16) (amount : UInt32) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.bitAnd"
+instance = "UInt32"
+bend = "LexLeanRuntime.bitAnd.UInt32"
+kind = "def"
+signature = "(left right : UInt32) : UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.bitOr"
+instance = "UInt32"
+bend = "LexLeanRuntime.bitOr.UInt32"
+kind = "def"
+signature = "(left right : UInt32) : UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.bitXor"
+instance = "UInt32"
+bend = "LexLeanRuntime.bitXor.UInt32"
+kind = "def"
+signature = "(left right : UInt32) : UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.bitNot"
+instance = "UInt32"
+bend = "LexLeanRuntime.bitNot.UInt32"
+kind = "def"
+signature = "(value : UInt32) : UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.shiftLeft"
+instance = "UInt32"
+bend = "LexLeanRuntime.shiftLeft.UInt32"
+kind = "def"
+signature = "(value : UInt32) (amount : UInt32) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.shiftRight"
+instance = "UInt32"
+bend = "LexLeanRuntime.shiftRight.UInt32"
+kind = "def"
+signature = "(value : UInt32) (amount : UInt32) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.bitAnd"
+instance = "UInt64"
+bend = "LexLeanRuntime.bitAnd.UInt64"
+kind = "def"
+signature = "(left right : UInt64) : UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.bitOr"
+instance = "UInt64"
+bend = "LexLeanRuntime.bitOr.UInt64"
+kind = "def"
+signature = "(left right : UInt64) : UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.bitXor"
+instance = "UInt64"
+bend = "LexLeanRuntime.bitXor.UInt64"
+kind = "def"
+signature = "(left right : UInt64) : UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.bitNot"
+instance = "UInt64"
+bend = "LexLeanRuntime.bitNot.UInt64"
+kind = "def"
+signature = "(value : UInt64) : UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.shiftLeft"
+instance = "UInt64"
+bend = "LexLeanRuntime.shiftLeft.UInt64"
+kind = "def"
+signature = "(value : UInt64) (amount : UInt32) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.shiftRight"
+instance = "UInt64"
+bend = "LexLeanRuntime.shiftRight.UInt64"
+kind = "def"
+signature = "(value : UInt64) (amount : UInt32) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.bitAnd"
+instance = "Int8"
+bend = "LexLeanRuntime.bitAnd.Int8"
+kind = "def"
+signature = "(left right : Int8) : Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.bitOr"
+instance = "Int8"
+bend = "LexLeanRuntime.bitOr.Int8"
+kind = "def"
+signature = "(left right : Int8) : Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.bitXor"
+instance = "Int8"
+bend = "LexLeanRuntime.bitXor.Int8"
+kind = "def"
+signature = "(left right : Int8) : Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.bitNot"
+instance = "Int8"
+bend = "LexLeanRuntime.bitNot.Int8"
+kind = "def"
+signature = "(value : Int8) : Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.shiftLeft"
+instance = "Int8"
+bend = "LexLeanRuntime.shiftLeft.Int8"
+kind = "def"
+signature = "(value : Int8) (amount : UInt32) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.shiftRight"
+instance = "Int8"
+bend = "LexLeanRuntime.shiftRight.Int8"
+kind = "def"
+signature = "(value : Int8) (amount : UInt32) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.bitAnd"
+instance = "Int16"
+bend = "LexLeanRuntime.bitAnd.Int16"
+kind = "def"
+signature = "(left right : Int16) : Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.bitOr"
+instance = "Int16"
+bend = "LexLeanRuntime.bitOr.Int16"
+kind = "def"
+signature = "(left right : Int16) : Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.bitXor"
+instance = "Int16"
+bend = "LexLeanRuntime.bitXor.Int16"
+kind = "def"
+signature = "(left right : Int16) : Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.bitNot"
+instance = "Int16"
+bend = "LexLeanRuntime.bitNot.Int16"
+kind = "def"
+signature = "(value : Int16) : Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.shiftLeft"
+instance = "Int16"
+bend = "LexLeanRuntime.shiftLeft.Int16"
+kind = "def"
+signature = "(value : Int16) (amount : UInt32) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.shiftRight"
+instance = "Int16"
+bend = "LexLeanRuntime.shiftRight.Int16"
+kind = "def"
+signature = "(value : Int16) (amount : UInt32) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.bitAnd"
+instance = "Int32"
+bend = "LexLeanRuntime.bitAnd.Int32"
+kind = "def"
+signature = "(left right : Int32) : Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.bitOr"
+instance = "Int32"
+bend = "LexLeanRuntime.bitOr.Int32"
+kind = "def"
+signature = "(left right : Int32) : Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.bitXor"
+instance = "Int32"
+bend = "LexLeanRuntime.bitXor.Int32"
+kind = "def"
+signature = "(left right : Int32) : Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.bitNot"
+instance = "Int32"
+bend = "LexLeanRuntime.bitNot.Int32"
+kind = "def"
+signature = "(value : Int32) : Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.shiftLeft"
+instance = "Int32"
+bend = "LexLeanRuntime.shiftLeft.Int32"
+kind = "def"
+signature = "(value : Int32) (amount : UInt32) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.shiftRight"
+instance = "Int32"
+bend = "LexLeanRuntime.shiftRight.Int32"
+kind = "def"
+signature = "(value : Int32) (amount : UInt32) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.bitAnd"
+instance = "Int64"
+bend = "LexLeanRuntime.bitAnd.Int64"
+kind = "def"
+signature = "(left right : Int64) : Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.bitOr"
+instance = "Int64"
+bend = "LexLeanRuntime.bitOr.Int64"
+kind = "def"
+signature = "(left right : Int64) : Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.bitXor"
+instance = "Int64"
+bend = "LexLeanRuntime.bitXor.Int64"
+kind = "def"
+signature = "(left right : Int64) : Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.bitNot"
+instance = "Int64"
+bend = "LexLeanRuntime.bitNot.Int64"
+kind = "def"
+signature = "(value : Int64) : Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.shiftLeft"
+instance = "Int64"
+bend = "LexLeanRuntime.shiftLeft.Int64"
+kind = "def"
+signature = "(value : Int64) (amount : UInt32) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.shiftRight"
+instance = "Int64"
+bend = "LexLeanRuntime.shiftRight.Int64"
+kind = "def"
+signature = "(value : Int64) (amount : UInt32) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.Appendable.append"
+instance = "List"
+bend = "LexLeanRuntime.Appendable.append.List"
+kind = "def"
+signature = "{α : Type} (left right : List α) : List α"
+
+[[constant]]
+lean = "LexLeanRuntime.Appendable.append"
+instance = "ByteArray"
+bend = "LexLeanRuntime.Appendable.append.ByteArray"
+kind = "def"
+signature = "(left right : ByteArray) : ByteArray"
+
+[[constant]]
+lean = "LexLeanRuntime.append"
+instance = "List"
+bend = "LexLeanRuntime.append.List"
+kind = "def"
+signature = "{α : Type} (left right : List α) : List α"
+
+[[constant]]
+lean = "LexLeanRuntime.append"
+instance = "ByteArray"
+bend = "LexLeanRuntime.append.ByteArray"
+kind = "def"
+signature = "(left right : ByteArray) : ByteArray"
+
+[[constant]]
+lean = "LexLeanRuntime.Lengthable.length"
+instance = "List"
+bend = "LexLeanRuntime.Lengthable.length.List"
+kind = "def"
+signature = "{α : Type} (value : List α) : Nat"
+
+[[constant]]
+lean = "LexLeanRuntime.Lengthable.length"
+instance = "ByteArray"
+bend = "LexLeanRuntime.Lengthable.length.ByteArray"
+kind = "def"
+signature = "(value : ByteArray) : Nat"
+
+[[constant]]
+lean = "LexLeanRuntime.Lengthable.length"
+instance = "String"
+bend = "LexLeanRuntime.Lengthable.length.String"
+kind = "def"
+signature = "(value : String) : Nat"
+
+[[constant]]
+lean = "LexLeanRuntime.length"
+instance = "List"
+bend = "LexLeanRuntime.length.List"
+kind = "def"
+signature = "{α : Type} (value : List α) : Nat"
+
+[[constant]]
+lean = "LexLeanRuntime.length"
+instance = "ByteArray"
+bend = "LexLeanRuntime.length.ByteArray"
+kind = "def"
+signature = "(value : ByteArray) : Nat"
+
+[[constant]]
+lean = "LexLeanRuntime.length"
+instance = "String"
+bend = "LexLeanRuntime.length.String"
+kind = "def"
+signature = "(value : String) : Nat"
+
+[[constant]]
+lean = "LexLeanRuntime.listIndex"
+instance = ""
+bend = "LexLeanRuntime.listIndex"
+kind = "def"
+signature = "{α : Type} : List α -> Nat -> Option α"
+
+[[constant]]
+lean = "LexLeanRuntime.Indexable.index"
+instance = "List"
+bend = "LexLeanRuntime.Indexable.index.List"
+kind = "def"
+signature = "{α : Type} (value : List α) (offset : Nat) : Option α"
+
+[[constant]]
+lean = "LexLeanRuntime.Indexable.index"
+instance = "ByteArray"
+bend = "LexLeanRuntime.Indexable.index.ByteArray"
+kind = "def"
+signature = "(value : ByteArray) (offset : Nat) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.index"
+instance = "List"
+bend = "LexLeanRuntime.index.List"
+kind = "def"
+signature = "{α : Type} (value : List α) (offset : Nat) : Option α"
+
+[[constant]]
+lean = "LexLeanRuntime.index"
+instance = "ByteArray"
+bend = "LexLeanRuntime.index.ByteArray"
+kind = "def"
+signature = "(value : ByteArray) (offset : Nat) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.Sliceable.slice"
+instance = "List"
+bend = "LexLeanRuntime.Sliceable.slice.List"
+kind = "def"
+signature = "{α : Type} (value : List α) (start count : Nat) : Option (List α)"
+
+[[constant]]
+lean = "LexLeanRuntime.Sliceable.slice"
+instance = "ByteArray"
+bend = "LexLeanRuntime.Sliceable.slice.ByteArray"
+kind = "def"
+signature = "(value : ByteArray) (start count : Nat) : Option ByteArray"
+
+[[constant]]
+lean = "LexLeanRuntime.slice"
+instance = "List"
+bend = "LexLeanRuntime.slice.List"
+kind = "def"
+signature = "{α : Type} (value : List α) (start count : Nat) : Option (List α)"
+
+[[constant]]
+lean = "LexLeanRuntime.slice"
+instance = "ByteArray"
+bend = "LexLeanRuntime.slice.ByteArray"
+kind = "def"
+signature = "(value : ByteArray) (start count : Nat) : Option ByteArray"
+
+[[constant]]
+lean = "LexLeanRuntime.equal"
+instance = "Nat"
+bend = "LexLeanRuntime.equal.Nat"
+kind = "def"
+signature = "(left right : Nat) : Bool"
+
+[[constant]]
+lean = "LexLeanRuntime.equal"
+instance = "Int"
+bend = "LexLeanRuntime.equal.Int"
+kind = "def"
+signature = "(left right : Int) : Bool"
+
+[[constant]]
+lean = "LexLeanRuntime.equal"
+instance = "Bool"
+bend = "LexLeanRuntime.equal.Bool"
+kind = "def"
+signature = "(left right : Bool) : Bool"
+
+[[constant]]
+lean = "LexLeanRuntime.equal"
+instance = "Char"
+bend = "LexLeanRuntime.equal.Char"
+kind = "def"
+signature = "(left right : Char) : Bool"
+
+[[constant]]
+lean = "LexLeanRuntime.equal"
+instance = "String"
+bend = "LexLeanRuntime.equal.String"
+kind = "def"
+signature = "(left right : String) : Bool"
+
+[[constant]]
+lean = "LexLeanRuntime.equal"
+instance = "UInt8"
+bend = "LexLeanRuntime.equal.UInt8"
+kind = "def"
+signature = "(left right : UInt8) : Bool"
+
+[[constant]]
+lean = "LexLeanRuntime.equal"
+instance = "UInt16"
+bend = "LexLeanRuntime.equal.UInt16"
+kind = "def"
+signature = "(left right : UInt16) : Bool"
+
+[[constant]]
+lean = "LexLeanRuntime.equal"
+instance = "UInt32"
+bend = "LexLeanRuntime.equal.UInt32"
+kind = "def"
+signature = "(left right : UInt32) : Bool"
+
+[[constant]]
+lean = "LexLeanRuntime.equal"
+instance = "UInt64"
+bend = "LexLeanRuntime.equal.UInt64"
+kind = "def"
+signature = "(left right : UInt64) : Bool"
+
+[[constant]]
+lean = "LexLeanRuntime.equal"
+instance = "Int8"
+bend = "LexLeanRuntime.equal.Int8"
+kind = "def"
+signature = "(left right : Int8) : Bool"
+
+[[constant]]
+lean = "LexLeanRuntime.equal"
+instance = "Int16"
+bend = "LexLeanRuntime.equal.Int16"
+kind = "def"
+signature = "(left right : Int16) : Bool"
+
+[[constant]]
+lean = "LexLeanRuntime.equal"
+instance = "Int32"
+bend = "LexLeanRuntime.equal.Int32"
+kind = "def"
+signature = "(left right : Int32) : Bool"
+
+[[constant]]
+lean = "LexLeanRuntime.equal"
+instance = "Int64"
+bend = "LexLeanRuntime.equal.Int64"
+kind = "def"
+signature = "(left right : Int64) : Bool"
+
+[[constant]]
+lean = "LexLeanRuntime.equal"
+instance = "ByteArray"
+bend = "LexLeanRuntime.equal.ByteArray"
+kind = "def"
+signature = "(left right : ByteArray) : Bool"
+
+[[constant]]
+lean = "LexLeanRuntime.utf8Encode"
+instance = ""
+bend = "LexLeanRuntime.utf8Encode"
+kind = "def"
+signature = "(value : String) : ByteArray"
+
+[[constant]]
+lean = "LexLeanRuntime.utf8Decode"
+instance = ""
+bend = "LexLeanRuntime.utf8Decode"
+kind = "def"
+signature = "(value : ByteArray) : Option String"
+
+[[constant]]
+lean = "LexLeanRuntime.compareBytes"
+instance = ""
+bend = "LexLeanRuntime.compareBytes"
+kind = "def"
+signature = "(left right : ByteArray) : Ordering"
+
+[[constant]]
+lean = "LexLeanRuntime.splitExact"
+instance = ""
+bend = "LexLeanRuntime.splitExact"
+kind = "def"
+signature = "(value delimiter : String) (maximum : UInt32) : Option (List String)"
+
+[[constant]]
+lean = "LexLeanRuntime.join"
+instance = ""
+bend = "LexLeanRuntime.join"
+kind = "def"
+signature = "(values : List String) (delimiter : String) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.parse"
+instance = "Int"
+bend = "LexLeanRuntime.Decimal.parse.Int"
+kind = "def"
+signature = "(value : String) : Option Int"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.format"
+instance = "Int"
+bend = "LexLeanRuntime.Decimal.format.Int"
+kind = "def"
+signature = "(value : Int) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.parseDecimal"
+instance = "Int"
+bend = "LexLeanRuntime.parseDecimal.Int"
+kind = "def"
+signature = "(value : String) : Option Int"
+
+[[constant]]
+lean = "LexLeanRuntime.formatDecimal"
+instance = "Int"
+bend = "LexLeanRuntime.formatDecimal.Int"
+kind = "def"
+signature = "(value : Int) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.parse"
+instance = "UInt8"
+bend = "LexLeanRuntime.Decimal.parse.UInt8"
+kind = "def"
+signature = "(value : String) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.format"
+instance = "UInt8"
+bend = "LexLeanRuntime.Decimal.format.UInt8"
+kind = "def"
+signature = "(value : UInt8) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.parseDecimal"
+instance = "UInt8"
+bend = "LexLeanRuntime.parseDecimal.UInt8"
+kind = "def"
+signature = "(value : String) : Option UInt8"
+
+[[constant]]
+lean = "LexLeanRuntime.formatDecimal"
+instance = "UInt8"
+bend = "LexLeanRuntime.formatDecimal.UInt8"
+kind = "def"
+signature = "(value : UInt8) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.parse"
+instance = "UInt16"
+bend = "LexLeanRuntime.Decimal.parse.UInt16"
+kind = "def"
+signature = "(value : String) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.format"
+instance = "UInt16"
+bend = "LexLeanRuntime.Decimal.format.UInt16"
+kind = "def"
+signature = "(value : UInt16) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.parseDecimal"
+instance = "UInt16"
+bend = "LexLeanRuntime.parseDecimal.UInt16"
+kind = "def"
+signature = "(value : String) : Option UInt16"
+
+[[constant]]
+lean = "LexLeanRuntime.formatDecimal"
+instance = "UInt16"
+bend = "LexLeanRuntime.formatDecimal.UInt16"
+kind = "def"
+signature = "(value : UInt16) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.parse"
+instance = "UInt32"
+bend = "LexLeanRuntime.Decimal.parse.UInt32"
+kind = "def"
+signature = "(value : String) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.format"
+instance = "UInt32"
+bend = "LexLeanRuntime.Decimal.format.UInt32"
+kind = "def"
+signature = "(value : UInt32) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.parseDecimal"
+instance = "UInt32"
+bend = "LexLeanRuntime.parseDecimal.UInt32"
+kind = "def"
+signature = "(value : String) : Option UInt32"
+
+[[constant]]
+lean = "LexLeanRuntime.formatDecimal"
+instance = "UInt32"
+bend = "LexLeanRuntime.formatDecimal.UInt32"
+kind = "def"
+signature = "(value : UInt32) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.parse"
+instance = "UInt64"
+bend = "LexLeanRuntime.Decimal.parse.UInt64"
+kind = "def"
+signature = "(value : String) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.format"
+instance = "UInt64"
+bend = "LexLeanRuntime.Decimal.format.UInt64"
+kind = "def"
+signature = "(value : UInt64) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.parseDecimal"
+instance = "UInt64"
+bend = "LexLeanRuntime.parseDecimal.UInt64"
+kind = "def"
+signature = "(value : String) : Option UInt64"
+
+[[constant]]
+lean = "LexLeanRuntime.formatDecimal"
+instance = "UInt64"
+bend = "LexLeanRuntime.formatDecimal.UInt64"
+kind = "def"
+signature = "(value : UInt64) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.parse"
+instance = "Int8"
+bend = "LexLeanRuntime.Decimal.parse.Int8"
+kind = "def"
+signature = "(value : String) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.format"
+instance = "Int8"
+bend = "LexLeanRuntime.Decimal.format.Int8"
+kind = "def"
+signature = "(value : Int8) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.parseDecimal"
+instance = "Int8"
+bend = "LexLeanRuntime.parseDecimal.Int8"
+kind = "def"
+signature = "(value : String) : Option Int8"
+
+[[constant]]
+lean = "LexLeanRuntime.formatDecimal"
+instance = "Int8"
+bend = "LexLeanRuntime.formatDecimal.Int8"
+kind = "def"
+signature = "(value : Int8) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.parse"
+instance = "Int16"
+bend = "LexLeanRuntime.Decimal.parse.Int16"
+kind = "def"
+signature = "(value : String) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.format"
+instance = "Int16"
+bend = "LexLeanRuntime.Decimal.format.Int16"
+kind = "def"
+signature = "(value : Int16) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.parseDecimal"
+instance = "Int16"
+bend = "LexLeanRuntime.parseDecimal.Int16"
+kind = "def"
+signature = "(value : String) : Option Int16"
+
+[[constant]]
+lean = "LexLeanRuntime.formatDecimal"
+instance = "Int16"
+bend = "LexLeanRuntime.formatDecimal.Int16"
+kind = "def"
+signature = "(value : Int16) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.parse"
+instance = "Int32"
+bend = "LexLeanRuntime.Decimal.parse.Int32"
+kind = "def"
+signature = "(value : String) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.format"
+instance = "Int32"
+bend = "LexLeanRuntime.Decimal.format.Int32"
+kind = "def"
+signature = "(value : Int32) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.parseDecimal"
+instance = "Int32"
+bend = "LexLeanRuntime.parseDecimal.Int32"
+kind = "def"
+signature = "(value : String) : Option Int32"
+
+[[constant]]
+lean = "LexLeanRuntime.formatDecimal"
+instance = "Int32"
+bend = "LexLeanRuntime.formatDecimal.Int32"
+kind = "def"
+signature = "(value : Int32) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.parse"
+instance = "Int64"
+bend = "LexLeanRuntime.Decimal.parse.Int64"
+kind = "def"
+signature = "(value : String) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.Decimal.format"
+instance = "Int64"
+bend = "LexLeanRuntime.Decimal.format.Int64"
+kind = "def"
+signature = "(value : Int64) : String"
+
+[[constant]]
+lean = "LexLeanRuntime.parseDecimal"
+instance = "Int64"
+bend = "LexLeanRuntime.parseDecimal.Int64"
+kind = "def"
+signature = "(value : String) : Option Int64"
+
+[[constant]]
+lean = "LexLeanRuntime.formatDecimal"
+instance = "Int64"
+bend = "LexLeanRuntime.formatDecimal.Int64"
+kind = "def"
+signature = "(value : Int64) : String"
+
+[[constant]]
+lean = "LexLeanCollections.compareCodes"
+instance = ""
+bend = "LexLeanCollections.compareCodes"
+kind = "def"
+signature = ": List Char -> List Char -> Ordering"
+
+[[constant]]
+lean = "LexLeanCollections.Key.compare"
+instance = "Nat"
+bend = "LexLeanCollections.Key.compare.Nat"
+kind = "def"
+signature = "(left right : Nat) : Ordering"
+
+[[constant]]
+lean = "LexLeanCollections.Key"
+instance = "Nat"
+bend = "LexLeanCollections.Key.Nat"
+kind = "constructor"
+signature = "instance : Key Nat"
+
+[[constant]]
+lean = "LexLeanCollections.Key.compare"
+instance = "Int"
+bend = "LexLeanCollections.Key.compare.Int"
+kind = "def"
+signature = "(left right : Int) : Ordering"
+
+[[constant]]
+lean = "LexLeanCollections.Key"
+instance = "Int"
+bend = "LexLeanCollections.Key.Int"
+kind = "constructor"
+signature = "instance : Key Int"
+
+[[constant]]
+lean = "LexLeanCollections.Key.compare"
+instance = "Bool"
+bend = "LexLeanCollections.Key.compare.Bool"
+kind = "def"
+signature = "(left right : Bool) : Ordering"
+
+[[constant]]
+lean = "LexLeanCollections.Key"
+instance = "Bool"
+bend = "LexLeanCollections.Key.Bool"
+kind = "constructor"
+signature = "instance : Key Bool"
+
+[[constant]]
+lean = "LexLeanCollections.Key.compare"
+instance = "Int8"
+bend = "LexLeanCollections.Key.compare.Int8"
+kind = "def"
+signature = "(left right : Int8) : Ordering"
+
+[[constant]]
+lean = "LexLeanCollections.Key"
+instance = "Int8"
+bend = "LexLeanCollections.Key.Int8"
+kind = "constructor"
+signature = "instance : Key Int8"
+
+[[constant]]
+lean = "LexLeanCollections.Key.compare"
+instance = "Int16"
+bend = "LexLeanCollections.Key.compare.Int16"
+kind = "def"
+signature = "(left right : Int16) : Ordering"
+
+[[constant]]
+lean = "LexLeanCollections.Key"
+instance = "Int16"
+bend = "LexLeanCollections.Key.Int16"
+kind = "constructor"
+signature = "instance : Key Int16"
+
+[[constant]]
+lean = "LexLeanCollections.Key.compare"
+instance = "Int32"
+bend = "LexLeanCollections.Key.compare.Int32"
+kind = "def"
+signature = "(left right : Int32) : Ordering"
+
+[[constant]]
+lean = "LexLeanCollections.Key"
+instance = "Int32"
+bend = "LexLeanCollections.Key.Int32"
+kind = "constructor"
+signature = "instance : Key Int32"
+
+[[constant]]
+lean = "LexLeanCollections.Key.compare"
+instance = "Int64"
+bend = "LexLeanCollections.Key.compare.Int64"
+kind = "def"
+signature = "(left right : Int64) : Ordering"
+
+[[constant]]
+lean = "LexLeanCollections.Key"
+instance = "Int64"
+bend = "LexLeanCollections.Key.Int64"
+kind = "constructor"
+signature = "instance : Key Int64"
+
+[[constant]]
+lean = "LexLeanCollections.Key.compare"
+instance = "UInt8"
+bend = "LexLeanCollections.Key.compare.UInt8"
+kind = "def"
+signature = "(left right : UInt8) : Ordering"
+
+[[constant]]
+lean = "LexLeanCollections.Key"
+instance = "UInt8"
+bend = "LexLeanCollections.Key.UInt8"
+kind = "constructor"
+signature = "instance : Key UInt8"
+
+[[constant]]
+lean = "LexLeanCollections.Key.compare"
+instance = "UInt16"
+bend = "LexLeanCollections.Key.compare.UInt16"
+kind = "def"
+signature = "(left right : UInt16) : Ordering"
+
+[[constant]]
+lean = "LexLeanCollections.Key"
+instance = "UInt16"
+bend = "LexLeanCollections.Key.UInt16"
+kind = "constructor"
+signature = "instance : Key UInt16"
+
+[[constant]]
+lean = "LexLeanCollections.Key.compare"
+instance = "UInt32"
+bend = "LexLeanCollections.Key.compare.UInt32"
+kind = "def"
+signature = "(left right : UInt32) : Ordering"
+
+[[constant]]
+lean = "LexLeanCollections.Key"
+instance = "UInt32"
+bend = "LexLeanCollections.Key.UInt32"
+kind = "constructor"
+signature = "instance : Key UInt32"
+
+[[constant]]
+lean = "LexLeanCollections.Key.compare"
+instance = "UInt64"
+bend = "LexLeanCollections.Key.compare.UInt64"
+kind = "def"
+signature = "(left right : UInt64) : Ordering"
+
+[[constant]]
+lean = "LexLeanCollections.Key"
+instance = "UInt64"
+bend = "LexLeanCollections.Key.UInt64"
+kind = "constructor"
+signature = "instance : Key UInt64"
+
+[[constant]]
+lean = "LexLeanCollections.Key.compare"
+instance = "String"
+bend = "LexLeanCollections.Key.compare.String"
+kind = "def"
+signature = "(left right : String) : Ordering"
+
+[[constant]]
+lean = "LexLeanCollections.Key"
+instance = "String"
+bend = "LexLeanCollections.Key.String"
+kind = "constructor"
+signature = "instance : Key String"
+
+[[constant]]
+lean = "LexLeanCollections.Key.compare"
+instance = "Prod"
+bend = "LexLeanCollections.Key.compare.Prod"
+kind = "def"
+signature = "{α β : Type} [Key α] [Key β] (left right : Prod α β) : Ordering"
+
+[[constant]]
+lean = "LexLeanCollections.Key"
+instance = "Prod"
+bend = "LexLeanCollections.Key.Prod"
+kind = "constructor"
+signature = "instance {α β : Type} [Key α] [Key β] : Key (Prod α β)"
+
+[[constant]]
+lean = "LexLeanCollections.Key"
+instance = ""
+bend = "LexLeanCollections.Key"
+kind = "type"
+signature = "class Key (α : Type) where compare : α -> α -> Ordering"
+
+[[constant]]
+lean = "LexLeanCollections.mapSize"
+instance = ""
+bend = "LexLeanCollections.mapSize"
+kind = "def"
+signature = "{κ ν : Type} (map : List (Prod κ ν)) : Nat"
+
+[[constant]]
+lean = "LexLeanCollections.mapKeys"
+instance = ""
+bend = "LexLeanCollections.mapKeys"
+kind = "def"
+signature = "{κ ν : Type} (map : List (Prod κ ν)) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.mapValues"
+instance = ""
+bend = "LexLeanCollections.mapValues"
+kind = "def"
+signature = "{κ ν : Type} (map : List (Prod κ ν)) : List ν"
+
+[[constant]]
+lean = "LexLeanCollections.mapEntries"
+instance = ""
+bend = "LexLeanCollections.mapEntries"
+kind = "def"
+signature = "{κ ν : Type} (map : List (Prod κ ν)) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.setSize"
+instance = ""
+bend = "LexLeanCollections.setSize"
+kind = "def"
+signature = "{κ : Type} (set : List κ) : Nat"
+
+[[constant]]
+lean = "LexLeanCollections.setElements"
+instance = ""
+bend = "LexLeanCollections.setElements"
+kind = "def"
+signature = "{κ : Type} (set : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.insertEntry"
+instance = "Key"
+bend = "LexLeanCollections.insertEntry.Key"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) (value : ν) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.insertEntry"
+instance = "Nat"
+bend = "LexLeanCollections.insertEntry.Nat"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) (value : ν) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.insertEntry"
+instance = "Int"
+bend = "LexLeanCollections.insertEntry.Int"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) (value : ν) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.insertEntry"
+instance = "Bool"
+bend = "LexLeanCollections.insertEntry.Bool"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) (value : ν) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.insertEntry"
+instance = "Int8"
+bend = "LexLeanCollections.insertEntry.Int8"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) (value : ν) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.insertEntry"
+instance = "Int16"
+bend = "LexLeanCollections.insertEntry.Int16"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) (value : ν) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.insertEntry"
+instance = "Int32"
+bend = "LexLeanCollections.insertEntry.Int32"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) (value : ν) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.insertEntry"
+instance = "Int64"
+bend = "LexLeanCollections.insertEntry.Int64"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) (value : ν) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.insertEntry"
+instance = "UInt8"
+bend = "LexLeanCollections.insertEntry.UInt8"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) (value : ν) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.insertEntry"
+instance = "UInt16"
+bend = "LexLeanCollections.insertEntry.UInt16"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) (value : ν) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.insertEntry"
+instance = "UInt32"
+bend = "LexLeanCollections.insertEntry.UInt32"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) (value : ν) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.insertEntry"
+instance = "UInt64"
+bend = "LexLeanCollections.insertEntry.UInt64"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) (value : ν) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.insertEntry"
+instance = "String"
+bend = "LexLeanCollections.insertEntry.String"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) (value : ν) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.insertEntry"
+instance = "Prod"
+bend = "LexLeanCollections.insertEntry.Prod"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) (value : ν) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.removeEntry"
+instance = "Key"
+bend = "LexLeanCollections.removeEntry.Key"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.removeEntry"
+instance = "Nat"
+bend = "LexLeanCollections.removeEntry.Nat"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.removeEntry"
+instance = "Int"
+bend = "LexLeanCollections.removeEntry.Int"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.removeEntry"
+instance = "Bool"
+bend = "LexLeanCollections.removeEntry.Bool"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.removeEntry"
+instance = "Int8"
+bend = "LexLeanCollections.removeEntry.Int8"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.removeEntry"
+instance = "Int16"
+bend = "LexLeanCollections.removeEntry.Int16"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.removeEntry"
+instance = "Int32"
+bend = "LexLeanCollections.removeEntry.Int32"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.removeEntry"
+instance = "Int64"
+bend = "LexLeanCollections.removeEntry.Int64"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.removeEntry"
+instance = "UInt8"
+bend = "LexLeanCollections.removeEntry.UInt8"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.removeEntry"
+instance = "UInt16"
+bend = "LexLeanCollections.removeEntry.UInt16"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.removeEntry"
+instance = "UInt32"
+bend = "LexLeanCollections.removeEntry.UInt32"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.removeEntry"
+instance = "UInt64"
+bend = "LexLeanCollections.removeEntry.UInt64"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.removeEntry"
+instance = "String"
+bend = "LexLeanCollections.removeEntry.String"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.removeEntry"
+instance = "Prod"
+bend = "LexLeanCollections.removeEntry.Prod"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.lookupEntry"
+instance = "Key"
+bend = "LexLeanCollections.lookupEntry.Key"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.lookupEntry"
+instance = "Nat"
+bend = "LexLeanCollections.lookupEntry.Nat"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.lookupEntry"
+instance = "Int"
+bend = "LexLeanCollections.lookupEntry.Int"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.lookupEntry"
+instance = "Bool"
+bend = "LexLeanCollections.lookupEntry.Bool"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.lookupEntry"
+instance = "Int8"
+bend = "LexLeanCollections.lookupEntry.Int8"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.lookupEntry"
+instance = "Int16"
+bend = "LexLeanCollections.lookupEntry.Int16"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.lookupEntry"
+instance = "Int32"
+bend = "LexLeanCollections.lookupEntry.Int32"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.lookupEntry"
+instance = "Int64"
+bend = "LexLeanCollections.lookupEntry.Int64"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.lookupEntry"
+instance = "UInt8"
+bend = "LexLeanCollections.lookupEntry.UInt8"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.lookupEntry"
+instance = "UInt16"
+bend = "LexLeanCollections.lookupEntry.UInt16"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.lookupEntry"
+instance = "UInt32"
+bend = "LexLeanCollections.lookupEntry.UInt32"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.lookupEntry"
+instance = "UInt64"
+bend = "LexLeanCollections.lookupEntry.UInt64"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.lookupEntry"
+instance = "String"
+bend = "LexLeanCollections.lookupEntry.String"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.lookupEntry"
+instance = "Prod"
+bend = "LexLeanCollections.lookupEntry.Prod"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (key : κ) : List (Prod κ ν) -> Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.insertElement"
+instance = "Key"
+bend = "LexLeanCollections.insertElement.Key"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.insertElement"
+instance = "Nat"
+bend = "LexLeanCollections.insertElement.Nat"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.insertElement"
+instance = "Int"
+bend = "LexLeanCollections.insertElement.Int"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.insertElement"
+instance = "Bool"
+bend = "LexLeanCollections.insertElement.Bool"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.insertElement"
+instance = "Int8"
+bend = "LexLeanCollections.insertElement.Int8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.insertElement"
+instance = "Int16"
+bend = "LexLeanCollections.insertElement.Int16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.insertElement"
+instance = "Int32"
+bend = "LexLeanCollections.insertElement.Int32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.insertElement"
+instance = "Int64"
+bend = "LexLeanCollections.insertElement.Int64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.insertElement"
+instance = "UInt8"
+bend = "LexLeanCollections.insertElement.UInt8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.insertElement"
+instance = "UInt16"
+bend = "LexLeanCollections.insertElement.UInt16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.insertElement"
+instance = "UInt32"
+bend = "LexLeanCollections.insertElement.UInt32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.insertElement"
+instance = "UInt64"
+bend = "LexLeanCollections.insertElement.UInt64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.insertElement"
+instance = "String"
+bend = "LexLeanCollections.insertElement.String"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.insertElement"
+instance = "Prod"
+bend = "LexLeanCollections.insertElement.Prod"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.removeElement"
+instance = "Key"
+bend = "LexLeanCollections.removeElement.Key"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.removeElement"
+instance = "Nat"
+bend = "LexLeanCollections.removeElement.Nat"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.removeElement"
+instance = "Int"
+bend = "LexLeanCollections.removeElement.Int"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.removeElement"
+instance = "Bool"
+bend = "LexLeanCollections.removeElement.Bool"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.removeElement"
+instance = "Int8"
+bend = "LexLeanCollections.removeElement.Int8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.removeElement"
+instance = "Int16"
+bend = "LexLeanCollections.removeElement.Int16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.removeElement"
+instance = "Int32"
+bend = "LexLeanCollections.removeElement.Int32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.removeElement"
+instance = "Int64"
+bend = "LexLeanCollections.removeElement.Int64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.removeElement"
+instance = "UInt8"
+bend = "LexLeanCollections.removeElement.UInt8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.removeElement"
+instance = "UInt16"
+bend = "LexLeanCollections.removeElement.UInt16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.removeElement"
+instance = "UInt32"
+bend = "LexLeanCollections.removeElement.UInt32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.removeElement"
+instance = "UInt64"
+bend = "LexLeanCollections.removeElement.UInt64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.removeElement"
+instance = "String"
+bend = "LexLeanCollections.removeElement.String"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.removeElement"
+instance = "Prod"
+bend = "LexLeanCollections.removeElement.Prod"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.containsElement"
+instance = "Key"
+bend = "LexLeanCollections.containsElement.Key"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> Bool"
+
+[[constant]]
+lean = "LexLeanCollections.containsElement"
+instance = "Nat"
+bend = "LexLeanCollections.containsElement.Nat"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> Bool"
+
+[[constant]]
+lean = "LexLeanCollections.containsElement"
+instance = "Int"
+bend = "LexLeanCollections.containsElement.Int"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> Bool"
+
+[[constant]]
+lean = "LexLeanCollections.containsElement"
+instance = "Bool"
+bend = "LexLeanCollections.containsElement.Bool"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> Bool"
+
+[[constant]]
+lean = "LexLeanCollections.containsElement"
+instance = "Int8"
+bend = "LexLeanCollections.containsElement.Int8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> Bool"
+
+[[constant]]
+lean = "LexLeanCollections.containsElement"
+instance = "Int16"
+bend = "LexLeanCollections.containsElement.Int16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> Bool"
+
+[[constant]]
+lean = "LexLeanCollections.containsElement"
+instance = "Int32"
+bend = "LexLeanCollections.containsElement.Int32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> Bool"
+
+[[constant]]
+lean = "LexLeanCollections.containsElement"
+instance = "Int64"
+bend = "LexLeanCollections.containsElement.Int64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> Bool"
+
+[[constant]]
+lean = "LexLeanCollections.containsElement"
+instance = "UInt8"
+bend = "LexLeanCollections.containsElement.UInt8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> Bool"
+
+[[constant]]
+lean = "LexLeanCollections.containsElement"
+instance = "UInt16"
+bend = "LexLeanCollections.containsElement.UInt16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> Bool"
+
+[[constant]]
+lean = "LexLeanCollections.containsElement"
+instance = "UInt32"
+bend = "LexLeanCollections.containsElement.UInt32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> Bool"
+
+[[constant]]
+lean = "LexLeanCollections.containsElement"
+instance = "UInt64"
+bend = "LexLeanCollections.containsElement.UInt64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> Bool"
+
+[[constant]]
+lean = "LexLeanCollections.containsElement"
+instance = "String"
+bend = "LexLeanCollections.containsElement.String"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> Bool"
+
+[[constant]]
+lean = "LexLeanCollections.containsElement"
+instance = "Prod"
+bend = "LexLeanCollections.containsElement.Prod"
+kind = "def"
+signature = "{κ : Type} [Key κ] (key : κ) : List κ -> Bool"
+
+[[constant]]
+lean = "LexLeanCollections.mapInsert"
+instance = "Key"
+bend = "LexLeanCollections.mapInsert.Key"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) (value : ν) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapInsert"
+instance = "Nat"
+bend = "LexLeanCollections.mapInsert.Nat"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) (value : ν) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapInsert"
+instance = "Int"
+bend = "LexLeanCollections.mapInsert.Int"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) (value : ν) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapInsert"
+instance = "Bool"
+bend = "LexLeanCollections.mapInsert.Bool"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) (value : ν) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapInsert"
+instance = "Int8"
+bend = "LexLeanCollections.mapInsert.Int8"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) (value : ν) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapInsert"
+instance = "Int16"
+bend = "LexLeanCollections.mapInsert.Int16"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) (value : ν) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapInsert"
+instance = "Int32"
+bend = "LexLeanCollections.mapInsert.Int32"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) (value : ν) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapInsert"
+instance = "Int64"
+bend = "LexLeanCollections.mapInsert.Int64"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) (value : ν) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapInsert"
+instance = "UInt8"
+bend = "LexLeanCollections.mapInsert.UInt8"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) (value : ν) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapInsert"
+instance = "UInt16"
+bend = "LexLeanCollections.mapInsert.UInt16"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) (value : ν) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapInsert"
+instance = "UInt32"
+bend = "LexLeanCollections.mapInsert.UInt32"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) (value : ν) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapInsert"
+instance = "UInt64"
+bend = "LexLeanCollections.mapInsert.UInt64"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) (value : ν) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapInsert"
+instance = "String"
+bend = "LexLeanCollections.mapInsert.String"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) (value : ν) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapInsert"
+instance = "Prod"
+bend = "LexLeanCollections.mapInsert.Prod"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) (value : ν) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapRemove"
+instance = "Key"
+bend = "LexLeanCollections.mapRemove.Key"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapRemove"
+instance = "Nat"
+bend = "LexLeanCollections.mapRemove.Nat"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapRemove"
+instance = "Int"
+bend = "LexLeanCollections.mapRemove.Int"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapRemove"
+instance = "Bool"
+bend = "LexLeanCollections.mapRemove.Bool"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapRemove"
+instance = "Int8"
+bend = "LexLeanCollections.mapRemove.Int8"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapRemove"
+instance = "Int16"
+bend = "LexLeanCollections.mapRemove.Int16"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapRemove"
+instance = "Int32"
+bend = "LexLeanCollections.mapRemove.Int32"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapRemove"
+instance = "Int64"
+bend = "LexLeanCollections.mapRemove.Int64"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapRemove"
+instance = "UInt8"
+bend = "LexLeanCollections.mapRemove.UInt8"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapRemove"
+instance = "UInt16"
+bend = "LexLeanCollections.mapRemove.UInt16"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapRemove"
+instance = "UInt32"
+bend = "LexLeanCollections.mapRemove.UInt32"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapRemove"
+instance = "UInt64"
+bend = "LexLeanCollections.mapRemove.UInt64"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapRemove"
+instance = "String"
+bend = "LexLeanCollections.mapRemove.String"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapRemove"
+instance = "Prod"
+bend = "LexLeanCollections.mapRemove.Prod"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : List (Prod κ ν)"
+
+[[constant]]
+lean = "LexLeanCollections.mapLookup"
+instance = "Key"
+bend = "LexLeanCollections.mapLookup.Key"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.mapLookup"
+instance = "Nat"
+bend = "LexLeanCollections.mapLookup.Nat"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.mapLookup"
+instance = "Int"
+bend = "LexLeanCollections.mapLookup.Int"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.mapLookup"
+instance = "Bool"
+bend = "LexLeanCollections.mapLookup.Bool"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.mapLookup"
+instance = "Int8"
+bend = "LexLeanCollections.mapLookup.Int8"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.mapLookup"
+instance = "Int16"
+bend = "LexLeanCollections.mapLookup.Int16"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.mapLookup"
+instance = "Int32"
+bend = "LexLeanCollections.mapLookup.Int32"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.mapLookup"
+instance = "Int64"
+bend = "LexLeanCollections.mapLookup.Int64"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.mapLookup"
+instance = "UInt8"
+bend = "LexLeanCollections.mapLookup.UInt8"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.mapLookup"
+instance = "UInt16"
+bend = "LexLeanCollections.mapLookup.UInt16"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.mapLookup"
+instance = "UInt32"
+bend = "LexLeanCollections.mapLookup.UInt32"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.mapLookup"
+instance = "UInt64"
+bend = "LexLeanCollections.mapLookup.UInt64"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.mapLookup"
+instance = "String"
+bend = "LexLeanCollections.mapLookup.String"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.mapLookup"
+instance = "Prod"
+bend = "LexLeanCollections.mapLookup.Prod"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Option ν"
+
+[[constant]]
+lean = "LexLeanCollections.mapContains"
+instance = "Key"
+bend = "LexLeanCollections.mapContains.Key"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.mapContains"
+instance = "Nat"
+bend = "LexLeanCollections.mapContains.Nat"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.mapContains"
+instance = "Int"
+bend = "LexLeanCollections.mapContains.Int"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.mapContains"
+instance = "Bool"
+bend = "LexLeanCollections.mapContains.Bool"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.mapContains"
+instance = "Int8"
+bend = "LexLeanCollections.mapContains.Int8"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.mapContains"
+instance = "Int16"
+bend = "LexLeanCollections.mapContains.Int16"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.mapContains"
+instance = "Int32"
+bend = "LexLeanCollections.mapContains.Int32"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.mapContains"
+instance = "Int64"
+bend = "LexLeanCollections.mapContains.Int64"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.mapContains"
+instance = "UInt8"
+bend = "LexLeanCollections.mapContains.UInt8"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.mapContains"
+instance = "UInt16"
+bend = "LexLeanCollections.mapContains.UInt16"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.mapContains"
+instance = "UInt32"
+bend = "LexLeanCollections.mapContains.UInt32"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.mapContains"
+instance = "UInt64"
+bend = "LexLeanCollections.mapContains.UInt64"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.mapContains"
+instance = "String"
+bend = "LexLeanCollections.mapContains.String"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.mapContains"
+instance = "Prod"
+bend = "LexLeanCollections.mapContains.Prod"
+kind = "def"
+signature = "{κ ν : Type} [Key κ] (map : List (Prod κ ν)) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.setInsert"
+instance = "Key"
+bend = "LexLeanCollections.setInsert.Key"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setInsert"
+instance = "Nat"
+bend = "LexLeanCollections.setInsert.Nat"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setInsert"
+instance = "Int"
+bend = "LexLeanCollections.setInsert.Int"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setInsert"
+instance = "Bool"
+bend = "LexLeanCollections.setInsert.Bool"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setInsert"
+instance = "Int8"
+bend = "LexLeanCollections.setInsert.Int8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setInsert"
+instance = "Int16"
+bend = "LexLeanCollections.setInsert.Int16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setInsert"
+instance = "Int32"
+bend = "LexLeanCollections.setInsert.Int32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setInsert"
+instance = "Int64"
+bend = "LexLeanCollections.setInsert.Int64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setInsert"
+instance = "UInt8"
+bend = "LexLeanCollections.setInsert.UInt8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setInsert"
+instance = "UInt16"
+bend = "LexLeanCollections.setInsert.UInt16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setInsert"
+instance = "UInt32"
+bend = "LexLeanCollections.setInsert.UInt32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setInsert"
+instance = "UInt64"
+bend = "LexLeanCollections.setInsert.UInt64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setInsert"
+instance = "String"
+bend = "LexLeanCollections.setInsert.String"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setInsert"
+instance = "Prod"
+bend = "LexLeanCollections.setInsert.Prod"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setRemove"
+instance = "Key"
+bend = "LexLeanCollections.setRemove.Key"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setRemove"
+instance = "Nat"
+bend = "LexLeanCollections.setRemove.Nat"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setRemove"
+instance = "Int"
+bend = "LexLeanCollections.setRemove.Int"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setRemove"
+instance = "Bool"
+bend = "LexLeanCollections.setRemove.Bool"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setRemove"
+instance = "Int8"
+bend = "LexLeanCollections.setRemove.Int8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setRemove"
+instance = "Int16"
+bend = "LexLeanCollections.setRemove.Int16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setRemove"
+instance = "Int32"
+bend = "LexLeanCollections.setRemove.Int32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setRemove"
+instance = "Int64"
+bend = "LexLeanCollections.setRemove.Int64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setRemove"
+instance = "UInt8"
+bend = "LexLeanCollections.setRemove.UInt8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setRemove"
+instance = "UInt16"
+bend = "LexLeanCollections.setRemove.UInt16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setRemove"
+instance = "UInt32"
+bend = "LexLeanCollections.setRemove.UInt32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setRemove"
+instance = "UInt64"
+bend = "LexLeanCollections.setRemove.UInt64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setRemove"
+instance = "String"
+bend = "LexLeanCollections.setRemove.String"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setRemove"
+instance = "Prod"
+bend = "LexLeanCollections.setRemove.Prod"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setContains"
+instance = "Key"
+bend = "LexLeanCollections.setContains.Key"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.setContains"
+instance = "Nat"
+bend = "LexLeanCollections.setContains.Nat"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.setContains"
+instance = "Int"
+bend = "LexLeanCollections.setContains.Int"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.setContains"
+instance = "Bool"
+bend = "LexLeanCollections.setContains.Bool"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.setContains"
+instance = "Int8"
+bend = "LexLeanCollections.setContains.Int8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.setContains"
+instance = "Int16"
+bend = "LexLeanCollections.setContains.Int16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.setContains"
+instance = "Int32"
+bend = "LexLeanCollections.setContains.Int32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.setContains"
+instance = "Int64"
+bend = "LexLeanCollections.setContains.Int64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.setContains"
+instance = "UInt8"
+bend = "LexLeanCollections.setContains.UInt8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.setContains"
+instance = "UInt16"
+bend = "LexLeanCollections.setContains.UInt16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.setContains"
+instance = "UInt32"
+bend = "LexLeanCollections.setContains.UInt32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.setContains"
+instance = "UInt64"
+bend = "LexLeanCollections.setContains.UInt64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.setContains"
+instance = "String"
+bend = "LexLeanCollections.setContains.String"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.setContains"
+instance = "Prod"
+bend = "LexLeanCollections.setContains.Prod"
+kind = "def"
+signature = "{κ : Type} [Key κ] (set : List κ) (key : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.setUnion"
+instance = "Key"
+bend = "LexLeanCollections.setUnion.Key"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setUnion"
+instance = "Nat"
+bend = "LexLeanCollections.setUnion.Nat"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setUnion"
+instance = "Int"
+bend = "LexLeanCollections.setUnion.Int"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setUnion"
+instance = "Bool"
+bend = "LexLeanCollections.setUnion.Bool"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setUnion"
+instance = "Int8"
+bend = "LexLeanCollections.setUnion.Int8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setUnion"
+instance = "Int16"
+bend = "LexLeanCollections.setUnion.Int16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setUnion"
+instance = "Int32"
+bend = "LexLeanCollections.setUnion.Int32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setUnion"
+instance = "Int64"
+bend = "LexLeanCollections.setUnion.Int64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setUnion"
+instance = "UInt8"
+bend = "LexLeanCollections.setUnion.UInt8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setUnion"
+instance = "UInt16"
+bend = "LexLeanCollections.setUnion.UInt16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setUnion"
+instance = "UInt32"
+bend = "LexLeanCollections.setUnion.UInt32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setUnion"
+instance = "UInt64"
+bend = "LexLeanCollections.setUnion.UInt64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setUnion"
+instance = "String"
+bend = "LexLeanCollections.setUnion.String"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setUnion"
+instance = "Prod"
+bend = "LexLeanCollections.setUnion.Prod"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setIntersection"
+instance = "Key"
+bend = "LexLeanCollections.setIntersection.Key"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setIntersection"
+instance = "Nat"
+bend = "LexLeanCollections.setIntersection.Nat"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setIntersection"
+instance = "Int"
+bend = "LexLeanCollections.setIntersection.Int"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setIntersection"
+instance = "Bool"
+bend = "LexLeanCollections.setIntersection.Bool"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setIntersection"
+instance = "Int8"
+bend = "LexLeanCollections.setIntersection.Int8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setIntersection"
+instance = "Int16"
+bend = "LexLeanCollections.setIntersection.Int16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setIntersection"
+instance = "Int32"
+bend = "LexLeanCollections.setIntersection.Int32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setIntersection"
+instance = "Int64"
+bend = "LexLeanCollections.setIntersection.Int64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setIntersection"
+instance = "UInt8"
+bend = "LexLeanCollections.setIntersection.UInt8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setIntersection"
+instance = "UInt16"
+bend = "LexLeanCollections.setIntersection.UInt16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setIntersection"
+instance = "UInt32"
+bend = "LexLeanCollections.setIntersection.UInt32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setIntersection"
+instance = "UInt64"
+bend = "LexLeanCollections.setIntersection.UInt64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setIntersection"
+instance = "String"
+bend = "LexLeanCollections.setIntersection.String"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setIntersection"
+instance = "Prod"
+bend = "LexLeanCollections.setIntersection.Prod"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setDifference"
+instance = "Key"
+bend = "LexLeanCollections.setDifference.Key"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setDifference"
+instance = "Nat"
+bend = "LexLeanCollections.setDifference.Nat"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setDifference"
+instance = "Int"
+bend = "LexLeanCollections.setDifference.Int"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setDifference"
+instance = "Bool"
+bend = "LexLeanCollections.setDifference.Bool"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setDifference"
+instance = "Int8"
+bend = "LexLeanCollections.setDifference.Int8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setDifference"
+instance = "Int16"
+bend = "LexLeanCollections.setDifference.Int16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setDifference"
+instance = "Int32"
+bend = "LexLeanCollections.setDifference.Int32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setDifference"
+instance = "Int64"
+bend = "LexLeanCollections.setDifference.Int64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setDifference"
+instance = "UInt8"
+bend = "LexLeanCollections.setDifference.UInt8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setDifference"
+instance = "UInt16"
+bend = "LexLeanCollections.setDifference.UInt16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setDifference"
+instance = "UInt32"
+bend = "LexLeanCollections.setDifference.UInt32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setDifference"
+instance = "UInt64"
+bend = "LexLeanCollections.setDifference.UInt64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setDifference"
+instance = "String"
+bend = "LexLeanCollections.setDifference.String"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.setDifference"
+instance = "Prod"
+bend = "LexLeanCollections.setDifference.Prod"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : List κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphSuccessors"
+instance = "Key"
+bend = "LexLeanCollections.graphSuccessors.Key"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (node : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphSuccessors"
+instance = "Nat"
+bend = "LexLeanCollections.graphSuccessors.Nat"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (node : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphSuccessors"
+instance = "Int"
+bend = "LexLeanCollections.graphSuccessors.Int"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (node : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphSuccessors"
+instance = "Bool"
+bend = "LexLeanCollections.graphSuccessors.Bool"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (node : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphSuccessors"
+instance = "Int8"
+bend = "LexLeanCollections.graphSuccessors.Int8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (node : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphSuccessors"
+instance = "Int16"
+bend = "LexLeanCollections.graphSuccessors.Int16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (node : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphSuccessors"
+instance = "Int32"
+bend = "LexLeanCollections.graphSuccessors.Int32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (node : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphSuccessors"
+instance = "Int64"
+bend = "LexLeanCollections.graphSuccessors.Int64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (node : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphSuccessors"
+instance = "UInt8"
+bend = "LexLeanCollections.graphSuccessors.UInt8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (node : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphSuccessors"
+instance = "UInt16"
+bend = "LexLeanCollections.graphSuccessors.UInt16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (node : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphSuccessors"
+instance = "UInt32"
+bend = "LexLeanCollections.graphSuccessors.UInt32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (node : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphSuccessors"
+instance = "UInt64"
+bend = "LexLeanCollections.graphSuccessors.UInt64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (node : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphSuccessors"
+instance = "String"
+bend = "LexLeanCollections.graphSuccessors.String"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (node : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphSuccessors"
+instance = "Prod"
+bend = "LexLeanCollections.graphSuccessors.Prod"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (node : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphNodes"
+instance = "Key"
+bend = "LexLeanCollections.graphNodes.Key"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphNodes"
+instance = "Nat"
+bend = "LexLeanCollections.graphNodes.Nat"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphNodes"
+instance = "Int"
+bend = "LexLeanCollections.graphNodes.Int"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphNodes"
+instance = "Bool"
+bend = "LexLeanCollections.graphNodes.Bool"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphNodes"
+instance = "Int8"
+bend = "LexLeanCollections.graphNodes.Int8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphNodes"
+instance = "Int16"
+bend = "LexLeanCollections.graphNodes.Int16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphNodes"
+instance = "Int32"
+bend = "LexLeanCollections.graphNodes.Int32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphNodes"
+instance = "Int64"
+bend = "LexLeanCollections.graphNodes.Int64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphNodes"
+instance = "UInt8"
+bend = "LexLeanCollections.graphNodes.UInt8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphNodes"
+instance = "UInt16"
+bend = "LexLeanCollections.graphNodes.UInt16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphNodes"
+instance = "UInt32"
+bend = "LexLeanCollections.graphNodes.UInt32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphNodes"
+instance = "UInt64"
+bend = "LexLeanCollections.graphNodes.UInt64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphNodes"
+instance = "String"
+bend = "LexLeanCollections.graphNodes.String"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphNodes"
+instance = "Prod"
+bend = "LexLeanCollections.graphNodes.Prod"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.reachableFrom"
+instance = "Key"
+bend = "LexLeanCollections.reachableFrom.Key"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.reachableFrom"
+instance = "Nat"
+bend = "LexLeanCollections.reachableFrom.Nat"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.reachableFrom"
+instance = "Int"
+bend = "LexLeanCollections.reachableFrom.Int"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.reachableFrom"
+instance = "Bool"
+bend = "LexLeanCollections.reachableFrom.Bool"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.reachableFrom"
+instance = "Int8"
+bend = "LexLeanCollections.reachableFrom.Int8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.reachableFrom"
+instance = "Int16"
+bend = "LexLeanCollections.reachableFrom.Int16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.reachableFrom"
+instance = "Int32"
+bend = "LexLeanCollections.reachableFrom.Int32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.reachableFrom"
+instance = "Int64"
+bend = "LexLeanCollections.reachableFrom.Int64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.reachableFrom"
+instance = "UInt8"
+bend = "LexLeanCollections.reachableFrom.UInt8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.reachableFrom"
+instance = "UInt16"
+bend = "LexLeanCollections.reachableFrom.UInt16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.reachableFrom"
+instance = "UInt32"
+bend = "LexLeanCollections.reachableFrom.UInt32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.reachableFrom"
+instance = "UInt64"
+bend = "LexLeanCollections.reachableFrom.UInt64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.reachableFrom"
+instance = "String"
+bend = "LexLeanCollections.reachableFrom.String"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.reachableFrom"
+instance = "Prod"
+bend = "LexLeanCollections.reachableFrom.Prod"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphReachable"
+instance = "Key"
+bend = "LexLeanCollections.graphReachable.Key"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (start : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphReachable"
+instance = "Nat"
+bend = "LexLeanCollections.graphReachable.Nat"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (start : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphReachable"
+instance = "Int"
+bend = "LexLeanCollections.graphReachable.Int"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (start : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphReachable"
+instance = "Bool"
+bend = "LexLeanCollections.graphReachable.Bool"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (start : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphReachable"
+instance = "Int8"
+bend = "LexLeanCollections.graphReachable.Int8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (start : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphReachable"
+instance = "Int16"
+bend = "LexLeanCollections.graphReachable.Int16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (start : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphReachable"
+instance = "Int32"
+bend = "LexLeanCollections.graphReachable.Int32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (start : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphReachable"
+instance = "Int64"
+bend = "LexLeanCollections.graphReachable.Int64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (start : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphReachable"
+instance = "UInt8"
+bend = "LexLeanCollections.graphReachable.UInt8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (start : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphReachable"
+instance = "UInt16"
+bend = "LexLeanCollections.graphReachable.UInt16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (start : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphReachable"
+instance = "UInt32"
+bend = "LexLeanCollections.graphReachable.UInt32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (start : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphReachable"
+instance = "UInt64"
+bend = "LexLeanCollections.graphReachable.UInt64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (start : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphReachable"
+instance = "String"
+bend = "LexLeanCollections.graphReachable.String"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (start : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.graphReachable"
+instance = "Prod"
+bend = "LexLeanCollections.graphReachable.Prod"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) (start : κ) : List κ"
+
+[[constant]]
+lean = "LexLeanCollections.topological"
+instance = "Key"
+bend = "LexLeanCollections.topological.Key"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.topological"
+instance = "Nat"
+bend = "LexLeanCollections.topological.Nat"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.topological"
+instance = "Int"
+bend = "LexLeanCollections.topological.Int"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.topological"
+instance = "Bool"
+bend = "LexLeanCollections.topological.Bool"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.topological"
+instance = "Int8"
+bend = "LexLeanCollections.topological.Int8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.topological"
+instance = "Int16"
+bend = "LexLeanCollections.topological.Int16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.topological"
+instance = "Int32"
+bend = "LexLeanCollections.topological.Int32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.topological"
+instance = "Int64"
+bend = "LexLeanCollections.topological.Int64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.topological"
+instance = "UInt8"
+bend = "LexLeanCollections.topological.UInt8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.topological"
+instance = "UInt16"
+bend = "LexLeanCollections.topological.UInt16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.topological"
+instance = "UInt32"
+bend = "LexLeanCollections.topological.UInt32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.topological"
+instance = "UInt64"
+bend = "LexLeanCollections.topological.UInt64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.topological"
+instance = "String"
+bend = "LexLeanCollections.topological.String"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.topological"
+instance = "Prod"
+bend = "LexLeanCollections.topological.Prod"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Nat -> List κ -> List κ -> Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.graphTopological"
+instance = "Key"
+bend = "LexLeanCollections.graphTopological.Key"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.graphTopological"
+instance = "Nat"
+bend = "LexLeanCollections.graphTopological.Nat"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.graphTopological"
+instance = "Int"
+bend = "LexLeanCollections.graphTopological.Int"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.graphTopological"
+instance = "Bool"
+bend = "LexLeanCollections.graphTopological.Bool"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.graphTopological"
+instance = "Int8"
+bend = "LexLeanCollections.graphTopological.Int8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.graphTopological"
+instance = "Int16"
+bend = "LexLeanCollections.graphTopological.Int16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.graphTopological"
+instance = "Int32"
+bend = "LexLeanCollections.graphTopological.Int32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.graphTopological"
+instance = "Int64"
+bend = "LexLeanCollections.graphTopological.Int64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.graphTopological"
+instance = "UInt8"
+bend = "LexLeanCollections.graphTopological.UInt8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.graphTopological"
+instance = "UInt16"
+bend = "LexLeanCollections.graphTopological.UInt16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.graphTopological"
+instance = "UInt32"
+bend = "LexLeanCollections.graphTopological.UInt32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.graphTopological"
+instance = "UInt64"
+bend = "LexLeanCollections.graphTopological.UInt64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.graphTopological"
+instance = "String"
+bend = "LexLeanCollections.graphTopological.String"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.graphTopological"
+instance = "Prod"
+bend = "LexLeanCollections.graphTopological.Prod"
+kind = "def"
+signature = "{κ : Type} [Key κ] (graph : List (Prod κ (List κ))) : Option (List κ)"
+
+[[constant]]
+lean = "LexLeanCollections.lessThan"
+instance = "Key"
+bend = "LexLeanCollections.lessThan.Key"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.lessThan"
+instance = "Nat"
+bend = "LexLeanCollections.lessThan.Nat"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.lessThan"
+instance = "Int"
+bend = "LexLeanCollections.lessThan.Int"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.lessThan"
+instance = "Bool"
+bend = "LexLeanCollections.lessThan.Bool"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.lessThan"
+instance = "Int8"
+bend = "LexLeanCollections.lessThan.Int8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.lessThan"
+instance = "Int16"
+bend = "LexLeanCollections.lessThan.Int16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.lessThan"
+instance = "Int32"
+bend = "LexLeanCollections.lessThan.Int32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.lessThan"
+instance = "Int64"
+bend = "LexLeanCollections.lessThan.Int64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.lessThan"
+instance = "UInt8"
+bend = "LexLeanCollections.lessThan.UInt8"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.lessThan"
+instance = "UInt16"
+bend = "LexLeanCollections.lessThan.UInt16"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.lessThan"
+instance = "UInt32"
+bend = "LexLeanCollections.lessThan.UInt32"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.lessThan"
+instance = "UInt64"
+bend = "LexLeanCollections.lessThan.UInt64"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.lessThan"
+instance = "String"
+bend = "LexLeanCollections.lessThan.String"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanCollections.lessThan"
+instance = "Prod"
+bend = "LexLeanCollections.lessThan.Prod"
+kind = "def"
+signature = "{κ : Type} [Key κ] (left right : κ) : Bool"
+
+[[constant]]
+lean = "LexLeanModels.Sound1"
+instance = ""
+bend = "LexLeanModels.Sound1"
+kind = "def"
+signature = "{α : Type} (v : α -> Bool) (p : α -> Prop) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.Sound2"
+instance = ""
+bend = "LexLeanModels.Sound2"
+kind = "def"
+signature = "{α β : Type} (v : α -> β -> Bool) (p : α -> β -> Prop) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.Sound4"
+instance = ""
+bend = "LexLeanModels.Sound4"
+kind = "def"
+signature = "{α β γ δ : Type} (v : α -> β -> γ -> δ -> Bool) (p : α -> β -> γ -> δ -> Prop) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.Complete1"
+instance = ""
+bend = "LexLeanModels.Complete1"
+kind = "def"
+signature = "{α : Type} (v : α -> Bool) (p : α -> Prop) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.Complete2"
+instance = ""
+bend = "LexLeanModels.Complete2"
+kind = "def"
+signature = "{α β : Type} (v : α -> β -> Bool) (p : α -> β -> Prop) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.Complete4"
+instance = ""
+bend = "LexLeanModels.Complete4"
+kind = "def"
+signature = "{α β γ δ : Type} (v : α -> β -> γ -> δ -> Bool) (p : α -> β -> γ -> δ -> Prop) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.Satisfies"
+instance = ""
+bend = "LexLeanModels.Satisfies"
+kind = "def"
+signature = "{α β : Type} (p : α -> Prop) (q : α -> β -> Prop) (r : α -> β) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.SatisfiesTotal"
+instance = ""
+bend = "LexLeanModels.SatisfiesTotal"
+kind = "def"
+signature = "{α β : Type} (q : α -> β -> Prop) (r : α -> β) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.SatisfiesStep"
+instance = ""
+bend = "LexLeanModels.SatisfiesStep"
+kind = "def"
+signature = "{σ α β : Type} (j : σ -> Prop) (p : σ -> α -> Prop) (q : σ -> α -> σ -> β -> Prop) (r : σ -> α -> Prod σ β) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.SatisfiesStepNoInvariant"
+instance = ""
+bend = "LexLeanModels.SatisfiesStepNoInvariant"
+kind = "def"
+signature = "{σ α β : Type} (p : σ -> α -> Prop) (q : σ -> α -> σ -> β -> Prop) (r : σ -> α -> Prod σ β) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.SatisfiesStepNoPrecondition"
+instance = ""
+bend = "LexLeanModels.SatisfiesStepNoPrecondition"
+kind = "def"
+signature = "{σ α β : Type} (j : σ -> Prop) (q : σ -> α -> σ -> β -> Prop) (r : σ -> α -> Prod σ β) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.SatisfiesStepTotal"
+instance = ""
+bend = "LexLeanModels.SatisfiesStepTotal"
+kind = "def"
+signature = "{σ α β : Type} (q : σ -> α -> σ -> β -> Prop) (r : σ -> α -> Prod σ β) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.Preserves"
+instance = ""
+bend = "LexLeanModels.Preserves"
+kind = "def"
+signature = "{σ α β : Type} (j : σ -> Prop) (p : σ -> α -> Prop) (r : σ -> α -> Prod σ β) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.PreservesTotal"
+instance = ""
+bend = "LexLeanModels.PreservesTotal"
+kind = "def"
+signature = "{σ α β : Type} (j : σ -> Prop) (r : σ -> α -> Prod σ β) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.Initial"
+instance = ""
+bend = "LexLeanModels.Initial"
+kind = "def"
+signature = "{σ : Type} (j : σ -> Prop) (i : σ) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.Equivalent"
+instance = ""
+bend = "LexLeanModels.Equivalent"
+kind = "def"
+signature = "{α β : Type} (p : α -> Prop) (r f : α -> β) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.EquivalentTotal"
+instance = ""
+bend = "LexLeanModels.EquivalentTotal"
+kind = "def"
+signature = "{α β : Type} (r f : α -> β) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.EquivalentStep"
+instance = ""
+bend = "LexLeanModels.EquivalentStep"
+kind = "def"
+signature = "{σ α β : Type} (j : σ -> Prop) (p : σ -> α -> Prop) (r f : σ -> α -> Prod σ β) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.EquivalentStepNoInvariant"
+instance = ""
+bend = "LexLeanModels.EquivalentStepNoInvariant"
+kind = "def"
+signature = "{σ α β : Type} (p : σ -> α -> Prop) (r f : σ -> α -> Prod σ β) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.EquivalentStepNoPrecondition"
+instance = ""
+bend = "LexLeanModels.EquivalentStepNoPrecondition"
+kind = "def"
+signature = "{σ α β : Type} (j : σ -> Prop) (r f : σ -> α -> Prod σ β) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.EquivalentStepTotal"
+instance = ""
+bend = "LexLeanModels.EquivalentStepTotal"
+kind = "def"
+signature = "{σ α β : Type} (r f : σ -> α -> Prod σ β) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.Agreement"
+instance = ""
+bend = "LexLeanModels.Agreement"
+kind = "def"
+signature = "{α β : Type} (r : α -> β) (cmp : β -> β -> Bool) (d : List (Prod α β)) (examples agreements : Nat) : Prop"
+
+[[constant]]
+lean = "LexLeanModels.inRange"
+instance = ""
+bend = "LexLeanModels.inRange"
+kind = "def"
+signature = "(width : Nat) (signed : Bool) (value : Int) : Bool"
+
+[[constant]]
+lean = "LexLeanModels.encodeInt"
+instance = ""
+bend = "LexLeanModels.encodeInt"
+kind = "def"
+signature = "(width : Nat) (value : Int) : List Nat"
+
+[[constant]]
+lean = "LexLeanModels.tensorMatches"
+instance = ""
+bend = "LexLeanModels.tensorMatches"
+kind = "def"
+signature = "(width : Nat) (signed : Bool) (values : List Int) (bytes : ByteArray) : Bool"
+
+[[constant]]
+lean = "LexLeanModels.utf8Char"
+instance = ""
+bend = "LexLeanModels.utf8Char"
+kind = "def"
+signature = "(c : Char) : List Nat"
+
+[[constant]]
+lean = "LexLeanModels.linesMatch"
+instance = ""
+bend = "LexLeanModels.linesMatch"
+kind = "def"
+signature = "(lines : List String) (bytes : ByteArray) : Bool"
+
+[[constant]]
+lean = "LexLeanReasoning.Star"
+instance = ""
+bend = "LexLeanReasoning.Star"
+kind = "type"
+signature = "inductive Star {σ : Type} (r : σ -> σ -> Prop) : σ -> σ -> Prop"
+
+[[constant]]
+lean = "LexLeanReasoning.Star.refl"
+instance = ""
+bend = "LexLeanReasoning.Star.refl"
+kind = "constructor"
+signature = "Star.refl {σ : Type} {r : σ -> σ -> Prop} (a : σ) : Star r a a"
+
+[[constant]]
+lean = "LexLeanReasoning.Star.tail"
+instance = ""
+bend = "LexLeanReasoning.Star.tail"
+kind = "constructor"
+signature = "Star.tail {σ : Type} {r : σ -> σ -> Prop} (a b c : σ) : Star r a b -> r b c -> Star r a c"
+
+[[constant]]
+lean = "LexLeanReasoning.All"
+instance = ""
+bend = "LexLeanReasoning.All"
+kind = "type"
+signature = "inductive All {α : Type} (p : α -> Prop) : List α -> Prop"
+
+[[constant]]
+lean = "LexLeanReasoning.All.nil"
+instance = ""
+bend = "LexLeanReasoning.All.nil"
+kind = "constructor"
+signature = "All.nil {α : Type} {p : α -> Prop} : All p []"
+
+[[constant]]
+lean = "LexLeanReasoning.All.cons"
+instance = ""
+bend = "LexLeanReasoning.All.cons"
+kind = "constructor"
+signature = "All.cons {α : Type} {p : α -> Prop} (a : α) (rest : List α) : p a -> All p rest -> All p (a :: rest)"
+
+[[constant]]
+lean = "LexLeanReasoning.Preserves"
+instance = ""
+bend = "LexLeanReasoning.Preserves"
+kind = "def"
+signature = "{σ : Type} (r : σ -> σ -> Prop) (j : σ -> Prop) : Prop"
+
+[[constant]]
+lean = "LexLeanReasoning.Sound"
+instance = ""
+bend = "LexLeanReasoning.Sound"
+kind = "def"
+signature = "{α β : Type} (v : α -> β -> Bool) (p : α -> β -> Prop) : Prop"
+
+[[constant]]
+lean = "LexLeanReasoning.Complete"
+instance = ""
+bend = "LexLeanReasoning.Complete"
+kind = "def"
+signature = "{α β : Type} (v : α -> β -> Bool) (p : α -> β -> Prop) : Prop"
+
+[[constant]]
+lean = "LexLeanReasoning.Reaches"
+instance = ""
+bend = "LexLeanReasoning.Reaches"
+kind = "def"
+signature = "{σ ε : Type} (r : σ -> σ -> Prop) (a : σ) (acc : Except ε σ) : Prop"
+
+[[constant]]
+lean = "LexLeanReasoning.Found"
+instance = ""
+bend = "LexLeanReasoning.Found"
+kind = "def"
+signature = "{ν ρ : Type} (ok : ν -> Prop) (accept : ν -> Option ρ) : Option (Prod ρ ν) -> Prop"
+
+[[constant]]
+lean = "LexLeanReasoning.SearchOk"
+instance = ""
+bend = "LexLeanReasoning.SearchOk"
+kind = "def"
+signature = "{ν ρ : Type} (ok : ν -> Prop) (accept : ν -> Option ρ) (frontier : List ν) (found : Option (Prod ρ ν)) : Prop"
+
+[[constant]]
+lean = "LexLeanReasoning.reachesStart"
+instance = ""
+bend = "LexLeanReasoning.reachesStart"
+kind = "law"
+signature = "theorem reachesStart {σ ε : Type} (r : σ -> σ -> Prop) (a : σ) : Reaches (ε := ε) r a (Except.ok a)"
+
+[[constant]]
+lean = "LexLeanReasoning.guarded"
+instance = ""
+bend = "LexLeanReasoning.guarded"
+kind = "law"
+signature = "theorem guarded {σ : Type} (r : σ -> σ -> Prop) (s : σ) (g : Bool) (c : σ) (h : g = true -> r s c) (t : σ) : (if g then some c else none) = some t -> r s t"
+
+[[constant]]
+lean = "LexLeanReasoning.guardedRank"
+instance = ""
+bend = "LexLeanReasoning.guardedRank"
+kind = "law"
+signature = "theorem guardedRank {σ : Type} (μ : σ -> Nat) (s : σ) (g : Bool) (c : σ) (h : g = true -> μ c < μ s) (t : σ) : (if g then some c else none) = some t -> μ t < μ s"
+
+[[constant]]
+lean = "LexLeanReasoning.checked"
+instance = ""
+bend = "LexLeanReasoning.checked"
+kind = "law"
+signature = "theorem checked {ρ : Type} (g : Bool) (a b : ρ) : (if g then some a else none) = some b -> g = true /\\ a = b"
+
+[[constant]]
+lean = "LexLeanReasoning.allAppend"
+instance = ""
+bend = "LexLeanReasoning.allAppend"
+kind = "law"
+signature = "theorem allAppend {α : Type} (p : α -> Prop) : forall (xs ys : List α), All p xs -> All p ys -> All p (LexLeanRuntime.append xs ys)"
+
+[[constant]]
+lean = "LexLeanReasoning.allSingle"
+instance = ""
+bend = "LexLeanReasoning.allSingle"
+kind = "law"
+signature = "theorem allSingle {α : Type} (p : α -> Prop) (a : α) (h : p a) : All p (a :: [])"
+
+[[constant]]
+lean = "LexLeanReasoning.allHead"
+instance = ""
+bend = "LexLeanReasoning.allHead"
+kind = "law"
+signature = "theorem allHead {α : Type} (p : α -> Prop) (a : α) (rest : List α) (h : All p (a :: rest)) : p a"
+
+[[constant]]
+lean = "LexLeanReasoning.allTail"
+instance = ""
+bend = "LexLeanReasoning.allTail"
+kind = "law"
+signature = "theorem allTail {α : Type} (p : α -> Prop) (a : α) (rest : List α) (h : All p (a :: rest)) : All p rest"
+
+[[constant]]
+lean = "LexLeanReasoning.lengthSnoc"
+instance = ""
+bend = "LexLeanReasoning.lengthSnoc"
+kind = "law"
+signature = "theorem lengthSnoc {α : Type} (xs : List α) (y : α) : LexLeanRuntime.length (LexLeanRuntime.append xs (y :: [])) = LexLeanRuntime.length xs + 1"
+
+[[constant]]
+lean = "LexLeanReasoning.searchStart"
+instance = ""
+bend = "LexLeanReasoning.searchStart"
+kind = "law"
+signature = "theorem searchStart {ν ρ : Type} (ok : ν -> Prop) (accept : ν -> Option ρ) (frontier : List ν) (h : All ok frontier) : SearchOk ok accept frontier none"
+
+[[constant]]
+lean = "LexLeanReasoning.peakBound"
+instance = ""
+bend = "LexLeanReasoning.peakBound"
+kind = "law"
+signature = "theorem peakBound (p len k : Nat) (hp : p <= k) (hl : len <= k) : (if Nat.blt p len then len else p) <= k"
+
+[[constant]]
+lean = "LexLeanReasoning.noneSome"
+instance = ""
+bend = "LexLeanReasoning.noneSome"
+kind = "law"
+signature = "theorem noneSome {ρ : Type} {q : Prop} (v : ρ) (h : (none : Option ρ) = some v) : q"
+
+[[constant]]
+lean = "LexLeanReasoning.zeroLe"
+instance = ""
+bend = "LexLeanReasoning.zeroLe"
+kind = "law"
+signature = "theorem zeroLe (n : Nat) : 0 <= n"
+
+[[constant]]
+lean = "LexLeanReasoning.bltSucc"
+instance = ""
+bend = "LexLeanReasoning.bltSucc"
+kind = "law"
+signature = "theorem bltSucc (a b : Nat) (h : Nat.blt a b = true) : a + 1 <= b"
+
+[[constant]]
+lean = "Int.beq"
+instance = ""
+bend = "Lean.Int.beq"
+kind = "def"
+signature = "(a b : Int) : Bool  -- BEq Int"
+
+[[constant]]
+lean = "Ord.compare"
+instance = "Int"
+bend = "Lean.Int.cmp"
+kind = "def"
+signature = "(a b : Int) : Ordering  -- Ord Int"
+
+[[constant]]
+lean = "Decidable.decide (a < b)"
+instance = "Int"
+bend = "Lean.Int.decLt"
+kind = "def"
+signature = "(a b : Int) : Bool"
+
+[[constant]]
+lean = "Decidable.decide (a <= b)"
+instance = "Int"
+bend = "Lean.Int.decLe"
+kind = "def"
+signature = "(a b : Int) : Bool"
+
+[[constant]]
+lean = "Int.tdiv"
+instance = ""
+bend = "Lean.Int.tdiv"
+kind = "def"
+signature = "(a b : Int) : Int"
+
+[[constant]]
+lean = "Int.tmod"
+instance = ""
+bend = "Lean.Int.tmod"
+kind = "def"
+signature = "(a b : Int) : Int"
+
+[[constant]]
+lean = "Int.repr"
+instance = ""
+bend = "Lean.Int.repr"
+kind = "def"
+signature = "(a : Int) : String  -- ToString Int"
+
+[[constant]]
+lean = "Prod.fst"
+instance = ""
+bend = "Lean.Prod.fst"
+kind = "def"
+signature = "{α β : Type} (p : Prod α β) : α"
+
+[[constant]]
+lean = "Prod.snd"
+instance = ""
+bend = "Lean.Prod.snd"
+kind = "def"
+signature = "{α β : Type} (p : Prod α β) : β"
+
+[[constant]]
+lean = "BEq.beq"
+instance = "Bool"
+bend = "Lean.Bool.beq"
+kind = "def"
+signature = "(a b : Bool) : Bool"
+
+[[constant]]
+lean = "bne"
+instance = ""
+bend = "Lean.Bool.bne"
+kind = "def"
+signature = "(a b : Bool) : Bool"
+
+[[constant]]
+lean = "BEq.beq"
+instance = "Char"
+bend = "Lean.Char.beq"
+kind = "def"
+signature = "(a b : Char) : Bool"
+
+[[constant]]
+lean = "BEq.beq"
+instance = "String"
+bend = "Lean.String.beq"
+kind = "def"
+signature = "(a b : String) : Bool"
+
+[[constant]]
+lean = "String.isEmpty"
+instance = ""
+bend = "Lean.String.isEmpty"
+kind = "def"
+signature = "(s : String) : Bool"
+
+[[constant]]
+lean = "String.length"
+instance = ""
+bend = "Lean.String.length"
+kind = "def"
+signature = "(s : String) : Nat"
+
+[[constant]]
+lean = "String.isPrefixOf"
+instance = ""
+bend = "Lean.String.isPrefixOf"
+kind = "def"
+signature = "(p s : String) : Bool"
+
+[[constant]]
+lean = "String.splitOn"
+instance = ""
+bend = "Lean.String.splitOn"
+kind = "def"
+signature = "(s sep : String) : List String"
+
+[[constant]]
+lean = "String.intercalate"
+instance = ""
+bend = "Lean.String.intercalate"
+kind = "def"
+signature = "(s : String) : List String -> String"
+
+[[constant]]
+lean = "List.drop"
+instance = ""
+bend = "Lean.List.drop"
+kind = "def"
+signature = "{α : Type} : Nat -> List α -> List α"
+
+[[constant]]
+lean = "List.take"
+instance = ""
+bend = "Lean.List.take"
+kind = "def"
+signature = "{α : Type} : Nat -> List α -> List α"
+
+[[constant]]
+lean = "ByteArray"
+instance = ""
+bend = "Lean.ByteArray"
+kind = "type"
+signature = "structure ByteArray where data : Array UInt8"
+
+[[constant]]
+lean = "ByteArray.mk"
+instance = ""
+bend = "Lean.ByteArray.mk"
+kind = "constructor"
+signature = "(data : Array UInt8) : ByteArray"
+
+[[constant]]
+lean = "ByteArray.data"
+instance = ""
+bend = "Lean.ByteArray.data"
+kind = "def"
+signature = "(b : ByteArray) : Array UInt8"
+
+[[constant]]
+lean = "ByteArray.size"
+instance = ""
+bend = "Lean.ByteArray.size"
+kind = "def"
+signature = "(b : ByteArray) : Nat"
+
+[[constant]]
+lean = "ByteArray.append"
+instance = ""
+bend = "Lean.ByteArray.append"
+kind = "def"
+signature = "(a b : ByteArray) : ByteArray"
+
+[[constant]]
+lean = "ByteArray.extract"
+instance = ""
+bend = "Lean.ByteArray.extract"
+kind = "def"
+signature = "(a : ByteArray) (b e : Nat) : ByteArray"
+
+[[constant]]
+lean = "BEq.beq"
+instance = "ByteArray"
+bend = "Lean.ByteArray.beq"
+kind = "def"
+signature = "(a b : ByteArray) : Bool"
+
+[[constant]]
+lean = "UInt8.toUInt32"
+instance = ""
+bend = "Lean.UInt8.toUInt32"
+kind = "def"
+signature = "(a : UInt8) : UInt32"
+
+[[representation]]
+lean = "Nat"
+bend = "Nat"
+note = "Base unary Nat (Zero/Succ), as in LexLean.bend. The checker evaluates it in unary: a closed value past about 30000 overflows its stack, so fixed-width integers never go through Nat in closed computations."
+
+[[representation]]
+lean = "Int"
+bend = "L.Lean.Int"
+note = "LexLean.bend's Lean.Int: ofNat{n} / negSucc{n}, Lean's own representation."
+
+[[representation]]
+lean = "Bool"
+bend = "Bool"
+note = "Base Bool."
+
+[[representation]]
+lean = "Option A"
+bend = "Maybe<&2, A>"
+note = "Base Maybe: none = None{}, some x = Some{x}."
+
+[[representation]]
+lean = "Except E A"
+bend = "Result<&2, &2, E, A>"
+note = "Base Result: Except.error e = Fail{e}, Except.ok x = Done{x}."
+
+[[representation]]
+lean = "Ordering"
+bend = "Cmp"
+note = "Base Cmp: lt = LT{}, eq = EQ{}, gt = GT{}."
+
+[[representation]]
+lean = "Prod A B"
+bend = "L.Lean.Prod(A, B)"
+note = "Sigma<&2, &2, A, _ => B>; a pair is (a, b)."
+
+[[representation]]
+lean = "List A"
+bend = "List<&2, A>"
+note = "Base List at quantity &2."
+
+[[representation]]
+lean = "Char"
+bend = "Char"
+note = "Base Char, Chr{code: U32}. Lean's Char is a Unicode scalar value; Base admits every U32 code, so a Bend Char may be a surrogate or exceed U+10FFFF, which no Lean Char is. The runtime functions accept such codes and apply Lean's formulas to them unchanged."
+
+[[representation]]
+lean = "String"
+bend = "String"
+note = "Base String, SNil{} / SCon{head: Char, tail: String}: the list of characters (Lean's String.data)."
+
+[[representation]]
+lean = "ByteArray"
+bend = "Lean.ByteArray"
+note = "One-field wrapper Lean.ByteArray.mk{data: List<&2, Lean.UInt8>}: the byte list (Lean wraps Array UInt8; Array is its list)."
+
+[[representation]]
+lean = "UInt8"
+bend = "Lean.UInt8"
+note = "Lean.UInt8.mk{bits: Word(8n)}: exactly 2^8 values. Literal n <= 4294967295: Lean.UInt8.lit(n) with n a U32 literal (n mod 2^8)."
+
+[[representation]]
+lean = "UInt16"
+bend = "Lean.UInt16"
+note = "Lean.UInt16.mk{bits: Word(16n)}: exactly 2^16 values. Literal: Lean.UInt16.lit(n)."
+
+[[representation]]
+lean = "UInt32"
+bend = "U32"
+note = "Base U32 (U32{data: Word(32n)}): exactly 2^32 values; a Bend U32 literal is a UInt32 literal, and Lean.UInt32.lit(n) is the identity."
+
+[[representation]]
+lean = "UInt64"
+bend = "Lean.UInt64"
+note = "Lean.UInt64.mk{bits: Word(64n)}: exactly 2^64 values. Literal n <= 4294967295: Lean.UInt64.lit(n); larger: Lean.UInt64.lit2(hi, lo) for n = hi * 2^32 + lo."
+
+[[representation]]
+lean = "Int8"
+bend = "Lean.Int8"
+note = "Lean.Int8.mk{bits: Word(8n)}, read in two's complement: exactly 2^8 values. (-k : Int8) is Lean.Int8.neg(Lean.Int8.lit(k)), as Lean elaborates it."
+
+[[representation]]
+lean = "Int16"
+bend = "Lean.Int16"
+note = "Lean.Int16.mk{bits: Word(16n)}, two's complement: exactly 2^16 values."
+
+[[representation]]
+lean = "Int32"
+bend = "Lean.Int32"
+note = "Lean.Int32.mk{bits: Word(32n)}, two's complement: exactly 2^32 values."
+
+[[representation]]
+lean = "Int64"
+bend = "Lean.Int64"
+note = "Lean.Int64.mk{bits: Word(64n)}, two's complement: exactly 2^64 values. Literals as for UInt64 (lit, lit2), negated by Lean.Int64.neg."
+
+[[representation]]
+lean = "Prop"
+bend = "Type"
+note = "A Lean Prop is a Bend Type; True is Unit and True.intro is Unit{}; a /\\ b is a & b."
+
+[[representation]]
+lean = "instance [Key κ]"
+bend = "LexLeanCollections.Key"
+note = "The Key instances form a closed universe, defunctionalized into the Data code LexLeanCollections.Key (one constructor per atomic instance, Key.Prod{fst, snd} for Prod). <f>.Key takes the code; <f>.<Instance> is the monomorphized def; <f>.Prod takes the two component codes first."
+
+[[unported]]
+lean = "LexLeanCollections.listFold"
+reason = "A higher-order fold applies its closure argument once per element; Bend closures are affine and templates are outside the proved kernel. Expressible per call site: the backend lambda-lifts the step into a top-level def over the captured Data and emits a first-order fold (defunctionalization with a closed code type per module)."
+bend_error = "step (consumed more than once)"
+
+[[unported]]
+lean = "LexLeanCollections.setFold"
+reason = "As listFold (setFold step initial set = set.foldl step initial)."
+bend_error = "step (consumed more than once)"
+
+[[unported]]
+lean = "LexLeanCollections.mapFold"
+reason = "As listFold, with a three-argument step."
+bend_error = "step (consumed more than once)"
+
+[[unported]]
+lean = "LexLeanCollections.iterate"
+reason = "Applies its closure argument once per iteration."
+bend_error = "step (consumed more than once)"
+
+[[unported]]
+lean = "LexLeanCollections.iterateUntil"
+reason = "Applies its closure argument once per iteration."
+bend_error = "step (consumed more than once)"
+
+[[unported]]
+lean = "LexLeanReasoning.starPreserves"
+reason = "The proof applies the hypothesis h (a function) at every Star.tail and passes it to the recursive call; a function-typed hypothesis is affine. Without @unsafe the recursion is also refused because the index b changes before hs shrinks."
+bend_error = "h (consumed more than once); without @unsafe: a decreasing self-call (arguments are read left to right: each passed unchanged until one shrinks)"
+
+[[unported]]
+lean = "LexLeanReasoning.foldInvariant"
+reason = "Its statement names LexLeanCollections.listFold, which has no Bend def, and its proof applies the hypothesis h at every element."
+bend_error = "listFold: step (consumed more than once)"
+
+[[unported]]
+lean = "LexLeanReasoning.foldSnoc"
+reason = "Its statement names LexLeanCollections.listFold."
+bend_error = "listFold: step (consumed more than once)"
+
+[[unported]]
+lean = "LexLeanReasoning.allFold"
+reason = "Names listFold; the proof applies h at every element."
+bend_error = "listFold: step (consumed more than once)"
+
+[[unported]]
+lean = "LexLeanReasoning.capAll"
+reason = "Names listFold (through allFold)."
+bend_error = "listFold: step (consumed more than once)"
+
+[[unported]]
+lean = "LexLeanReasoning.capBound"
+reason = "Names listFold (through foldInvariant)."
+bend_error = "listFold: step (consumed more than once)"
+
+[[unported]]
+lean = "LexLeanReasoning.freshAll"
+reason = "Names listFold (through allFold)."
+bend_error = "listFold: step (consumed more than once)"
+
+[[unported]]
+lean = "LexLeanReasoning.iterateUntilInvariant"
+reason = "Names iterateUntil; the proof applies h at every iteration."
+bend_error = "iterateUntil: step (consumed more than once)"
+
+[[unported]]
+lean = "LexLeanReasoning.iterateUntilSimulate"
+reason = "Names iterateUntil; applies hsome at every iteration."
+bend_error = "iterateUntil: step (consumed more than once)"
+
+[[unported]]
+lean = "LexLeanReasoning.iterateUntilCount"
+reason = "Names iterateUntil; applies h at every iteration."
+bend_error = "iterateUntil: step (consumed more than once)"
+
+[[unported]]
+lean = "LexLeanReasoning.iterateUntilGrowth"
+reason = "Names iterateUntil; applies h at every iteration."
+bend_error = "iterateUntil: step (consumed more than once)"
+
+[[unported]]
+lean = "LexLeanReasoning.iterateUntilStops"
+reason = "Names iterateUntil; applies h at every iteration."
+bend_error = "iterateUntil: step (consumed more than once)"
+
+[[unported]]
+lean = "LexLeanReasoning.iterateUntilBound"
+reason = "Names iterateUntil (through iterateUntilInvariant)."
+bend_error = "iterateUntil: step (consumed more than once)"

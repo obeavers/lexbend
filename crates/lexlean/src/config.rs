@@ -478,8 +478,8 @@ pub fn parse_project(path: &str, bytes: &[u8]) -> Result<ProjectConfig, Vec<Diag
             format!("lean_toolchain must be exactly `{}`", crate::LEAN_TOOLCHAIN),
         ));
     }
-    // §18.10: language 2.0 pins the Bend release its modules lower to; no
-    // other language has a Bend toolchain.
+    // §18.10, §18.11: languages 2.0 and 2.2 pin the Bend release their modules
+    // lower to; no other language has a Bend toolchain.
     match (
         crate::lowers_to_bend(&raw.language),
         raw.bend_toolchain.as_deref(),
@@ -488,14 +488,15 @@ pub fn parse_project(path: &str, bytes: &[u8]) -> Result<ProjectConfig, Vec<Diag
         (true, _) => diagnostics.push(config_error(
             path,
             format!(
-                "language 2.0 requires bend_toolchain = `{}`",
+                "language {} requires bend_toolchain = `{}`",
+                raw.language,
                 crate::BEND_TOOLCHAIN
             ),
         )),
         (false, Some(_)) => diagnostics.push(config_error(
             path,
             format!(
-                "bend_toolchain is a language-2.0 field; language {} has no Bend toolchain",
+                "bend_toolchain is a language-2.0 and 2.2 field; language {} has no Bend toolchain",
                 raw.language
             ),
         )),
@@ -758,7 +759,7 @@ pub fn parse_project(path: &str, bytes: &[u8]) -> Result<ProjectConfig, Vec<Diag
     // never inside the build root (§10.1, §17.12).
     let mut artifact_sources = Vec::new();
     if let Some(raw_artifacts) = &raw.artifact_sources {
-        if raw.language != crate::LANGUAGE_1_2 {
+        if !crate::is_surface_1_2(&raw.language) {
             diagnostics.push(config_error(
                 path,
                 format!(

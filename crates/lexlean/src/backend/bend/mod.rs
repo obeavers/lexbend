@@ -28,8 +28,10 @@
 //!   proposition, and a Bend `match` may inspect only a parameter.
 
 pub mod engine;
+pub mod linarith;
 pub mod prelude;
 pub mod proof;
+pub mod semantic;
 pub mod syntax;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -75,7 +77,7 @@ pub fn module_path(generated: &str) -> String {
 }
 
 /// The relative import path from one build-relative file to another.
-fn relative(from: &str, to: &str) -> String {
+pub(crate) fn relative(from: &str, to: &str) -> String {
     let from_dir: Vec<&str> = {
         let mut parts: Vec<&str> = from.split('/').collect();
         parts.pop();
@@ -412,7 +414,9 @@ fn body_names(body: &Body) -> BTreeSet<String> {
     for stmt in &body.stmts {
         match stmt {
             syntax::Stmt::Rewrite { proof, .. } => term(proof, &mut out),
-            syntax::Stmt::Let { value, .. } => term(value, &mut out),
+            syntax::Stmt::Let { value, .. } | syntax::Stmt::Share { value, .. } => {
+                term(value, &mut out);
+            }
         }
     }
     match &body.tail {
@@ -435,7 +439,9 @@ fn thread_body(body: &mut Body, aux: &BTreeSet<String>, premises_args: &[BTerm])
                 thread_term(proof, aux, premises_args);
                 thread_term(motive, aux, premises_args);
             }
-            syntax::Stmt::Let { value, .. } => thread_term(value, aux, premises_args),
+            syntax::Stmt::Let { value, .. } | syntax::Stmt::Share { value, .. } => {
+                thread_term(value, aux, premises_args);
+            }
         }
     }
     match &mut body.tail {
@@ -460,7 +466,15 @@ fn thread_term(term: &mut BTerm, aux: &BTreeSet<String>, premises_args: &[BTerm]
                 *args = with;
             }
         }
-        BTerm::Lam(_, body) | BTerm::Succ(body) => thread_term(body, aux, premises_args),
+        BTerm::Lam(_, body) | BTerm::Succ(body) | BTerm::Template(body) => {
+            thread_term(body, aux, premises_args);
+        }
+        BTerm::Apply(function, args) => {
+            thread_term(function, aux, premises_args);
+            for arg in args {
+                thread_term(arg, aux, premises_args);
+            }
+        }
         BTerm::Pi {
             domain, codomain, ..
         }
@@ -485,7 +499,12 @@ fn thread_term(term: &mut BTerm, aux: &BTreeSet<String>, premises_args: &[BTerm]
             }
         }
         BTerm::Block(body) => thread_body(body, aux, premises_args),
-        BTerm::Name(_) | BTerm::Refl | BTerm::Nat(_) | BTerm::Kind(_) | BTerm::Hole => {}
+        BTerm::Name(_)
+        | BTerm::Refl
+        | BTerm::Nat(_)
+        | BTerm::Kind(_)
+        | BTerm::Hole
+        | BTerm::Str(_) => {}
     }
 }
 
@@ -640,8 +659,22 @@ pub fn render_project(
     let mut table = AssumptionTable::new();
     let mut out = BTreeMap::new();
     let mut any_prelude = false;
+    let mut any_support = false;
+    let semantic_project = semantic::SemanticProject::new(modules);
     for name in order {
         let checked = &modules[name];
+        // Language 2.2 lowers each semantic module through its own
+        // lowering (§18.11); a document module lowers as in language 2.0.
+        if let Some(module) = &checked.document.semantic {
+            if crate::is_surface_1_2(language) {
+                let (emitter, uses_prelude, uses_support) =
+                    semantic::render_module(checked, module, &semantic_project, name)?;
+                any_prelude |= uses_prelude;
+                any_support |= uses_support;
+                out.insert(name.clone(), emitter);
+            }
+            continue;
+        }
         if !lowers(checked) {
             continue;
         }
@@ -665,6 +698,7 @@ pub fn render_project(
     Ok(RenderedBend {
         emitters: out,
         uses_prelude: any_prelude,
+        uses_support: any_support,
         premises,
     })
 }
@@ -676,6 +710,9 @@ pub struct RenderedBend {
     pub emitters: BTreeMap<String, Emitter>,
     /// Whether any module imports the prelude.
     pub uses_prelude: bool,
+    /// Language 2.2: whether any module imports the semantic support
+    /// module.
+    pub uses_support: bool,
     /// The assumption premises of every theorem, by full generated name.
     pub premises: BTreeMap<String, Vec<String>>,
 }

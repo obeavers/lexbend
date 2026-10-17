@@ -48,6 +48,8 @@ pub enum Quantity {
     Reusable,
     /// `-`: erased, used only in types and proofs.
     Erased,
+    /// `~`: a template, substituted by a closed argument where it is used.
+    Template,
 }
 
 impl Quantity {
@@ -56,6 +58,7 @@ impl Quantity {
             Self::Affine => "",
             Self::Reusable => "+",
             Self::Erased => "-",
+            Self::Template => "~",
         }
     }
 }
@@ -113,6 +116,12 @@ pub enum BTerm {
     Hole,
     /// A parenthesized body with statements.
     Block(Box<Body>),
+    /// `"text"`, a Base `String` literal, already escaped for Bend.
+    Str(String),
+    /// `~t`, a closed argument to a template binder.
+    Template(Box<BTerm>),
+    /// `(f)(a, b)`, the application of a function-valued term.
+    Apply(Box<BTerm>, Vec<BTerm>),
 }
 
 /// A statement before a body's tail.
@@ -129,6 +138,15 @@ pub enum Stmt {
     },
     /// `x = v`.
     Let {
+        /// The bound name.
+        name: Name,
+        /// The value.
+        value: BTerm,
+        /// The source step.
+        source: EmitSource,
+    },
+    /// `+x = v`: a reusable let, whose value is `Data`.
+    Share {
         /// The bound name.
         name: Name,
         /// The value.
@@ -215,6 +233,19 @@ pub enum Item {
         claim_source: EmitSource,
         /// The proof body.
         proof: Body,
+        /// The whole declaration's source.
+        source: EmitSource,
+    },
+    /// `type Name<-A: Data, ..> is Data:` with one constructor per line.
+    Type {
+        /// The type name.
+        name: Name,
+        /// The erased type parameters, each of kind `Data`.
+        parameters: Vec<Name>,
+        /// The type's own kind, `Data` or `Type`.
+        kind: &'static str,
+        /// The constructors, each with its named, typed fields.
+        constructors: Vec<(Name, Vec<(Name, BTerm)>)>,
         /// The whole declaration's source.
         source: EmitSource,
     },
@@ -476,6 +507,29 @@ impl Printer<'_> {
                 self.sym("}");
             }
             BTerm::Hole => self.sym("_"),
+            BTerm::Str(text) => {
+                self.piece(text, "string", Origin::Synthetic(SYNTAX_ORIGIN.to_owned()))
+            }
+            BTerm::Template(inner) => {
+                self.sym("~");
+                self.term(inner, true, depth);
+            }
+            BTerm::Apply(function, args) => {
+                let bare = matches!(
+                    function.as_ref(),
+                    BTerm::Name(_) | BTerm::Call(..) | BTerm::Apply(..)
+                );
+                self.term(function, !bare, depth);
+                self.sym("(");
+                for (index, argument) in args.iter().enumerate() {
+                    if index > 0 {
+                        self.sym(",");
+                        self.ws(" ");
+                    }
+                    self.term(argument, matches!(argument, BTerm::Lam(..)), depth);
+                }
+                self.sym(")");
+            }
             BTerm::Block(body) => {
                 self.sym("(");
                 self.ws("\n");
@@ -521,8 +575,16 @@ impl Printer<'_> {
                     name,
                     value,
                     source,
+                }
+                | Stmt::Share {
+                    name,
+                    value,
+                    source,
                 } => {
                     self.source = source.clone();
+                    if matches!(stmt, Stmt::Share { .. }) {
+                        self.sym("+");
+                    }
                     self.name(name);
                     self.ws(" ");
                     self.sym("=");
@@ -646,6 +708,57 @@ impl Printer<'_> {
                 self.ws("\n");
                 self.body(proof, 1);
             }
+            Item::Type {
+                name,
+                parameters,
+                kind,
+                constructors,
+                source,
+            } => {
+                self.source = source.clone();
+                self.role = MapRole::Declaration;
+                self.kw("type");
+                self.ws(" ");
+                self.name(name);
+                if !parameters.is_empty() {
+                    self.sym("<");
+                    for (index, parameter) in parameters.iter().enumerate() {
+                        if index > 0 {
+                            self.sym(",");
+                            self.ws(" ");
+                        }
+                        self.sym("-");
+                        self.name(parameter);
+                        self.sym(":");
+                        self.ws(" ");
+                        self.kw("Data");
+                    }
+                    self.sym(">");
+                }
+                self.ws(" ");
+                self.kw("is");
+                self.ws(" ");
+                self.kw(kind);
+                self.sym(":");
+                self.ws("\n");
+                for (constructor, fields) in constructors {
+                    self.pad(1);
+                    self.name(constructor);
+                    self.sym("{");
+                    for (index, (field, ty)) in fields.iter().enumerate() {
+                        if index > 0 {
+                            self.sym(",");
+                            self.ws(" ");
+                        }
+                        self.name(field);
+                        self.sym(":");
+                        self.ws(" ");
+                        self.term(ty, false, 1);
+                    }
+                    self.sym("}");
+                    self.ws("\n");
+                }
+            }
             Item::Def {
                 name,
                 params,
@@ -682,6 +795,28 @@ impl Printer<'_> {
             }
         }
     }
+}
+
+/// The text of each item, printed alone, in order: the semantic lowering
+/// traces whole declarations rather than tokens, so it needs the bytes each
+/// item contributes.
+#[must_use]
+pub fn print_items(items: &[Item]) -> Vec<String> {
+    items
+        .iter()
+        .map(|item| {
+            let mut emitter = Emitter::new();
+            let node = emitter.node("declaration");
+            let mut printer = Printer {
+                emitter: &mut emitter,
+                source: EmitSource::Synthetic(PREAMBLE_ORIGIN.to_owned()),
+                role: MapRole::Synthetic,
+                node,
+            };
+            printer.item(item);
+            emitter.text().to_owned()
+        })
+        .collect()
 }
 
 /// Print a whole module through a tracing emitter.

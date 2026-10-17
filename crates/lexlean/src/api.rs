@@ -270,6 +270,7 @@ pub fn render_build(
     let crate::backend::bend::RenderedBend {
         emitters: bend_emitters,
         uses_prelude: bend_prelude,
+        uses_support: bend_support,
         premises: bend_premises,
     } = crate::backend::bend::render_project(
         &project.config.language,
@@ -474,6 +475,12 @@ pub fn render_build(
             crate::backend::bend::prelude_artifact().map_err(LexLeanError::from_diagnostic)?;
         outputs.push(file_row("bend-prelude", path, bytes));
         files.push((path.to_owned(), bytes.to_vec()));
+    }
+    if bend_support {
+        let (path, bytes) = crate::backend::bend::semantic::support_artifact()
+            .map_err(LexLeanError::from_diagnostic)?;
+        outputs.push(file_row("bend-prelude", path, &bytes));
+        files.push((path.to_owned(), bytes));
     }
 
     let mut inputs: Vec<FileRow> = Vec::new();
