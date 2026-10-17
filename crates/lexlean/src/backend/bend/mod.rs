@@ -29,6 +29,7 @@
 
 pub mod engine;
 pub mod linarith;
+pub mod numeral;
 pub mod prelude;
 pub mod proof;
 pub mod semantic;

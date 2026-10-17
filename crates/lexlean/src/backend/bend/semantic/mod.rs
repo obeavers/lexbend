@@ -52,6 +52,7 @@ use support::Support;
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::backend::bend::engine::{fail, module_alias};
+use crate::backend::bend::numeral;
 use crate::backend::bend::prelude::PRELUDE_ALIAS;
 use crate::backend::bend::syntax::{
     print_items, BTerm, Body, Item, Name, Param, Pattern, Quantity, Stmt, Tail,
@@ -991,16 +992,11 @@ impl<'p, 'a> Lower<'p, 'a> {
     // Terms
     // ------------------------------------------------------------------
 
-    fn nat_literal(value: &str) -> Result<BTerm, Diagnostic> {
-        let parsed: u64 = value
-            .parse()
-            .map_err(|_| fail(format!("the numeral `{value}` is not a natural number")))?;
-        if parsed > u64::from(u32::MAX) {
-            return Err(fail(format!(
-                "the numeral `{value}` exceeds 4294967295, the largest Bend Nat literal"
-            )));
-        }
-        Ok(BTerm::Nat(value.to_owned()))
+    /// A natural-number numeral: a literal, or past Bend's largest literal
+    /// its Horner form over the prelude (§18.10.6).
+    fn nat_literal(&mut self, value: &str) -> Result<BTerm, Diagnostic> {
+        numeral::term(value, |name| synthetic(self.prelude(name)))
+            .ok_or_else(|| fail(format!("the numeral `{value}` is not a natural number")))
     }
 
     /// The Bend constructor term of a constructor applied to lowered
@@ -1232,25 +1228,20 @@ impl<'p, 'a> Lower<'p, 'a> {
         Ok(match term {
             SemanticTerm::Var { name } if name == HOLE => BTerm::Hole,
             SemanticTerm::Var { name } => var(scope.get(name)?.0.clone()),
-            SemanticTerm::Nat { value } => Self::nat_literal(value)?,
+            SemanticTerm::Nat { value } => self.nat_literal(value)?,
             SemanticTerm::Integer {
                 representation: crate::ir::semantic::SemanticInteger::Int,
                 value,
             } => {
                 if let Some(magnitude) = value.strip_prefix('-') {
-                    let magnitude: u64 = magnitude
-                        .parse()
-                        .map_err(|_| fail(format!("the integer `{value}` has no Bend spelling")))?;
-                    let pred = (magnitude - 1).to_string();
-                    BTerm::Constructor(
-                        synthetic(self.prelude("negSucc")),
-                        vec![Self::nat_literal(&pred)?],
-                    )
+                    let pred = numeral::predecessor(magnitude).ok_or_else(|| {
+                        fail(format!("the integer `{value}` has no Bend spelling"))
+                    })?;
+                    let magnitude = self.nat_literal(&pred)?;
+                    BTerm::Constructor(synthetic(self.prelude("negSucc")), vec![magnitude])
                 } else {
-                    BTerm::Constructor(
-                        synthetic(self.prelude("ofNat")),
-                        vec![Self::nat_literal(value)?],
-                    )
+                    let magnitude = self.nat_literal(value)?;
+                    BTerm::Constructor(synthetic(self.prelude("ofNat")), vec![magnitude])
                 }
             }
             SemanticTerm::String { value } => BTerm::Str(names::string_literal(value)),

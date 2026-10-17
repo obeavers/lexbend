@@ -65,7 +65,20 @@ fn fake_provider(project: &P, exit_code: i32) -> PdfProvider {
     stub_provider(project, STUB_BODY, exit_code)
 }
 
+/// Run a provider under the shared environment lock: the provider's shell
+/// resolves its commands through `PATH`, which a case holding the lock
+/// exclusively may have narrowed for its own run.
 fn run_fake_provider(
+    project: &P,
+    provider: &PdfProvider,
+) -> Result<lexlean::backend::pdf::PdfResult, lexlean::diagnostic::Diagnostic> {
+    let _environment = support::env_shared();
+    run_provider_in(project, provider)
+}
+
+/// [`run_fake_provider`] for a caller that already holds the environment
+/// lock exclusively.
+fn run_provider_in(
     project: &P,
     provider: &PdfProvider,
 ) -> Result<lexlean::backend::pdf::PdfResult, lexlean::diagnostic::Diagnostic> {
@@ -527,7 +540,7 @@ math = "(token write18)"
                     ("HTTP_PROXY", Some("http://proxy.invalid")),
                     ("LEXLEAN_TEST_LEAK", Some("leaked")),
                 ],
-                || run_fake_provider(&project, &provider).expect("the provider runs"),
+                || run_provider_in(&project, &provider).expect("the provider runs"),
             );
             let recorded = String::from_utf8_lossy(&result.pdf_bytes).into_owned();
             assert!(recorded.starts_with("%PDF-"), "the output is a PDF stream");

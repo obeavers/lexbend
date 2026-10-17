@@ -66,6 +66,13 @@ Feature: bend-backend
     Then all eight example modules print exactly `ALL PROOFS CHECK`
     And the false theorem prints `SOME PROOFS FAIL`
 
+  @BN-19 @build
+  Scenario: A language-2.0 or 2.2 numeral above 4294967295 lowers to its base-65536 Horner form over the prelude's Lean.Nat.add and Lean.Nat.mul, and the pinned Bend accepts a proof that uses it without evaluating it in full.
+    Given a language-2.0 theorem and a language-2.2 module whose numerals include 4294967296 and 18446744073709551616 and the integer -18446744073709551616
+    When they are built
+    Then each numeral at or below 4294967295 is a Bend literal and each larger one is its Horner form over the prelude's Lean.Nat.add and Lean.Nat.mul
+    And every generated module, including a theorem that 0 is below 2^64 by reflexivity, prints exactly `ALL PROOFS CHECK` under the pinned Bend
+
   @BN-10 @build
   Scenario: Every language-2.2 semantic module renders one byte-deterministic Bend file from the same linked IR, beside its Lean and LaTeX, importing Base, the prelude, the support modules it uses, and its imported modules, with every non-whitespace token covered and mapped.
     Given the four language-2.2 examples, the semantic example rendered twice

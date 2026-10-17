@@ -8,6 +8,7 @@
 //! a model whose elaboration drifted from `LexLeanModels` fails to check.
 
 use crate::backend::bend::engine::fail;
+use crate::backend::bend::numeral;
 use crate::backend::bend::syntax::{BTerm, Body, Item, Name};
 use crate::diagnostic::Diagnostic;
 use crate::ir::semantic::model::{element_encoding, CheckProof, CheckStatement, CrossCheck};
@@ -232,7 +233,12 @@ impl Lower<'_, '_> {
             }
             ty
         };
-        let nat = |n: u64| super::Lower::nat_literal(&n.to_string());
+        // A dimension is compared by evaluation, which no dimension past
+        // Bend's largest literal survives, so a literal is required.
+        let nat = |n: u64| {
+            numeral::literal(&n.to_string())
+                .ok_or_else(|| fail(format!("a dimension of {n} is past Bend's largest literal")))
+        };
         let length = self.prelude("Lean.List.length");
         let beq = self.prelude("Lean.Nat.beq");
         let and = self.prelude("Lean.Bool.and");

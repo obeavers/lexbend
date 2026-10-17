@@ -396,6 +396,460 @@ fn verify_bend(
     Ok((tool, records))
 }
 
+/// Whether Bend alone verifies a project (§22.13): a Bend language, every
+/// module lowered to Bend, and no production root. A root's certificates
+/// are Lean proofs, and a module Bend does not lower has no Bend proof, so
+/// either keeps the project on the Lean stages.
+fn bend_alone(project: &Project, checked: &CheckedProject, build: &RenderedBuild) -> bool {
+    if !crate::lowers_to_bend(&project.config.language) {
+        return false;
+    }
+    let has_roots = checked
+        .modules
+        .values()
+        .filter_map(|module| module.production.as_ref())
+        .any(|report| !report.roots.is_empty());
+    !has_roots
+        && build.modules.iter().all(|module| {
+            let document = &checked.modules[&module.module].document;
+            let path = crate::backend::bend::module_path(&module.lean_module);
+            document.core.is_none()
+                && document.tooling.is_none()
+                && build.files.iter().any(|(relative, _)| *relative == path)
+        })
+}
+
+/// The rest of a verification Bend carries alone (§22.13): the declaration
+/// rows, the staged verified set, the PDF rendering, and the attestation. No
+/// Lean, Lake, or `leanchecker` process runs, and none need be installed.
+fn publish_bend_alone(
+    project: &Project,
+    checked: &CheckedProject,
+    build: &RenderedBuild,
+    tool: &bend::Bend,
+    bend_records: Vec<ChildRecord>,
+    telemetry_run: &telemetry::Run,
+    stages: &mut telemetry::Stages,
+) -> Result<PartOutcome, LexLeanError> {
+    stages.enter("policy");
+    let declaration_rows = bend_declaration_rows(checked, build)?;
+
+    stages.enter("staging");
+    let verified_root = verified_root(project);
+    let (staging, staging_utf8) = open_staging(&verified_root)?;
+    let provider_root = pdf_provider_root(project)?;
+    let workspace_root = project.root.join(&project.config.lean_workspace);
+    let normalizer = Normalizer::new(&staging_utf8, &project.root, &workspace_root, &tool.bin);
+    stage_build(staging.path(), build)?;
+    stage_bend(staging.path(), build, &bend_records)?;
+
+    stages.enter("pdf");
+    let (pdf_rows, pdf_records) =
+        render_pdfs(project, build, &staging_utf8, &provider_root, &normalizer)?;
+
+    stages.enter("attestation");
+    let mut process_records = bend_records;
+    process_records.extend(pdf_records);
+    check_absolute_paths(&normalizer, &process_records)?;
+
+    stages.enter("executable-hash");
+    let lexlean_executable_sha256 = running_executable_sha256().map_err(|io_error| {
+        fail(internal(format!(
+            "reading the running executable: {io_error}"
+        )))
+    })?;
+
+    stages.enter("attestation-body");
+    let mut body_fields = attestation_identity(project, checked, build, lexlean_executable_sha256);
+    body_fields.extend([
+        ("spec", Json::Str("lexlean/attestation/3".to_owned())),
+        ("bend", bend_json(tool)),
+        (
+            "processes",
+            Json::Arr(process_records.iter().map(ChildRecord::to_json).collect()),
+        ),
+        ("declarations", Json::Arr(declaration_rows)),
+    ]);
+    if !pdf_rows.is_empty() {
+        body_fields.push(("pdf", Json::Arr(pdf_rows)));
+    }
+    publish(
+        staging,
+        &verified_root,
+        Json::object(body_fields),
+        telemetry_run,
+        stages,
+    )
+}
+
+/// The declaration rows of a project Bend verifies alone (§22.13): one per
+/// document and semantic declaration, with the assumption premises its Bend
+/// form takes and, as observed, the axioms they stand for. The policy stage
+/// has admitted every premise; with no Lean proof there is no axiom
+/// footprint for an `exact` policy to pin, so every policy bounds the
+/// premises from above.
+fn bend_declaration_rows(
+    checked: &CheckedProject,
+    build: &RenderedBuild,
+) -> Result<Vec<Json>, LexLeanError> {
+    let registry = crate::backend::bend::prelude::registry().map_err(fail)?;
+    let row = |name: String, kind: &str, axioms: &[String]| -> Result<Json, LexLeanError> {
+        let premises = build.bend_premises.get(&name).cloned().unwrap_or_default();
+        let mut observed = BTreeSet::new();
+        for premise in &premises {
+            let assumption = registry.assumption_named(premise).ok_or_else(|| {
+                fail(internal(format!(
+                    "`{name}` takes the premise `{premise}`, which is no registry assumption"
+                )))
+            })?;
+            observed.extend(assumption.axioms.iter().cloned());
+        }
+        Ok(declaration_row(
+            name,
+            kind,
+            axioms,
+            observed.into_iter().collect(),
+            Some(premises),
+        ))
+    };
+    let mut rows = Vec::new();
+    for module in &build.modules {
+        let document = &checked.modules[&module.module].document;
+        for declaration in document.declarations() {
+            rows.push(row(
+                format!("{}.{}", module.lean_module, declaration.lean_name),
+                declaration.policy.kind(),
+                declaration.policy.axioms(),
+            )?);
+        }
+        if let Some(semantic) = &document.semantic {
+            for declaration in &semantic.declarations {
+                rows.push(row(
+                    format!("{}.{}", module.lean_module, declaration.name()),
+                    declaration.axiom_policy_kind(),
+                    declaration.axioms(),
+                )?);
+            }
+        }
+    }
+    Ok(rows)
+}
+
+/// One declaration's attestation row (§22.9): its policy, the axioms
+/// observed for it, and, in a Bend language, its assumption premises.
+fn declaration_row(
+    name: String,
+    kind: &str,
+    axioms: &[String],
+    observed: Vec<String>,
+    premises: Option<Vec<String>>,
+) -> Json {
+    let strings = |values: Vec<String>| Json::Arr(values.into_iter().map(Json::Str).collect());
+    let mut fields = vec![
+        ("name", Json::Str(name)),
+        (
+            "policy",
+            Json::object(vec![
+                ("kind", Json::Str(kind.to_owned())),
+                ("axioms", strings(axioms.to_vec())),
+            ]),
+        ),
+        ("observed", strings(observed)),
+        ("result", Json::Str("ok".to_owned())),
+    ];
+    if let Some(premises) = premises {
+        fields.push(("premises", strings(premises)));
+    }
+    Json::object(fields)
+}
+
+/// The pinned Bend's attestation record (§22.13).
+fn bend_json(tool: &bend::Bend) -> Json {
+    Json::object(vec![
+        ("version_output", Json::Str(tool.version_output.clone())),
+        ("executable_sha256", Json::Str(tool.sha256.to_hex())),
+    ])
+}
+
+/// The attestation fields every verification records (§22.9): what was
+/// verified, by which `lexlean`, on which host.
+fn attestation_identity(
+    project: &Project,
+    checked: &CheckedProject,
+    build: &RenderedBuild,
+    executable: Sha256Digest,
+) -> Vec<(&'static str, Json)> {
+    vec![
+        ("status", Json::Str("verified".to_owned())),
+        ("semantic_id", Json::Str(checked.semantic_id.to_hex())),
+        ("source_id", Json::Str(checked.source_id.to_hex())),
+        ("build_id", Json::Str(build.build_id.to_hex())),
+        (
+            "host",
+            Json::object(vec![
+                ("os", Json::Str(std::env::consts::OS.to_owned())),
+                ("arch", Json::Str(std::env::consts::ARCH.to_owned())),
+            ]),
+        ),
+        (
+            "lexlean",
+            Json::object(vec![
+                ("version", Json::Str(crate::COMPILER_VERSION.to_owned())),
+                (
+                    "compiler_semantics",
+                    Json::Str(crate::compiler_semantics_id_for(&project.config.language).to_hex()),
+                ),
+                ("executable_sha256", Json::Str(executable.to_hex())),
+            ]),
+        ),
+        (
+            "build_manifest",
+            Json::object(vec![
+                ("byte_length", Json::from_usize(build.manifest_bytes.len())),
+                (
+                    "sha256",
+                    Json::Str(Sha256Digest::of(&build.manifest_bytes).to_hex()),
+                ),
+            ]),
+        ),
+    ]
+}
+
+fn verified_root(project: &Project) -> Utf8PathBuf {
+    project
+        .root
+        .join(&project.config.build_root)
+        .join("verified")
+}
+
+/// A fresh staging directory under the verified root, owner-only (§25.6).
+fn open_staging(
+    verified_root: &Utf8Path,
+) -> Result<(tempfile::TempDir, Utf8PathBuf), LexLeanError> {
+    std::fs::create_dir_all(verified_root.as_std_path()).map_err(|io_error| {
+        fail(Diagnostic::new(
+            code!("LLB6003"),
+            format!("{verified_root}: {io_error}"),
+        ))
+    })?;
+    // The mutation lock of the project is held (§21.8), so no other `verify`
+    // stages here: what an interrupted or killed run left behind is stale.
+    remove_stale_staging(verified_root.as_std_path());
+    let staging = tempfile::Builder::new()
+        .prefix(".staging-")
+        .tempdir_in(verified_root.as_std_path())
+        .map_err(|io_error| {
+            fail(Diagnostic::new(
+                code!("LLB6003"),
+                format!("staging: {io_error}"),
+            ))
+        })?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(staging.path(), std::fs::Permissions::from_mode(0o700));
+    }
+    let staging_utf8 = Utf8PathBuf::from_path_buf(staging.path().to_path_buf())
+        .map_err(|_| fail(Diagnostic::new(code!("LLS8001"), "non-UTF-8 staging path")))?;
+    Ok((staging, staging_utf8))
+}
+
+/// The external PDF provider's isolated directory, a sibling of the staging
+/// tree and never inside it (§19.7 step 4, §25.6): the provider is an
+/// untrusted external program, and a program that walks out of its working
+/// directory must not reach the artifacts being staged for publication.
+fn pdf_provider_root(project: &Project) -> Result<Utf8PathBuf, LexLeanError> {
+    let provider_root = project.root.join(&project.config.build_root).join("pdf");
+    std::fs::create_dir_all(provider_root.as_std_path()).map_err(|io_error| {
+        fail(Diagnostic::new(
+            code!("LLB6003"),
+            format!("{provider_root}: {io_error}"),
+        ))
+    })?;
+    Ok(provider_root)
+}
+
+/// Copy the platform-independent build artifacts into the verified set
+/// (§22.8).
+fn stage_build(staging: &std::path::Path, build: &RenderedBuild) -> Result<(), LexLeanError> {
+    for (relative, bytes) in &build.files {
+        let renamed = if relative == "manifest.json" {
+            "build-manifest.json"
+        } else {
+            relative.as_str()
+        };
+        write_staged(staging, renamed, bytes)?;
+    }
+    Ok(())
+}
+
+/// The Bend records and the kernel-recheck root, part of the verified set
+/// as the Lean records are (§22.8, §22.13), after the build is staged.
+fn stage_bend(
+    staging: &std::path::Path,
+    build: &RenderedBuild,
+    records: &[ChildRecord],
+) -> Result<(), LexLeanError> {
+    for record in records {
+        let name = record.module.as_deref().unwrap_or("verdict");
+        write_staged(
+            staging,
+            &format!("process/bend/{name}.json"),
+            &record.to_json().to_file_bytes(),
+        )?;
+    }
+    // The staged build, not `build.files`: the Lean stages release the
+    // build's buffers once it is staged.
+    let module_paths: Vec<String> = build
+        .modules
+        .iter()
+        .map(|module| crate::backend::bend::module_path(&module.lean_module))
+        .filter(|path| staging.join(path).is_file())
+        .collect();
+    write_staged(
+        staging,
+        &format!("{}/Root.bend", bend::VERDICT_DIR),
+        bend::verdict_root(&module_paths).as_bytes(),
+    )
+}
+
+/// The configured PDF rendering (§19.7): one row and two process records
+/// per module, read from the staged `.tex`.
+fn render_pdfs(
+    project: &Project,
+    build: &RenderedBuild,
+    staging: &Utf8Path,
+    provider_root: &Utf8Path,
+    normalizer: &Normalizer,
+) -> Result<(Vec<Json>, Vec<ChildRecord>), LexLeanError> {
+    let mut rows = Vec::new();
+    let mut records = Vec::new();
+    let Some(provider) = &project.config.pdf else {
+        return Ok((rows, records));
+    };
+    for module in &build.modules {
+        let tex_path = staging.join(&module.tex_path);
+        let tex_bytes = std::fs::read(tex_path.as_std_path()).map_err(|io_error| {
+            fail(Diagnostic::new(
+                code!("LLB6003"),
+                format!("reading staged {}: {io_error}", module.tex_path),
+            ))
+        })?;
+        let result = crate::backend::pdf::run_provider(
+            project,
+            provider,
+            &tex_bytes,
+            &module.lean_module,
+            &provider_root.to_path_buf(),
+            normalizer,
+        )
+        .map_err(fail)?;
+        let staged = |suffix: &str, bytes: &[u8]| {
+            write_staged(
+                staging.as_std_path(),
+                &format!("pdf/{}.{suffix}", module.lean_module),
+                bytes,
+            )
+        };
+        staged("pdf", &result.pdf_bytes)?;
+        staged("version.json", &result.version.to_json().to_file_bytes())?;
+        staged("compile.json", &result.compile.to_json().to_file_bytes())?;
+        rows.push(Json::object(vec![
+            ("module", Json::Str(module.lean_module.clone())),
+            ("recipe_id", Json::Str(result.recipe_id.to_hex())),
+            ("pdf_sha256", Json::Str(result.pdf_sha256.to_hex())),
+            ("byte_length", Json::from_usize(result.pdf_bytes.len())),
+            ("version", result.version.to_json()),
+            ("compile", result.compile.to_json()),
+        ]));
+        records.push(result.version);
+        records.push(result.compile);
+    }
+    Ok((rows, records))
+}
+
+/// No unexpected absolute path in any process's successful output (§22.7).
+fn check_absolute_paths(
+    normalizer: &Normalizer,
+    records: &[ChildRecord],
+) -> Result<(), LexLeanError> {
+    let Some(record) = records.iter().find(|record| {
+        normalizer.has_unexpected_absolute_path(&record.stdout)
+            || normalizer.has_unexpected_absolute_path(&record.stderr)
+    }) else {
+        return Ok(());
+    };
+    Err(fail(Diagnostic::new(
+        code!("LLV7006"),
+        format!(
+            "unexpected absolute path in the output of `{}`{}",
+            record.tool,
+            record
+                .module
+                .as_ref()
+                .map_or_else(String::new, |module| format!(" for `{module}`"))
+        ),
+    )))
+}
+
+/// Write the attestation, whose ID is the digest of its body, and publish
+/// the staged set atomically (§22.9, §21.8).
+fn publish(
+    staging: tempfile::TempDir,
+    verified_root: &Utf8Path,
+    body: Json,
+    telemetry_run: &telemetry::Run,
+    stages: &mut telemetry::Stages,
+) -> Result<PartOutcome, LexLeanError> {
+    let this_attestation_id = attestation_id(&body.to_canonical_string());
+    let full = match body {
+        Json::Obj(mut object) => {
+            object.insert(
+                "attestation_id".to_owned(),
+                Json::Str(this_attestation_id.to_hex()),
+            );
+            Json::Obj(object)
+        }
+        other => other,
+    };
+    write_staged(staging.path(), "attestation.json", &full.to_file_bytes())?;
+
+    stages.enter("publication");
+    let target = verified_root.join(this_attestation_id.to_hex());
+    let outcome = PartOutcome::Verified(VerifyOutcome {
+        attestation_id: this_attestation_id,
+        root: target.clone(),
+    });
+    if target.as_std_path().exists() {
+        // A repeated verification of identical content reuses the
+        // published set only after every staged file validates against it
+        // (§21.8); anything else refuses to overwrite unexplained bytes.
+        return match validate_existing(staging.path(), &target) {
+            Ok(()) => {
+                telemetry_run.succeeded();
+                Ok(outcome)
+            }
+            Err(reason) => Err(fail(Diagnostic::new(
+                code!("LLB6003"),
+                format!(
+                    "existing verified directory {target} does not validate against this run: {reason}; refusing to overwrite unexplained bytes"
+                ),
+            ))),
+        };
+    }
+    let staged = staging.keep();
+    std::fs::rename(&staged, target.as_std_path()).map_err(|io_error| {
+        let _ = std::fs::remove_dir_all(&staged);
+        fail(Diagnostic::new(
+            code!("LLB6003"),
+            format!("publishing {target}: {io_error}"),
+        ))
+    })?;
+    crate::artifact::fsync_dir(verified_root.as_std_path());
+    telemetry_run.succeeded();
+    Ok(outcome)
+}
+
 /// A Bend refusal of one generated module (`LLV7020`), remapped through the
 /// module's source map from the generated line Bend points at to the
 /// source it was generated from (§20.4); the generated location stays as a
@@ -989,6 +1443,11 @@ pub fn run_part(
                 "a part of a verification is defined for a project without production roots and without PDF rendering",
             )));
         }
+        if bend_alone(project, checked, build) {
+            return Err(fail(internal(
+                "a part of a verification divides the Lean stages, and Bend verifies this project alone",
+            )));
+        }
         let names: BTreeSet<&str> = build
             .modules
             .iter()
@@ -1011,10 +1470,27 @@ pub fn run_part(
     let memory_kib = operational.memory_kib();
     let telemetry_run = telemetry::Run::begin(operational, &project.config.name);
     let mut stages = telemetry_run.stages();
-    // §22.13: a language-2.0 program is checked by the pinned Bend and
-    // rechecked by the proved BendTT kernel before any Lean process runs.
+    // §22.13: a Bend-language program is checked by the pinned Bend and
+    // rechecked by the proved BendTT kernel before any Lean process runs,
+    // and a project Bend verifies alone runs none.
     let (bend_tool, bend_records) = if crate::lowers_to_bend(&project.config.language) {
         let (tool, records) = verify_bend(project, checked, build, &limits, &mut stages)?;
+        if bend_alone(project, checked, build) {
+            return publish_bend_alone(
+                project,
+                checked,
+                build,
+                &tool,
+                records,
+                &telemetry_run,
+                &mut stages,
+            );
+        }
+        if project.config.language == crate::LANGUAGE_2_0 {
+            return Err(fail(internal(
+                "every language-2.0 module lowers to Bend and declares no production root, so Bend verifies the project alone",
+            )));
+        }
         (Some(tool), records)
     } else {
         (None, Vec::new())
@@ -1347,48 +1823,9 @@ pub fn run_part(
     }
 
     stages.enter("staging");
-    // Staging under the build root with owner-only permissions (§25.6).
-    let verified_root = project
-        .root
-        .join(&project.config.build_root)
-        .join("verified");
-    std::fs::create_dir_all(verified_root.as_std_path()).map_err(|io_error| {
-        fail(Diagnostic::new(
-            code!("LLB6003"),
-            format!("{verified_root}: {io_error}"),
-        ))
-    })?;
-    // The mutation lock of the project is held (§21.8), so no other `verify`
-    // stages here: what an interrupted or killed run left behind is stale.
-    remove_stale_staging(verified_root.as_std_path());
-    let staging = tempfile::Builder::new()
-        .prefix(".staging-")
-        .tempdir_in(verified_root.as_std_path())
-        .map_err(|io_error| {
-            fail(Diagnostic::new(
-                code!("LLB6003"),
-                format!("staging: {io_error}"),
-            ))
-        })?;
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let _ = std::fs::set_permissions(staging.path(), std::fs::Permissions::from_mode(0o700));
-    }
-    let staging_utf8 = Utf8PathBuf::from_path_buf(staging.path().to_path_buf())
-        .map_err(|_| fail(Diagnostic::new(code!("LLS8001"), "non-UTF-8 staging path")))?;
-    // The external PDF provider's isolated directory is a sibling of the
-    // staging tree, never inside it (§19.7 step 4, §25.6): the provider is
-    // an untrusted external program, and a program that walks out of its
-    // working directory must not reach the artifacts being staged for
-    // publication. Both live under the configured build root.
-    let provider_root = project.root.join(&project.config.build_root).join("pdf");
-    std::fs::create_dir_all(provider_root.as_std_path()).map_err(|io_error| {
-        fail(Diagnostic::new(
-            code!("LLB6003"),
-            format!("{provider_root}: {io_error}"),
-        ))
-    })?;
+    let verified_root = verified_root(project);
+    let (staging, staging_utf8) = open_staging(&verified_root)?;
+    let provider_root = pdf_provider_root(project)?;
     let workspace_root = if project.config.lean_workspace == "." {
         project.root.clone()
     } else {
@@ -1401,16 +1838,7 @@ pub fn run_part(
         &toolchain.root,
     );
 
-    // Copy the platform-independent build artifacts into the verified set
-    // (§22.8).
-    for (relative, bytes) in &build.files {
-        let renamed = if relative == "manifest.json" {
-            "build-manifest.json".to_owned()
-        } else {
-            relative.clone()
-        };
-        write_staged(staging.path(), &renamed, bytes)?;
-    }
+    stage_build(staging.path(), build)?;
 
     // Stage the compilation tree.
     let src_root = staging_utf8.join("lean-src");
@@ -2063,33 +2491,13 @@ pub fn run_part(
                 }
                 return Err(fail(diagnostic));
             }
-            let row = vec![
-                ("name", Json::Str(full_name)),
-                (
-                    "policy",
-                    Json::object(vec![
-                        ("kind", Json::Str(declaration.policy.kind().to_owned())),
-                        (
-                            "axioms",
-                            Json::Arr(
-                                declaration
-                                    .policy
-                                    .axioms()
-                                    .iter()
-                                    .cloned()
-                                    .map(Json::Str)
-                                    .collect(),
-                            ),
-                        ),
-                    ]),
-                ),
-                (
-                    "observed",
-                    Json::Arr(observed_set.into_iter().map(Json::Str).collect()),
-                ),
-                ("result", Json::Str("ok".to_owned())),
-            ];
-            declaration_rows.push(Json::object(row));
+            declaration_rows.push(declaration_row(
+                full_name,
+                declaration.policy.kind(),
+                declaration.policy.axioms(),
+                observed_set,
+                None,
+            ));
         }
         if let Some(core) = &document.core {
             for declaration in &core.declarations {
@@ -2107,32 +2515,13 @@ pub fn run_part(
                         ),
                     )));
                 }
-                declaration_rows.push(Json::object(vec![
-                    ("name", Json::Str(declaration.name.clone())),
-                    (
-                        "policy",
-                        Json::object(vec![
-                            ("kind", Json::Str(declaration.policy.kind().to_owned())),
-                            (
-                                "axioms",
-                                Json::Arr(
-                                    declaration
-                                        .policy
-                                        .axioms()
-                                        .iter()
-                                        .cloned()
-                                        .map(Json::Str)
-                                        .collect(),
-                                ),
-                            ),
-                        ]),
-                    ),
-                    (
-                        "observed",
-                        Json::Arr(observed_set.into_iter().map(Json::Str).collect()),
-                    ),
-                    ("result", Json::Str("ok".to_owned())),
-                ]));
+                declaration_rows.push(declaration_row(
+                    declaration.name.clone(),
+                    declaration.policy.kind(),
+                    declaration.policy.axioms(),
+                    observed_set,
+                    None,
+                ));
             }
         }
         if let Some(semantic) = &document.semantic {
@@ -2184,31 +2573,13 @@ pub fn run_part(
                             )));
                         }
                         union.extend(observed_set.iter().cloned());
-                        declaration_rows.push(Json::object(vec![
-                            ("name", Json::Str(full_name)),
-                            (
-                                "policy",
-                                Json::object(vec![
-                                    ("kind", Json::Str("allow".to_owned())),
-                                    (
-                                        "axioms",
-                                        Json::Arr(
-                                            declaration
-                                                .axioms()
-                                                .iter()
-                                                .cloned()
-                                                .map(Json::Str)
-                                                .collect(),
-                                        ),
-                                    ),
-                                ]),
-                            ),
-                            (
-                                "observed",
-                                Json::Arr(observed_set.into_iter().map(Json::Str).collect()),
-                            ),
-                            ("result", Json::Str("ok".to_owned())),
-                        ]));
+                        declaration_rows.push(declaration_row(
+                            full_name,
+                            "allow",
+                            declaration.axioms(),
+                            observed_set,
+                            None,
+                        ));
                     }
                     if union.into_iter().collect::<Vec<_>>() != declaration.axioms() {
                         return Err(fail(Diagnostic::new(
@@ -2239,34 +2610,13 @@ pub fn run_part(
                         ),
                     )));
                 }
-                declaration_rows.push(Json::object(vec![
-                    ("name", Json::Str(full_name)),
-                    (
-                        "policy",
-                        Json::object(vec![
-                            (
-                                "kind",
-                                Json::Str(declaration.axiom_policy_kind().to_owned()),
-                            ),
-                            (
-                                "axioms",
-                                Json::Arr(
-                                    declaration
-                                        .axioms()
-                                        .iter()
-                                        .cloned()
-                                        .map(Json::Str)
-                                        .collect(),
-                                ),
-                            ),
-                        ]),
-                    ),
-                    (
-                        "observed",
-                        Json::Arr(observed_set.into_iter().map(Json::Str).collect()),
-                    ),
-                    ("result", Json::Str("ok".to_owned())),
-                ]));
+                declaration_rows.push(declaration_row(
+                    full_name,
+                    declaration.axiom_policy_kind(),
+                    declaration.axioms(),
+                    observed_set,
+                    None,
+                ));
             }
         }
     }
@@ -2290,24 +2640,13 @@ pub fn run_part(
                     ),
                 )));
             }
-            declaration_rows.push(Json::object(vec![
-                ("name", Json::Str(name.clone())),
-                (
-                    "policy",
-                    Json::object(vec![
-                        ("kind", Json::Str("exact".to_owned())),
-                        (
-                            "axioms",
-                            Json::Arr(axioms.iter().cloned().map(Json::Str).collect()),
-                        ),
-                    ]),
-                ),
-                (
-                    "observed",
-                    Json::Arr(observed_set.into_iter().map(Json::Str).collect()),
-                ),
-                ("result", Json::Str("ok".to_owned())),
-            ]));
+            declaration_rows.push(declaration_row(
+                name.clone(),
+                "exact",
+                axioms,
+                observed_set,
+                None,
+            ));
         }
     }
     // §22.9: a Bend-language attestation lists `premises` on every row, not
@@ -2333,34 +2672,8 @@ pub fn run_part(
         }
     }
 
-    // §22.8, §22.13: the Bend records and the kernel-recheck root are part
-    // of the verified set, as the Lean records are.
-    for record in &bend_records {
-        let name = record
-            .module
-            .as_deref()
-            .map_or_else(|| "verdict".to_owned(), str::to_owned);
-        write_staged(
-            staging.path(),
-            &format!("process/bend/{name}.json"),
-            &record.to_json().to_file_bytes(),
-        )?;
-    }
     if bend_tool.is_some() {
-        let module_paths: Vec<String> = build
-            .modules
-            .iter()
-            .map(|module| crate::backend::bend::module_path(&module.lean_module))
-            .filter(|path| {
-                build.files.iter().any(|(candidate, _)| candidate == path)
-                    || staging_utf8.join(path).as_std_path().is_file()
-            })
-            .collect();
-        write_staged(
-            staging.path(),
-            &format!("{}/Root.bend", bend::VERDICT_DIR),
-            bend::verdict_root(&module_paths).as_bytes(),
-        )?;
+        stage_bend(staging.path(), build, &bend_records)?;
     }
     tail_records.extend(bend_records);
 
@@ -2766,56 +3079,10 @@ pub fn run_part(
     }
 
     stages.enter("pdf");
-    // Stage 13: optional configured PDF rendering (§19.7): one row and two
-    // process records per module.
-    let mut pdf_rows: Vec<Json> = Vec::new();
-    if let Some(provider) = &project.config.pdf {
-        for module in &build.modules {
-            let tex_path = staging_utf8.join(&module.tex_path);
-            let tex_bytes = std::fs::read(tex_path.as_std_path()).map_err(|io_error| {
-                fail(Diagnostic::new(
-                    code!("LLB6003"),
-                    format!("reading staged {}: {io_error}", module.tex_path),
-                ))
-            })?;
-            let result = crate::backend::pdf::run_provider(
-                project,
-                provider,
-                &tex_bytes,
-                &module.lean_module,
-                &provider_root,
-                &normalizer,
-            )
-            .map_err(fail)?;
-            write_staged(
-                staging.path(),
-                &format!("pdf/{}.pdf", module.lean_module),
-                &result.pdf_bytes,
-            )?;
-            let version_record = result.version;
-            let compile_record = result.compile;
-            write_staged(
-                staging.path(),
-                &format!("pdf/{}.version.json", module.lean_module),
-                &version_record.to_json().to_file_bytes(),
-            )?;
-            write_staged(
-                staging.path(),
-                &format!("pdf/{}.compile.json", module.lean_module),
-                &compile_record.to_json().to_file_bytes(),
-            )?;
-            pdf_rows.push(Json::object(vec![
-                ("module", Json::Str(module.lean_module.clone())),
-                ("recipe_id", Json::Str(result.recipe_id.to_hex())),
-                ("pdf_sha256", Json::Str(result.pdf_sha256.to_hex())),
-                ("byte_length", Json::from_usize(result.pdf_bytes.len())),
-                ("version", version_record.to_json()),
-                ("compile", compile_record.to_json()),
-            ]));
-            tail_records.push(version_record);
-            tail_records.push(compile_record);
-        }
-    }
+    // Stage 13: optional configured PDF rendering (§19.7).
+    let (pdf_rows, pdf_records) =
+        render_pdfs(project, build, &staging_utf8, &provider_root, &normalizer)?;
+    tail_records.extend(pdf_records);
 
     stages.enter("attestation");
     // The records of the whole verification in its canonical order (§22.11):
@@ -2929,23 +3196,7 @@ pub fn run_part(
     }
     // Stage 14: no unexpected absolute paths in successful output (§22.7),
     // over every process record.
-    for record in &process_records {
-        if normalizer.has_unexpected_absolute_path(&record.stdout)
-            || normalizer.has_unexpected_absolute_path(&record.stderr)
-        {
-            return Err(fail(Diagnostic::new(
-                code!("LLV7006"),
-                format!(
-                    "unexpected absolute path in the output of `{}`{}",
-                    record.tool,
-                    record
-                        .module
-                        .as_ref()
-                        .map_or_else(String::new, |module| format!(" for `{module}`"))
-                ),
-            )));
-        }
-    }
+    check_absolute_paths(&normalizer, &process_records)?;
 
     stages.enter("scratch-cleanup");
     // Remove the compilation scratch tree; the fixed §22.8 artifact set
@@ -3012,11 +3263,13 @@ pub fn run_part(
             ("executable_sha256", Json::Str(tool.sha256.to_hex())),
         ])
     };
-    let mut body_fields = vec![
+    let mut body_fields = attestation_identity(project, checked, build, lexlean_executable_sha256);
+    body_fields.extend([
         // Language 1.2 routes to its own attestation schema, which records
         // the compiler input; the 1.0 and 1.1 shape is frozen (§22.9).
-        // Language 2.2 carries both the 1.2 records and the Bend record, so
-        // it is tested first: it is also a 1.2 surface.
+        // Language 2.2 on the Lean stages carries both the 1.2 records and
+        // the Bend record, so it is tested first: it is also a 1.2 surface.
+        // A language-2.0 project never reaches them (§22.13).
         (
             "spec",
             Json::Str(
@@ -3024,38 +3277,11 @@ pub fn run_part(
                     "lexlean/attestation/4"
                 } else if crate::is_surface_1_2(&project.config.language) {
                     "lexlean/attestation/2"
-                } else if crate::lowers_to_bend(&project.config.language) {
-                    "lexlean/attestation/3"
                 } else {
                     "lexlean/attestation/1"
                 }
                 .to_owned(),
             ),
-        ),
-        ("status", Json::Str("verified".to_owned())),
-        ("semantic_id", Json::Str(checked.semantic_id.to_hex())),
-        ("source_id", Json::Str(checked.source_id.to_hex())),
-        ("build_id", Json::Str(build.build_id.to_hex())),
-        (
-            "host",
-            Json::object(vec![
-                ("os", Json::Str(std::env::consts::OS.to_owned())),
-                ("arch", Json::Str(std::env::consts::ARCH.to_owned())),
-            ]),
-        ),
-        (
-            "lexlean",
-            Json::object(vec![
-                ("version", Json::Str(crate::COMPILER_VERSION.to_owned())),
-                (
-                    "compiler_semantics",
-                    Json::Str(crate::compiler_semantics_id_for(&project.config.language).to_hex()),
-                ),
-                (
-                    "executable_sha256",
-                    Json::Str(lexlean_executable_sha256.to_hex()),
-                ),
-            ]),
         ),
         (
             "toolchain",
@@ -3079,34 +3305,18 @@ pub fn run_part(
                     .collect(),
             ),
         ),
-        (
-            "build_manifest",
-            Json::object(vec![
-                ("byte_length", Json::from_usize(build.manifest_bytes.len())),
-                (
-                    "sha256",
-                    Json::Str(Sha256Digest::of(&build.manifest_bytes).to_hex()),
-                ),
-            ]),
-        ),
         ("oleans", Json::Arr(olean_rows)),
         (
             "processes",
             Json::Arr(process_records.iter().map(ChildRecord::to_json).collect()),
         ),
         ("declarations", Json::Arr(declaration_rows)),
-    ];
+    ]);
     if let Some(row) = compiler_input_row {
         body_fields.push(("compiler_input", row));
     }
     if let Some(tool) = &bend_tool {
-        body_fields.push((
-            "bend",
-            Json::object(vec![
-                ("version_output", Json::Str(tool.version_output.clone())),
-                ("executable_sha256", Json::Str(tool.sha256.to_hex())),
-            ]),
-        ));
+        body_fields.push(("bend", bend_json(tool)));
     }
     if let Some(row) = preservation_row {
         body_fields.push(("preservation", row));
@@ -3114,57 +3324,13 @@ pub fn run_part(
     if !pdf_rows.is_empty() {
         body_fields.push(("pdf", Json::Arr(pdf_rows)));
     }
-    let body = Json::object(body_fields);
-    let this_attestation_id = attestation_id(&body.to_canonical_string());
-    let full = match body {
-        Json::Obj(mut object) => {
-            object.insert(
-                "attestation_id".to_owned(),
-                Json::Str(this_attestation_id.to_hex()),
-            );
-            Json::Obj(object)
-        }
-        other => other,
-    };
-    write_staged(staging.path(), "attestation.json", &full.to_file_bytes())?;
-
-    stages.enter("publication");
-    // Stage 16: atomic publication (§21.8).
-    let target = verified_root.join(this_attestation_id.to_hex());
-    if target.as_std_path().exists() {
-        // A repeated verification of identical content reuses the
-        // published set only after every staged file validates against it
-        // (§21.8); anything else refuses to overwrite unexplained bytes.
-        return match validate_existing(staging.path(), &target) {
-            Ok(()) => {
-                telemetry_run.succeeded();
-                Ok(PartOutcome::Verified(VerifyOutcome {
-                    attestation_id: this_attestation_id,
-                    root: target,
-                }))
-            }
-            Err(reason) => Err(fail(Diagnostic::new(
-                code!("LLB6003"),
-                format!(
-                    "existing verified directory {target} does not validate against this run: {reason}; refusing to overwrite unexplained bytes"
-                ),
-            ))),
-        };
-    }
-    let staged = staging.keep();
-    std::fs::rename(&staged, target.as_std_path()).map_err(|io_error| {
-        let _ = std::fs::remove_dir_all(&staged);
-        fail(Diagnostic::new(
-            code!("LLB6003"),
-            format!("publishing {target}: {io_error}"),
-        ))
-    })?;
-    crate::artifact::fsync_dir(verified_root.as_std_path());
-    telemetry_run.succeeded();
-    Ok(PartOutcome::Verified(VerifyOutcome {
-        attestation_id: this_attestation_id,
-        root: target,
-    }))
+    publish(
+        staging,
+        &verified_root,
+        Json::object(body_fields),
+        &telemetry_run,
+        &mut stages,
+    )
 }
 
 /// The SHA-256 of the running executable, read once per process that succeeds

@@ -4224,7 +4224,12 @@ pub fn bend_backed(id: &str) -> bool {
 pub fn bend_check(file: &std::path::Path) -> (bool, String) {
     // A case may put a stand-in `bend` on PATH under the exclusive lock.
     let _guard = env_shared();
-    let program = bend_program().expect("the pinned Bend is installed");
+    // Found under the shared lock, so never a case's stand-in `bend`.
+    let program = {
+        let _environment = env_shared();
+        bend_program()
+    }
+    .expect("the pinned Bend is installed");
     let output = std::process::Command::new(program)
         .arg(file.file_name().expect("a file"))
         .arg("--check-only")
@@ -4252,7 +4257,12 @@ pub fn bend_check(file: &std::path::Path) -> (bool, String) {
 /// When the pinned Bend is absent; gate with [`bend_backed`] first.
 pub fn bend_export(file: &std::path::Path) -> (bool, String) {
     let _guard = env_shared();
-    let program = bend_program().expect("the pinned Bend is installed");
+    // Found under the shared lock, so never a case's stand-in `bend`.
+    let program = {
+        let _environment = env_shared();
+        bend_program()
+    }
+    .expect("the pinned Bend is installed");
     let target = tempfile::Builder::new()
         .prefix("lexlean-bend-export-")
         .tempdir()

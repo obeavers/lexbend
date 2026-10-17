@@ -42,7 +42,10 @@ pub(crate) fn run(id: &str) {
         return;
     }
     // §22.13: the Bend stages gate their own host requirements.
-    if matches!(id, "VR-24" | "VR-25" | "VR-26" | "VR-27" | "VR-28") {
+    if matches!(
+        id,
+        "VR-24" | "VR-25" | "VR-26" | "VR-27" | "VR-28" | "VR-29"
+    ) {
         super::bend_verification::run(id);
         return;
     }

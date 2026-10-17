@@ -97,7 +97,7 @@ LexLean compiles a closed, glossary-defined mathematical document language with 
 3. prose-free Lean 4 source;
 4. source maps and complete lexical-coverage records;
 5. deterministic build manifests; and
-6. verification attestations produced only after Lean elaboration, kernel replay, and axiom-policy checking succeed.
+6. verification attestations produced only after Lean elaboration, kernel replay, and axiom-policy checking succeed, or, for a project Bend verifies alone, after the Bend check, the BendTT kernel recheck, and the assumption-premise policy succeed.
 
 The central property is:
 
@@ -6871,6 +6871,14 @@ Lean closed by `rfl` or `decide` closes by `{==}`; for example,
 `ALL PROOFS CHECK`. The prelude holds no `@unsafe` definition, unfilled law,
 or foreign import.
 
+The largest `Nat` literal Bend reads is `4294967295`. A natural-number or
+integer numeral above it, in language 2.0 or 2.2, lowers to its base-65536
+digits, most significant first, combined by Horner's rule with
+`Lean.Nat.mul` by `65536` and `Lean.Nat.add` of each nonzero digit; every
+digit and the radix are literals. The term denotes the numeral because those
+definitions reproduce Lean's, and Bend reduces it only as far as a proof
+demands.
+
 #### 18.10.7 Assumptions
 
 Bend has no axioms that live code can use. A registry constant of kind
@@ -7049,10 +7057,13 @@ strings, keyed collections, and every runtime primitive lower only through a
 registry constant. A primitive or type the registry does not define at the
 required instance is `LLB6008`.
 
-`Nat` is Bend's unary natural number, and the largest `Nat` literal Bend reads
-is `4294967295`. A larger numeral is `LLB6008`. A proof that evaluates a
-`Nat` beyond the checker's machine stack is refused by the pinned Bend
-(`LLV7020`). The BendTT kernel of the pinned release evaluates each check
+`Nat` is Bend's unary natural number, and a numeral beyond Bend's largest
+literal lowers to its Horner form over the prelude (§18.10.6). A proof that
+reduces such a numeral by a few successors, as `0 < 2^64` does, checks. One
+that normalizes it, including by comparing two stuck terms that contain it,
+evaluates it in full and is refused as any evaluation that large is. A proof
+that evaluates a `Nat` beyond the checker's machine stack is refused by the
+pinned Bend (`LLV7020`). The BendTT kernel of the pinned release evaluates each check
 within a fixed step budget (`FUEL`, 400000000 steps), which is part of the
 proved kernel and is not configurable; a proof by evaluation that the Bend
 checker accepts but that exceeds the budget fails the kernel recheck
@@ -7749,19 +7760,20 @@ attestation.json
 build-manifest.json
 modules/*.lean
 modules/*.tex
+modules/*.bend                             # languages 2.0 and 2.2, with the prelude and support modules
 maps/*.map.json
 coverage/*.coverage.json
 lexicons/*.closure.json
-oleans/*.olean
-probe/<probe-module>.lean
-probe/process.json
-audit/<audit-module-member>.lean
-audit/output.txt
-audit/<audit-module-member>.process.json
-process/lean/*.json
-process/leanchecker/*.json
-process/bend/*.json                        # language 2.0: one per module, and verdict.json
-bend-verdict/Root.bend                     # language 2.0
+oleans/*.olean                             # not when Bend verifies alone (§22.13)
+probe/<probe-module>.lean                  # not when Bend verifies alone
+probe/process.json                         # not when Bend verifies alone
+audit/<audit-module-member>.lean           # not when Bend verifies alone
+audit/output.txt                           # not when Bend verifies alone
+audit/<audit-module-member>.process.json   # not when Bend verifies alone
+process/lean/*.json                        # not when Bend verifies alone
+process/leanchecker/*.json                 # not when Bend verifies alone
+process/bend/*.json                        # languages 2.0 and 2.2: one per module, and verdict.json
+bend-verdict/Root.bend                     # languages 2.0 and 2.2
 production/*.eligibility.json              # when a production root exists
 extract/<extraction-module>.lean           # when a production root exists
 extract/process.json                       # when a production root exists
@@ -7775,7 +7787,7 @@ process/preserve/*.json                    # when a production root exists
 pdf/*                                      # when configured
 ```
 
-The artifact set is fixed. `verify` has no output-directory option and no option to omit maps, coverage, source, audit records, or process records.
+The artifact set is fixed. `verify` has no output-directory option and no option to omit maps, coverage, source, audit records, or process records. Like the `.tex`, the generated Lean of a project Bend verifies alone is a build artifact no stage checks; its attestation names the processes that did the checking.
 
 ### 22.9 Attestation ID
 
@@ -8030,11 +8042,10 @@ Telemetry is write-only: no stage reads it, no ID or verified artifact contains 
 
 ### 22.13 Bend verification
 
-A language-2.0 or language-2.2 project is verified twice over: by the pinned
-Bend release (§18.10, §18.11) and by the Lean stages above. Right after build rendering, before any
-Lean process runs, verification runs the following stages in order, over a copy
-of the build's Bend files in a staging directory of their own under the
-verified root.
+A language-2.0 or language-2.2 project is verified by the pinned Bend release
+(§18.10, §18.11). Right after build rendering, before any Lean process runs,
+verification runs the following stages in order, over a copy of the build's
+Bend files in a staging directory of their own under the verified root.
 
 1. **Assumption-premise policy.** Every theorem's assumption premises (§18.10.7)
    must be admitted by its axiom policy. A premise stands for the Lean axioms its
@@ -8060,6 +8071,23 @@ verified root.
    the pinned Bend reports it cannot build (`BendTT infrastructure`) is
    `LLV7019`; anything else is `LLV7021`.
 
+A project whose every module lowers to Bend and that declares no production
+root is verified by Bend alone, and every language-2.0 project is one. After
+the four stages come only its declaration rows, the staged verified set
+(§22.8, with no `.olean`), the configured PDF rendering (§19.7), the
+attestation, and publication: no Lean, Lake, or `leanchecker` process runs,
+and no Lean toolchain need be installed. It has one declaration row per
+document and semantic declaration, recording the premises its Bend form takes
+and, as `observed`, the axioms they stand for. Stage 1 has admitted every
+premise, and no Lean proof exists whose axiom footprint an `\exactaxioms`
+policy or a semantic declaration's `axioms` list could pin, so each bounds the
+premises from above. Such a verification is never divided into parts (§9.4).
+
+A language-2.2 project with a production root, or with a module that does not
+lower to Bend, is verified twice over: the Lean stages above follow the Bend
+stages. A production root's certificates (§17.17) are Lean proofs, and a
+module Bend does not lower has no Bend proof.
+
 Every Bend child runs under the §25.4 environment with
 `BEND_NO_TELEMETRY=1`, so the installed Bend never asks its website for a
 newer release. The Bend process records join the attestation's `processes`
@@ -8067,12 +8095,14 @@ after the Lean ones, in Bend stage order. The kernel recheck builds BendTT's ker
 `leanprover/lean4:v4.34.0`; that Lean is an authority of the kernel's build, not
 of LexLean's (§27.4).
 
-A language-2.0 attestation is schema `lexlean/attestation/3`: the version-1
-attestation with a `bend` object (`version_output`, `executable_sha256`) and a
-`premises` list on every declaration row. A language-2.2 attestation is schema
-`lexlean/attestation/4`: the language-1.2 attestation (`lexlean/attestation/2`,
-with its `compiler_input` and `preservation` records) with the same `bend`
-object and `premises` lists. `kernel-checked` may be said of a Bend-language
+An attestation of a project Bend verifies alone is schema
+`lexlean/attestation/3`: the version-1 attestation without `toolchain`,
+`oleans`, and `lake_workspace`, with a `bend` object (`version_output`,
+`executable_sha256`), only `bend` and `pdf` process records, and a `premises`
+list on every declaration row. A language-2.2 attestation from the Lean stages
+is schema `lexlean/attestation/4`: the language-1.2 attestation
+(`lexlean/attestation/2`, with its `compiler_input` and `preservation` records)
+with the same `bend` object and `premises` lists. `kernel-checked` may be said of a Bend-language
 result only after the BendTT recheck succeeded.
 
 ## 23. Command-line interface
@@ -8744,7 +8774,7 @@ A user's mathematical declarations never become repository conformance IDs merel
 | R6 | Shipped dependency boundaries, versions, licenses, and sources are explicit and audited. |
 | R7 | Every accepted LexLean source and canonical output satisfies complete lexical and symbolic closure. |
 | R8 | Lean and LaTeX are both derived from one linked IR; neither backend may accept an opaque bypass. |
-| R9 | Verified status requires Lean elaboration, kernel replay, exact axiom audit, and policy success. |
+| R9 | Verified status requires Lean elaboration, kernel replay, exact axiom audit, and policy success, or, for a project Bend verifies alone, the Bend check, the BendTT kernel recheck, and assumption-premise policy success. |
 | R10 | Platform-independent artifacts are deterministic, source-mapped, and content-addressed. |
 
 ### 27.3 Honesty levels
@@ -9575,6 +9605,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `BN-16` | `bend-backend` | The language-2.2 support modules import only Base and the prelude and check under the pinned Bend, and every runtime registry row names a function, law, type, or constructor the runtime defines. | §18.11.6 |
 | `BN-17` | `bend-backend` | A language-2.2 reasoning declaration is a hard error naming the theorem it generates. | §18.11.8 |
 | `BN-18` | `bend-backend` | The generated Bend of every language-2.2 example module checks and exports under the pinned Bend with every proof accepted. | §18.11 |
+| `BN-19` | `bend-backend` | A language-2.0 or 2.2 numeral above 4294967295 lowers to its base-65536 Horner form over the prelude's Lean.Nat.add and Lean.Nat.mul, and the pinned Bend accepts a proof that uses it without evaluating it in full. | §18.10.6, §18.11.6 |
 | `TX-01` | `latex-pdf` | Canonical LaTeX is rendered solely from linked IR and never copies source text or controls. | §19.1 |
 | `TX-02` | `latex-pdf` | Every module uses the exact canonical LaTeX preamble and no host or timestamp metadata. | §19.2 |
 | `TX-03` | `latex-pdf` | Statements use only canonical controlled proposition and definition renderings. | §19.3, §19.4 |
@@ -9628,7 +9659,8 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `VR-25` | `verification` | Language-2.0 verification checks every generated Bend module with the pinned Bend before any Lean process runs, and a refusal is LLV7020 remapped to its source span with the generated location as a note. | §22.13, §20.4 |
 | `VR-26` | `verification` | Language-2.0 verification rechecks the generated program with the proved BendTT kernel through a root importing every module and requires its exact success verdict, or fails with LLV7021. | §22.13 |
 | `VR-27` | `verification` | A language-2.0 theorem's assumption premises must be admitted by its axiom policy, or verification fails with LLV7022 before any Lean process runs, and a verified attestation is schema v3 recording the Bend toolchain and each theorem's premises. | §22.13 |
-| `VR-28` | `verification` | Language-2.2 verification runs the Bend stages before the language-1.2 Lean stages, and a verified attestation is schema v4 carrying the language-1.2 records, the Bend toolchain, and each theorem's premises. | §22.13 |
+| `VR-28` | `verification` | Language-2.2 verification of a project with a production root or a module that does not lower to Bend runs the Bend stages before the language-1.2 Lean stages, and a verified attestation is schema v4 carrying the language-1.2 records, the Bend toolchain, and each theorem's premises. | §22.13 |
+| `VR-29` | `verification` | A language-2.0 or 2.2 project whose every module lowers to Bend and that declares no production root is verified by Bend alone, running no Lean, Lake, or leanchecker process and needing no Lean toolchain, and its attestation is schema v3, recording the Bend toolchain, only Bend and PDF processes, and on each declaration row its premises and, as observed, the axioms they stand for. | §22.13 |
 | `CL-01` | `cli-api` | Global options and upward project discovery obey the exact CLI contract. | §23.1, §23.2 |
 | `CL-02` | `cli-api` | Init creates the complete canonical skeleton only in an absent or empty destination and never overwrites. | §23.4 |
 | `CL-03` | `cli-api` | Lock check, local update, and explicit network acquisition obey their exact mutually exclusive behavior. | §23.4 |
@@ -9809,7 +9841,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `RT-03` | `runtime` | A verification compiles every runtime module that a project's generated modules, or the calculus modules its certificates are checked against, import before the project's modules, replays it with `leanchecker`, and audits each of its declarations against the axioms its row pins; the committed verification of a project that uses the collections prints them, the runtime's own project verifies under the pinned Lean, and a row that pins another axiom set than its declaration observes fails with LLV7005. | §17.12, §22.3, §22.5, §22.6 |
 | `RT-04` | `runtime` | No Lean runtime text remains in the language-1.2 compiler: a generated language-1.2 module imports the runtime modules whose constants it names and declares nothing under a runtime namespace, and the only Lean runtime text in the compiler's source outside unit-test items, in one string literal or in several written together, is the decoder of core module 2, which loads native modules and so cannot be one; a runtime text planted in any of its shapes, raw or escaped, with or without a namespace line, split across literals, or after a test module, is found. | §17.12, §18.1 |
 
-**Total required capability IDs:** 412.
+**Total required capability IDs:** 414.
 
 No row may be downgraded to `some-true` or `open`. Upstream Lean facts are ledger/authority rows, not substitutions for these build behaviors.
 
