@@ -1050,7 +1050,7 @@ statement = "Language-2.2 type parameters lower to templates and function parame
 id = "BN-12"
 level = "build"
 suite = "bend-backend"
-statement = "A language-2.2 mutual group lowers by inlining with every member's name kept, and a group that recurses simultaneously is a hard error."
+statement = "A language-2.2 mutual group lowers by inlining with every member's name kept, and a well-founded definition in a mutual group is a hard error."
 
 [[id]]
 id = "BN-13"
@@ -1099,6 +1099,24 @@ id = "BN-20"
 level = "build"
 suite = "bend-backend"
 statement = "Language-2.2 equality of two orderings lowers to the Bend runtime's LexLeanRuntime.equal.Ordering, which is true exactly when both are the same ordering, as Lean's derived equality is."
+
+[[id]]
+id = "BN-21"
+level = "build"
+suite = "bend-backend"
+statement = "A language-2.2 mutual group whose members recurse simultaneously over one type lowers to one Bend definition over that type and a generated selector of the member, every member keeping its name and signature, and the pinned Bend checks it."
+
+[[id]]
+id = "BN-22"
+level = "build"
+suite = "bend-backend"
+statement = "A language-2.2 nested or mutual inductive that a simultaneous mutual group recurses over lowers to one Bend type indexed by its base and nested list types, each constructor carrying the equation of its index, and the pinned Bend checks the groups over it."
+
+[[id]]
+id = "BN-23"
+level = "build"
+suite = "bend-backend"
+statement = "A language-2.2 match on a computed value, or on a local bound before one an enclosing match has opened, lowers to an auxiliary definition, each recursive call in its branches passed in as a function over a piece of the decreasing argument, and the pinned Bend checks it."
 
 [[id]]
 id = "TX-01"

@@ -19,6 +19,27 @@
 \noindent Type: \texttt{Nat}.\par
 \noindent Definition: \texttt{(match forest with | List.nil => 0 | List.cons head tail => (roseSize (Item) (head) + forestSize (Item) (tail)))}.\par
 \noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{exprSize}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Mutual recursion group \texttt{SyntaxSize}, decreasing on \texttt{expression}.\par
+\noindent Parameters: \texttt{(expression : Recursion.Syntax.Expr)}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(match expression with | Recursion.Syntax.Expr.literal \_ => 1 | Recursion.Syntax.Expr.plus left right => ((exprSize (left) + exprSize (right)) + 1) | Recursion.Syntax.Expr.block statements result => (statementsSize (statements) + exprSize (result)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{statementsSize}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Mutual recursion group \texttt{SyntaxSize}, decreasing on \texttt{statements}.\par
+\noindent Parameters: \texttt{(statements : List (Recursion.Syntax.Stmt))}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(match statements with | List.nil => 0 | List.cons head tail => (statementSize (head) + statementsSize (tail)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{statementSize}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Mutual recursion group \texttt{SyntaxSize}, decreasing on \texttt{statement}.\par
+\noindent Parameters: \texttt{(statement : Recursion.Syntax.Stmt)}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(match statement with | Recursion.Syntax.Stmt.assign \_ value => (exprSize (value) + 1) | Recursion.Syntax.Stmt.sequence first second => (statementSize (first) + statementSize (second)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
 \subsection*{\texttt{isEven}}
 \noindent Kind: \texttt{definition}.\par
 \noindent Mutual recursion group \texttt{Parity}, decreasing on \texttt{number}.\par
@@ -73,6 +94,10 @@
 \subsection*{\texttt{rose\_size}}
 \noindent Kind: \texttt{theorem}.\par
 \noindent Statement: \texttt{(roseSize (Nat) (Recursion.Syntax.Rose.node (1) ((Recursion.Syntax.Rose.node (2) (([] : List (Recursion.Syntax.Rose (Nat)))) :: (Recursion.Syntax.Rose.node (3) (([] : List (Recursion.Syntax.Rose (Nat)))) :: ([] : List (Recursion.Syntax.Rose (Nat))))))) = 3)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{expression\_size}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(exprSize (Recursion.Syntax.Expr.block ((Recursion.Syntax.Stmt.assign ("x") (Recursion.Syntax.Expr.literal (1)) :: ([] : List (Recursion.Syntax.Stmt)))) (Recursion.Syntax.Expr.plus (Recursion.Syntax.Expr.literal (2)) (Recursion.Syntax.Expr.literal (3)))) = 5)}.\par
 \noindent Axiom policy: \texttt{none}.\par
 \subsection*{\texttt{ten\_is\_even}}
 \noindent Kind: \texttt{theorem}.\par
@@ -135,14 +160,82 @@
 \noindent Kind: \texttt{theorem}.\par
 \noindent Statement: \texttt{(weight (prune (Recursion.Syntax.Term.plus (Recursion.Syntax.Term.plus (Recursion.Syntax.Term.literal (1)) (Recursion.Syntax.Term.literal (2))) (Recursion.Syntax.Term.literal (3)))) = 1)}.\par
 \noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
-\subsection*{\texttt{ping\_to\_pong}}
+\subsection*{\texttt{foldExpr}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Mutual recursion group \texttt{Folding}, decreasing on \texttt{expression}.\par
+\noindent Parameters: \texttt{(expression : Recursion.Syntax.Expr)}.\par
+\noindent Execution: executable, non-escaping closures only.\par
+\noindent Type: \texttt{Recursion.Syntax.Expr}.\par
+\noindent Definition: \texttt{(match expression with | Recursion.Syntax.Expr.literal value => Recursion.Syntax.Expr.literal (value) | Recursion.Syntax.Expr.plus left right => (let foldedLeft : Recursion.Syntax.Expr := foldExpr (left); (let foldedRight : Recursion.Syntax.Expr := foldExpr (right); (match foldedLeft with | Recursion.Syntax.Expr.literal leftValue => (match foldedRight with | Recursion.Syntax.Expr.literal rightValue => Recursion.Syntax.Expr.literal ((leftValue + rightValue)) | Recursion.Syntax.Expr.plus \_ \_ => Recursion.Syntax.Expr.plus (foldedLeft) (foldedRight) | Recursion.Syntax.Expr.block \_ \_ => Recursion.Syntax.Expr.plus (foldedLeft) (foldedRight)) | Recursion.Syntax.Expr.plus \_ \_ => Recursion.Syntax.Expr.plus (foldedLeft) (foldedRight) | Recursion.Syntax.Expr.block \_ \_ => Recursion.Syntax.Expr.plus (foldedLeft) (foldedRight)))) | Recursion.Syntax.Expr.block statements result => Recursion.Syntax.Expr.block (foldStatements (statements)) (foldExpr (result)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{foldStatements}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Mutual recursion group \texttt{Folding}, decreasing on \texttt{statements}.\par
+\noindent Parameters: \texttt{(statements : List (Recursion.Syntax.Stmt))}.\par
+\noindent Execution: executable, non-escaping closures only.\par
+\noindent Type: \texttt{List (Recursion.Syntax.Stmt)}.\par
+\noindent Definition: \texttt{(match statements with | List.nil => ([] : List (Recursion.Syntax.Stmt)) | List.cons head tail => (foldStatement (head) :: foldStatements (tail)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{foldStatement}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Mutual recursion group \texttt{Folding}, decreasing on \texttt{statement}.\par
+\noindent Parameters: \texttt{(statement : Recursion.Syntax.Stmt)}.\par
+\noindent Execution: executable, non-escaping closures only.\par
+\noindent Type: \texttt{Recursion.Syntax.Stmt}.\par
+\noindent Definition: \texttt{(match statement with | Recursion.Syntax.Stmt.assign target value => Recursion.Syntax.Stmt.assign (target) (foldExpr (value)) | Recursion.Syntax.Stmt.sequence first second => Recursion.Syntax.Stmt.sequence (foldStatement (first)) (foldStatement (second)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{folding\_sample}}
 \noindent Kind: \texttt{theorem}.\par
-\noindent Parameters: \texttt{(number : Nat)}.\par
-\noindent Statement: \texttt{(((Nat.beq (number) (0)) = false) -> ((number + number) < ((number + number) + 1)))}.\par
-\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
-\subsection*{\texttt{pong\_to\_ping}}
+\noindent Statement: \texttt{(foldExpr (Recursion.Syntax.Expr.block ((Recursion.Syntax.Stmt.assign ("x") (Recursion.Syntax.Expr.plus (Recursion.Syntax.Expr.literal (1)) (Recursion.Syntax.Expr.literal (2))) :: ([] : List (Recursion.Syntax.Stmt)))) (Recursion.Syntax.Expr.plus (Recursion.Syntax.Expr.literal (2)) (Recursion.Syntax.Expr.plus (Recursion.Syntax.Expr.literal (3)) (Recursion.Syntax.Expr.literal (4))))) = Recursion.Syntax.Expr.block ((Recursion.Syntax.Stmt.assign ("x") (Recursion.Syntax.Expr.literal (3)) :: ([] : List (Recursion.Syntax.Stmt)))) (Recursion.Syntax.Expr.literal (9)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{walk}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Mutual recursion group \texttt{Halving}, decreasing on \texttt{fuel}.\par
+\noindent Parameters: \texttt{(fuel : Nat) (path : List (Nat))}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(match fuel with | Nat.zero => 0 | Nat.succ remaining => (match path with | List.nil => 0 | List.cons number rest => (match depth (remaining) (number) with | Option.none => walk (remaining) (rest) | Option.some halvings => (halvings + walk (remaining) (rest)))))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{depth}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Mutual recursion group \texttt{Halving}, decreasing on \texttt{fuel}.\par
+\noindent Parameters: \texttt{(fuel : Nat) (number : Nat)}.\par
+\noindent Type: \texttt{Option (Nat)}.\par
+\noindent Definition: \texttt{(match fuel with | Nat.zero => Option.none | Nat.succ remaining => (match number with | Nat.zero => Option.some (walk (remaining) (([] : List (Nat)))) | Nat.succ smaller => (match smaller with | Nat.zero => Option.some (0) | Nat.succ lower => (match depth (remaining) (lower) with | Option.none => Option.none | Option.some halvings => Option.some ((halvings + 1))))))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{walk\_sample}}
 \noindent Kind: \texttt{theorem}.\par
-\noindent Parameters: \texttt{(number : Nat)}.\par
-\noindent Statement: \texttt{(((Nat.beq (number) (0)) = false) -> ((((LexLeanRuntime.subtract (number) (1) : Nat) + (LexLeanRuntime.subtract (number) (1) : Nat)) + 1) < (number + number)))}.\par
-\noindent Axiom policy: \texttt{exact [Quot.sound, propext]}.\par
+\noindent Statement: \texttt{(walk (10) ((4 :: (7 :: (1 :: ([] : List (Nat)))))) = 5)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{walk\_exhausted}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(walk (3) ((9 :: ([] : List (Nat)))) = 0)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{depth\_nine}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(depth (6) (9) = Option.some (4))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{secondOfTwo}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(values : List (Nat))}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(match values with | List.nil => 0 | List.cons head rest => (match rest with | List.nil => 0 | List.cons later more => (match more with | List.nil => (match later with | Nat.zero => head | Nat.succ previous => previous) | List.cons \_ \_ => 0)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{second\_of\_two}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(secondOfTwo ((5 :: (3 :: ([] : List (Nat))))) = 2)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{second\_of\_two\_zero}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(secondOfTwo ((5 :: (0 :: ([] : List (Nat))))) = 5)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{firstEven}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(values : List (Nat))}.\par
+\noindent Type: \texttt{Option (Nat)}.\par
+\noindent Definition: \texttt{(match values with | List.nil => Option.none | List.cons head rest => (match isEven (head) with | Bool.true => Option.some (head) | Bool.false => firstEven (rest)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{first\_even}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(firstEven ((3 :: (5 :: (8 :: (2 :: ([] : List (Nat))))))) = Option.some (8))}.\par
+\noindent Axiom policy: \texttt{none}.\par
 \end{document}

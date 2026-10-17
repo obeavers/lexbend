@@ -244,6 +244,9 @@ pub enum Item {
         name: Name,
         /// The erased type parameters, each of kind `Data`.
         parameters: Vec<Name>,
+        /// An erased index after them, with its type: an indexed family
+        /// (SPEC.md §18.11.3).
+        index: Option<(Name, BTerm)>,
         /// The type's own kind, `Data` or `Type`.
         kind: &'static str,
         /// The constructors, each with its named, typed fields.
@@ -718,6 +721,7 @@ impl Printer<'_> {
             Item::Type {
                 name,
                 parameters,
+                index,
                 kind,
                 constructors,
                 source,
@@ -727,10 +731,10 @@ impl Printer<'_> {
                 self.kw("type");
                 self.ws(" ");
                 self.name(name);
-                if !parameters.is_empty() {
+                if !parameters.is_empty() || index.is_some() {
                     self.sym("<");
-                    for (index, parameter) in parameters.iter().enumerate() {
-                        if index > 0 {
+                    for (position, parameter) in parameters.iter().enumerate() {
+                        if position > 0 {
                             self.sym(",");
                             self.ws(" ");
                         }
@@ -739,6 +743,17 @@ impl Printer<'_> {
                         self.sym(":");
                         self.ws(" ");
                         self.kw("Data");
+                    }
+                    if let Some((index_name, index_type)) = index {
+                        if !parameters.is_empty() {
+                            self.sym(",");
+                            self.ws(" ");
+                        }
+                        self.sym("-");
+                        self.name(index_name);
+                        self.sym(":");
+                        self.ws(" ");
+                        self.term(index_type, false, 1);
                     }
                     self.sym(">");
                 }

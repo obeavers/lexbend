@@ -33,9 +33,20 @@ versions, and the entries below say what each tag does and does not claim.
   against a Bend port of the runtime. A numeral past Bend's largest literal
   lowers in either language to its base-65536 Horner form over the prelude;
   a proof that reduces it is refused by the kernel recheck.
-  Language 2.2 refuses, with `LLB6008`,
-  simultaneous mutual recursion, a higher-order function passed as a value,
-  and reasoning declarations. New: `BN-01`..`BN-20`, `CF-19`, `CF-20`,
+  A simultaneous mutual group lowers to one definition over its members'
+  common type and a generated selector of the member; when that type is a
+  nested or mutual inductive, the inductive set lowers as one Bend type
+  indexed by its base and nested list types, each constructor carrying the
+  equation of its index (SPEC.md §18.11.3). This encoding is exploratory
+  and still to be confirmed: it is checked by the pinned Bend and the kernel
+  recheck on `bend-recursion`, which now holds the 1.2 example's
+  `SyntaxSize` and `Folding` groups, but its coverage and cost (a proof that
+  evaluates a large interpreter run by reflexivity can exhaust the checker)
+  are being explored, and a proof that splits a family value is refused. A
+  match that would break Bend's binder order lowers to an auxiliary
+  definition. Language 2.2 refuses, with `LLB6008`, a well-founded
+  definition in a mutual group, a higher-order function passed as a value,
+  and reasoning declarations. New: `BN-01`..`BN-23`, `CF-19`, `CF-20`,
   `VR-24`..`VR-29`; schemas `project-v3`/`-v4`, `lock-v3`/`-v4`,
   `build-manifest-v3`/`-v4`, `attestation-v3`/`-v4`, `semantic-snapshot-v3`,
   `coverage-v2`, `source-map-v2`; `lexlean init --language 2.0|2.2`. The
