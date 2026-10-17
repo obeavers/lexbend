@@ -1062,7 +1062,7 @@ statement = "A language-2.2 well-founded definition lowers to proof-carrying fue
 id = "BN-14"
 level = "build"
 suite = "bend-backend"
-statement = "Language-2.2 proofs lower to explicit Bend terms, including linear arithmetic, decide, congruence, and boolean reflection, and the pinned Bend refuses a reflection whose induction steps the wrong successor."
+statement = "Language-2.2 proofs lower to explicit Bend terms, including linear arithmetic, decide by splitting every Boolean it quantifies, simplification that matches a successor in any of its forms, congruence, and boolean reflection, and the pinned Bend refuses a reflection whose induction steps the wrong successor."
 
 [[id]]
 id = "BN-15"
@@ -1116,7 +1116,7 @@ statement = "A language-2.2 nested or mutual inductive that a simultaneous mutua
 id = "BN-23"
 level = "build"
 suite = "bend-backend"
-statement = "A language-2.2 match on a computed value, or on a local bound before one an enclosing match has opened, lowers to an auxiliary definition, each recursive call in its branches passed in as a function over a piece of the decreasing argument, and the pinned Bend checks it."
+statement = "A language-2.2 match on a computed value, or on a local bound before a `let` or before one an enclosing match has opened, lowers to an auxiliary definition that receives each function parameter it uses as its code and environment, each recursive call in its branches passed in as a function over a piece of the decreasing argument, and the pinned Bend checks it."
 
 [[id]]
 id = "TX-01"

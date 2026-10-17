@@ -237,9 +237,14 @@ impl Scope {
         self.families.get(name)
     }
 
+    /// The scope after a `let` statement. Bend matches nothing bound before
+    /// a local statement, so the statement closes every earlier local, as a
+    /// match on a later binder does.
     fn with_let(&self, name: &str, ty: SemanticType) -> Result<Self, Diagnostic> {
         let mut next = self.with(name, ty)?;
         next.lets.insert(name.to_owned());
+        let position = next.next - 1;
+        next.matched = Some(next.matched.map_or(position, |m| m.max(position)));
         Ok(next)
     }
 
@@ -1866,7 +1871,9 @@ impl<'p, 'a> Lower<'p, 'a> {
 
     /// A `match` on a computed value or inside a term: an auxiliary def
     /// that matches its first parameter and takes every free local after
-    /// it.
+    /// it. A free converted function parameter is passed on as it arrived,
+    /// its environment type and code as templates and its environment as a
+    /// value (see `closure`), because Bend shares a function only that way.
     fn lifted_match(
         &mut self,
         scrutinee: &SemanticTerm,
@@ -1907,14 +1914,64 @@ impl<'p, 'a> Lower<'p, 'a> {
                 source: here(),
             });
         }
-        params.push(self.param(&target, &scrutinee_type)?);
         let mut inner = Scope::default();
+        let mut templates = Vec::new();
+        let mut codes = Vec::new();
+        for (source, _, ty) in &free {
+            let Some(closure) = scope.closures.get(source) else {
+                continue;
+            };
+            let SemanticType::Function {
+                parameters: domain,
+                result,
+            } = ty
+            else {
+                return Err(fail("a converted function parameter lost its type"));
+            };
+            let function = self.function_type(domain, result)?;
+            params.push(Param {
+                quantity: Quantity::Template,
+                name: synthetic(closure.env_type_name()?),
+                ty: BTerm::Kind("Data"),
+                source: here(),
+            });
+            codes.push(Param {
+                quantity: Quantity::Template,
+                name: synthetic(closure.code.clone()),
+                ty: BTerm::Pi {
+                    name: Some(synthetic("+ll_e")),
+                    erased: false,
+                    domain: Box::new(closure.env_type.clone()),
+                    codomain: Box::new(function),
+                },
+                source: here(),
+            });
+            templates.push(BTerm::Template(Box::new(closure.env_type.clone())));
+            inner.closures.insert(source.clone(), closure.clone());
+        }
+        let mut code_arguments = codes
+            .iter()
+            .map(|code| BTerm::Template(Box::new(var(code.name.text.clone()))))
+            .collect();
+        params.append(&mut codes);
+        templates.append(&mut code_arguments);
+        params.push(self.param(&target, &scrutinee_type)?);
         let mut arguments = Vec::new();
         for (source, spelled, ty) in &free {
-            params.push(self.param(spelled, ty)?);
             inner
                 .locals
                 .insert(source.clone(), (spelled.clone(), ty.clone()));
+            if let Some(closure) = scope.closures.get(source) {
+                params.push(Param {
+                    quantity: Quantity::Reusable,
+                    name: synthetic(closure.env.clone()),
+                    ty: closure.env_type.clone(),
+                    source: here(),
+                });
+                arguments.push(var(closure.env.clone()));
+                continue;
+            }
+            params.push(self.param(spelled, ty)?);
             // A family list is passed as a Bend `List` (see `family`).
             arguments.push(match scope.family(source).cloned() {
                 Some(local) => self.bend_list(&local, var(spelled.clone()))?,
@@ -1967,6 +2024,7 @@ impl<'p, 'a> Lower<'p, 'a> {
                 names::local(type_parameter).map(|t| BTerm::Template(Box::new(var(t))))
             })
             .collect::<Result<_, _>>()?;
+        args.extend(templates);
         args.push(self.term(scrutinee, scope)?);
         args.extend(arguments);
         for hoisted in &hoisted {

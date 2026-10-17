@@ -577,3 +577,161 @@ law first_even:
 
 def first_even():
   {==}
+
+def applyTwice(~ll_E_step: Data, ~step: @+ll_e: ll_E_step -> @+x: Nat -> Nat, +ll_env_step: ll_E_step, +value: Nat) -> Nat:
+  step(ll_env_step, step(ll_env_step, value))
+
+def ll_match66(~ll_E_step: Data, ~step: @+ll_e: ll_E_step -> @+x: Nat -> Nat, +ll_v67: Bool, +ll_env_step: ll_E_step, +value: Nat) -> Nat:
+  match ll_v67:
+    case True{}:
+      0n
+    case False{}:
+      applyTwice(~ll_E_step, ~step, ll_env_step, value)
+
+def stepUnlessZero(~ll_E_step: Data, ~step: @+ll_e: ll_E_step -> @+x: Nat -> Nat, +ll_env_step: ll_E_step, +value: Nat) -> Nat:
+  ll_match66(~ll_E_step, ~step, L.Lean.Nat.beq(value, 0n), ll_env_step, value)
+
+law step_unless_zero:
+  L.Lean.Prod({stepUnlessZero(~Unit, ~(+ll_e => +n => L.Lean.Nat.add(n, 2n)), Unit{}, 5n) == 9n : Nat}, {stepUnlessZero(~Unit, ~(+ll_e => +n => L.Lean.Nat.add(n, 2n)), Unit{}, 0n) == 0n : Nat})
+
+def step_unless_zero():
+  ({==}, {==})
+
+def ll_match68(+ll_v69: List<&2, Nat>, +scale: Nat) -> Nat:
+  match ll_v69:
+    case Nil{}:
+      scale
+    case Con{head, rest}:
+      L.Lean.Nat.add(head, scale)
+
+def scaledHead(+values: List<&2, Nat>, +factor: Nat) -> Nat:
+  +scale = L.Lean.Nat.add(factor, factor)
+  ll_match68(values, scale)
+
+law scaled_head:
+  L.Lean.Prod({scaledHead(Con{3n, Nil{}}, 2n) == 7n : Nat}, {scaledHead(Nil{}, 2n) == 4n : Nat})
+
+def scaled_head():
+  ({==}, {==})
+
+law or_associative:
+  for +a: Bool
+  for +b: Bool
+  for +c: Bool
+  {L.Lean.Bool.or(L.Lean.Bool.or(a, b), c) == L.Lean.Bool.or(a, L.Lean.Bool.or(b, c)) : Bool}
+
+def or_associative(a, b, c):
+  match a:
+    case True{}:
+      match b:
+        case True{}:
+          match c:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case False{}:
+          match c:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+    case False{}:
+      match b:
+        case True{}:
+          match c:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+        case False{}:
+          match c:
+            case True{}:
+              {==}
+            case False{}:
+              {==}
+
+law less_next:
+  for +left: Nat
+  for +right: Nat
+  {L.Lean.Nat.blt(L.Lean.Nat.add(left, 1n), L.Lean.Nat.add(right, 1n)) == L.Lean.Nat.blt(left, right) : Bool}
+
+def less_next(left, right):
+  {==}
+
+law equal_next:
+  for +left: Nat
+  for +right: Nat
+  {L.Lean.Nat.beq(L.Lean.Nat.add(left, 1n), L.Lean.Nat.add(right, 1n)) == L.Lean.Nat.beq(left, right) : Bool}
+
+def equal_next(left, right):
+  {==}
+
+def less_successor.ll_ind1(+item: Nat, +bound: Nat) -> {L.Lean.Nat.blt(item, L.Lean.Nat.add(bound, 1n)) == L.Lean.Bool.or(L.Lean.Nat.blt(item, bound), L.Lean.Nat.beq(item, bound)) : Bool}:
+  match item:
+    case 0n:
+      match bound:
+        case 0n:
+          {==}
+        case 1n+smaller:
+          {==}
+    case 1n+previous:
+      match bound:
+        case 0n:
+          {==}
+        case 1n+smaller:
+          %Equal.sym(Bool, L.Lean.Nat.beq(L.Lean.Nat.add(previous, 1n), L.Lean.Nat.add(smaller, 1n)), L.Lean.Nat.beq(previous, smaller), equal_next(previous, smaller)) : {L.Lean.Nat.blt(1n+previous, L.Lean.Nat.add(1n+smaller, 1n)) == L.Lean.Bool.or(L.Lean.Nat.blt(1n+previous, 1n+smaller), _) : Bool}
+          %Equal.sym(Bool, L.Lean.Nat.blt(L.Lean.Nat.add(previous, 1n), L.Lean.Nat.add(1n+smaller, 1n)), L.Lean.Nat.blt(previous, 1n+smaller), less_next(previous, 1n+smaller)) : {_ == L.Lean.Bool.or(L.Lean.Nat.blt(1n+previous, 1n+smaller), L.Lean.Nat.beq(previous, smaller)) : Bool}
+          %Equal.sym(Bool, L.Lean.Nat.blt(previous, L.Lean.Nat.add(smaller, 1n)), L.Lean.Bool.or(L.Lean.Nat.blt(previous, smaller), L.Lean.Nat.beq(previous, smaller)), less_successor.ll_ind1(previous, smaller)) : {_ == L.Lean.Bool.or(L.Lean.Nat.blt(1n+previous, 1n+smaller), L.Lean.Nat.beq(previous, smaller)) : Bool}
+          %Equal.sym(Bool, L.Lean.Nat.blt(L.Lean.Nat.add(previous, 1n), L.Lean.Nat.add(smaller, 1n)), L.Lean.Nat.blt(previous, smaller), less_next(previous, smaller)) : {L.Lean.Bool.or(L.Lean.Nat.blt(previous, smaller), L.Lean.Nat.beq(previous, smaller)) == L.Lean.Bool.or(_, L.Lean.Nat.beq(previous, smaller)) : Bool}
+          {==}
+
+law less_successor:
+  for +item: Nat
+  for +bound: Nat
+  {L.Lean.Nat.blt(item, L.Lean.Nat.add(bound, 1n)) == L.Lean.Bool.or(L.Lean.Nat.blt(item, bound), L.Lean.Nat.beq(item, bound)) : Bool}
+
+def less_successor(item, bound):
+  less_successor.ll_ind1(item, bound)
+
+type Signal is Data:
+  Signal.low{}
+  Signal.high{}
+
+def isHigh(+signal: Signal) -> Bool:
+  match signal:
+    case Signal.low{}:
+      False{}
+    case Signal.high{}:
+      True{}
+
+def joinAll(~Item: Data, +front: List<&2, Item>, +back: List<&2, Item>) -> List<&2, Item>:
+  match front:
+    case Nil{}:
+      back
+    case Con{head, rest}:
+      Con{head, joinAll(~Item, rest, back)}
+
+def anyHigh(+signals: List<&2, Signal>) -> Bool:
+  match signals:
+    case Nil{}:
+      False{}
+    case Con{head, rest}:
+      L.Lean.Bool.or(isHigh(head), anyHigh(rest))
+
+def any_high_join.ll_ind1(+front: List<&2, Signal>, +back: List<&2, Signal>) -> {anyHigh(joinAll(~Signal, front, back)) == L.Lean.Bool.or(anyHigh(front), anyHigh(back)) : Bool}:
+  match front:
+    case Nil{}:
+      {==}
+    case Con{head, rest}:
+      %Equal.sym(Bool, anyHigh(joinAll(~Signal, rest, back)), L.Lean.Bool.or(anyHigh(rest), anyHigh(back)), any_high_join.ll_ind1(rest, back)) : {L.Lean.Bool.or(isHigh(head), _) == L.Lean.Bool.or(L.Lean.Bool.or(isHigh(head), anyHigh(rest)), anyHigh(back)) : Bool}
+      %Equal.sym(Bool, L.Lean.Bool.or(L.Lean.Bool.or(isHigh(head), anyHigh(rest)), anyHigh(back)), L.Lean.Bool.or(isHigh(head), L.Lean.Bool.or(anyHigh(rest), anyHigh(back))), or_associative(isHigh(head), anyHigh(rest), anyHigh(back))) : {L.Lean.Bool.or(isHigh(head), L.Lean.Bool.or(anyHigh(rest), anyHigh(back))) == _ : Bool}
+      {==}
+
+law any_high_join:
+  for +front: List<&2, Signal>
+  for +back: List<&2, Signal>
+  {anyHigh(joinAll(~Signal, front, back)) == L.Lean.Bool.or(anyHigh(front), anyHigh(back)) : Bool}
+
+def any_high_join(front, back):
+  any_high_join.ll_ind1(front, back)

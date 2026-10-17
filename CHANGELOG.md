@@ -43,8 +43,12 @@ versions, and the entries below say what each tag does and does not claim.
   `SyntaxSize` and `Folding` groups, but its coverage and cost (a proof that
   evaluates a large interpreter run by reflexivity can exhaust the checker)
   are being explored, and a proof that splits a family value is refused. A
-  match that would break Bend's binder order lowers to an auxiliary
-  definition. Language 2.2 refuses, with `LLB6008`, a well-founded
+  match that would break Bend's binder order, including one after a `let`,
+  lowers to an auxiliary definition, which receives a function parameter it
+  uses as its code and environment. `decide` matches every Boolean its
+  statement quantifies, and `simplify` matches a rule's `n + 1` against
+  `succ n` and positive numerals; with these the `compiler/` project's
+  Certification and GNAF modules lower and check. Language 2.2 refuses, with `LLB6008`, a well-founded
   definition in a mutual group, a higher-order function passed as a value,
   and reasoning declarations. New: `BN-01`..`BN-23`, `CF-19`, `CF-20`,
   `VR-24`..`VR-29`; schemas `project-v3`/`-v4`, `lock-v3`/`-v4`,

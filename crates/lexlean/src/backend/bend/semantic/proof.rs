@@ -227,7 +227,7 @@ impl Prover<'_, '_, '_> {
         }
         match proof {
             SemanticProof::Reflexivity => Ok(Self::term_body(BTerm::Refl)),
-            SemanticProof::Decide => Ok(Self::term_body(self.decide(ctx, goal)?)),
+            SemanticProof::Decide => self.decide_split(ctx, goal),
             SemanticProof::Simplify { definitions } => self.simplify(ctx, goal, definitions),
             SemanticProof::Constructor { branches } => {
                 let mut normalizer = Normalizer::new(self.lower);
@@ -457,6 +457,41 @@ impl Prover<'_, '_, '_> {
         }
     }
 
+    /// Decide a proposition over Boolean locals by splitting each one the
+    /// goal or a premise mentions, as Lean's `decide` evaluates the
+    /// statement at every Boolean before its binders are introduced; a
+    /// proposition with none is decided by computation.
+    fn decide_split(&mut self, ctx: &mut Ctx, goal: &SemanticTerm) -> Result<Body, Diagnostic> {
+        let mut free = std::collections::BTreeSet::new();
+        normal::free_vars(goal, &mut std::collections::BTreeSet::new(), &mut free);
+        for (_, premise) in &ctx.premises {
+            normal::free_vars(premise, &mut std::collections::BTreeSet::new(), &mut free);
+        }
+        let split = self
+            .parameters
+            .iter()
+            .find(|parameter| {
+                free.contains(&parameter.name)
+                    && ctx
+                        .scope
+                        .get(&parameter.name)
+                        .is_ok_and(|(_, ty)| *ty == SemanticType::Bool)
+            })
+            .map(|parameter| parameter.name.clone());
+        let Some(split) = split else {
+            return Ok(Self::term_body(self.decide(ctx, goal)?));
+        };
+        let branches: Vec<crate::ir::semantic::SemanticProofBranch> = ["true", "false"]
+            .into_iter()
+            .map(|constructor| crate::ir::semantic::SemanticProofBranch {
+                constructor: constructor.to_owned(),
+                binders: Vec::new(),
+                proof: Box::new(SemanticProof::Decide),
+            })
+            .collect();
+        self.cases(ctx, goal, &split, &branches)
+    }
+
     /// Decide a closed proposition by computation.
     fn decide(&mut self, ctx: &Ctx, goal: &SemanticTerm) -> Result<BTerm, Diagnostic> {
         // Any goal holds under a false premise: Lean's `decide` sees the
@@ -649,7 +684,10 @@ impl Prover<'_, '_, '_> {
                 }
             })
             .collect();
-        let mut current = Normalizer::new(self.lower).normalize(goal);
+        // The goal is qualified as the rules are: unfolding leaves a member
+        // or a type of this module named either way.
+        let mut current =
+            normal::qualify_term(&Normalizer::new(self.lower).normalize(goal), &module);
         let mut stmts = Vec::new();
         for _ in 0..64 {
             let mut found = None;
@@ -707,7 +745,8 @@ impl Prover<'_, '_, '_> {
                 source: here(),
             });
             let rewritten = normal::replace_at(&current, &path, &rhs);
-            current = Normalizer::new(self.lower).normalize(&rewritten);
+            current =
+                normal::qualify_term(&Normalizer::new(self.lower).normalize(&rewritten), &module);
         }
         Ok(Body {
             stmts,
@@ -1057,6 +1096,28 @@ fn premise_right(premise: &SemanticTerm) -> &SemanticTerm {
 }
 
 /// Match `pattern` against `term`, binding the pattern's `vars`.
+/// What a successor term is the successor of: `n` for `n + 1`, `succ n`,
+/// or the numeral `n + 1`.
+fn predecessor(term: &SemanticTerm) -> Option<SemanticTerm> {
+    match term {
+        SemanticTerm::Add { left, right } if matches!(right.as_ref(), SemanticTerm::Nat { value } if value == "1") => {
+            Some((**left).clone())
+        }
+        SemanticTerm::Constructor {
+            constructor,
+            arguments,
+            ..
+        } if constructor.name == "Nat.succ" && arguments.len() == 1 => Some(arguments[0].clone()),
+        SemanticTerm::Nat { value } => {
+            let value: u128 = value.parse().ok()?;
+            value.checked_sub(1).map(|previous| SemanticTerm::Nat {
+                value: previous.to_string(),
+            })
+        }
+        _ => None,
+    }
+}
+
 fn matches(
     pattern: &SemanticTerm,
     term: &SemanticTerm,
@@ -1076,7 +1137,12 @@ fn matches(
     }
     let same_shape = std::mem::discriminant(pattern) == std::mem::discriminant(term);
     if !same_shape {
-        return false;
+        // `n + 1`, `succ n` and a positive numeral are one successor, as
+        // Lean's `simp` sees them up to instances.
+        return match (predecessor(pattern), predecessor(term)) {
+            (Some(p), Some(t)) => matches(&p, &t, vars, binding),
+            _ => false,
+        };
     }
     let (left, right) = (normal::children(pattern), normal::children(term));
     if left.len() != right.len() {
