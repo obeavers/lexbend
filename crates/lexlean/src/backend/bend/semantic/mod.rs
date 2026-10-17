@@ -299,6 +299,9 @@ pub struct Lower<'p, 'a> {
     /// Whether a lifted match's auxiliary is being lowered: it lies above
     /// the definition it serves and cannot call it.
     lifted: bool,
+    /// The code definition each function reference passed as an argument
+    /// lowers to, by `module::name` (see `closure`).
+    codes: BTreeMap<String, String>,
 }
 
 fn synthetic(text: impl Into<String>) -> Name {
@@ -417,6 +420,7 @@ impl<'p, 'a> Lower<'p, 'a> {
             group: None,
             structural: None,
             lifted: false,
+            codes: BTreeMap::new(),
         }
     }
 

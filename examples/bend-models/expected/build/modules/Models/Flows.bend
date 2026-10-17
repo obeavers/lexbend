@@ -126,16 +126,19 @@ def ll_match13(+ll_v14: Result<&2, &2, S.Sem.ContractViolation, L.Lean.Prod(Nat,
         S.Sem.ite(Result<&2, &2, S.Sem.ContractViolation, L.Lean.Prod(Nat, List<&2, Nat>)>, Models_Ledger.cappedCheck(S.Sem.fst(Nat, Nat, __step)), Done{(S.Sem.fst(Nat, Nat, __step), R.LexLeanRuntime.append.List(Nat, S.Sem.snd(Nat, List<&2, Nat>, __state), Con{S.Sem.snd(Nat, Nat, __step), Nil{}}))}, Fail{S.Sem.ContractViolation.output_invariant{}})
       ), Fail{S.Sem.ContractViolation.precondition{}}), Fail{S.Sem.ContractViolation.input_invariant{}})
 
-def ll_match15(+ll_v16: Result<&2, &2, S.Sem.ContractViolation, L.Lean.Prod(Nat, List<&2, Nat>)>) -> Result<&2, &2, S.Sem.ContractViolation, List<&2, Nat>>:
-  match ll_v16:
+def ll_code15(+ll_e: Unit, +__acc: Result<&2, &2, S.Sem.ContractViolation, L.Lean.Prod(Nat, List<&2, Nat>)>, +__item: Nat) -> Result<&2, &2, S.Sem.ContractViolation, L.Lean.Prod(Nat, List<&2, Nat>)>:
+  ll_match13(__acc, __acc, __item)
+
+def ll_match16(+ll_v17: Result<&2, &2, S.Sem.ContractViolation, L.Lean.Prod(Nat, List<&2, Nat>)>) -> Result<&2, &2, S.Sem.ContractViolation, List<&2, Nat>>:
+  match ll_v17:
     case Fail{__violation}:
       Fail{__violation}
     case Done{__state}:
       Done{S.Sem.snd(Nat, List<&2, Nat>, __state)}
 
 def SpillStream(+xs: List<&2, Nat>) -> Result<&2, &2, S.Sem.ContractViolation, List<&2, Nat>>:
-  +__scanned = S.Sem.listFold(~Nat, ~Result<&2, &2, S.Sem.ContractViolation, L.Lean.Prod(Nat, List<&2, Nat>)>, ~Unit, ~(+ll_e => +__acc => +__item => ll_match13(__acc, __acc, __item)), Unit{}, xs, Done{(Models_Ledger.SpillModel.initial(), Nil{})})
-  ll_match15(__scanned)
+  +__scanned = S.Sem.listFold(~Nat, ~Result<&2, &2, S.Sem.ContractViolation, L.Lean.Prod(Nat, List<&2, Nat>)>, ~Unit, ~ll_code15, Unit{}, xs, Done{(Models_Ledger.SpillModel.initial(), Nil{})})
+  ll_match16(__scanned)
 
 def SpillStreamModel(+__input: List<&2, Nat>) -> Result<&2, &2, S.Sem.ContractViolation, List<&2, Nat>>:
   SpillStream(__input)
@@ -170,16 +173,16 @@ def twin_small_check_sound(s, x, ll_h0):
   LA.sound(Con{x, Nil{}}, LA.FLe{LA.TVar{0n}, LA.TLit{10n}}, Con{LA.FIs{LA.BLe{LA.TVar{0n}, LA.TLit{10n}}, True{}}, Nil{}}, 7n, LA.Leaf{Con{1n, Con{1n, Nil{}}}}, {==}, (ll_h0, Unit{}))
 
 law TwinContract.invariant_sound:
-  R.LexLeanModels.Sound1(L.Lean.Prod(Nat, Nat), (+ll_x17 => twinCappedCheck(ll_x17)), (+ll_x18 => TwinCapped(ll_x18)))
+  R.LexLeanModels.Sound1(L.Lean.Prod(Nat, Nat), (+ll_x18 => twinCappedCheck(ll_x18)), (+ll_x19 => TwinCapped(ll_x19)))
 
 def TwinContract.invariant_sound():
-  ll_a19 => ll_a20 => twin_capped_check_sound(ll_a19, ll_a20)
+  ll_a20 => ll_a21 => twin_capped_check_sound(ll_a20, ll_a21)
 
 law TwinContract.precondition_sound:
-  R.LexLeanModels.Sound2(L.Lean.Prod(Nat, Nat), Nat, (+ll_x21 => +ll_x22 => twinSmallCheck(ll_x21, ll_x22)), (+ll_x23 => +ll_x24 => TwinSmall(ll_x23, ll_x24)))
+  R.LexLeanModels.Sound2(L.Lean.Prod(Nat, Nat), Nat, (+ll_x22 => +ll_x23 => twinSmallCheck(ll_x22, ll_x23)), (+ll_x24 => +ll_x25 => TwinSmall(ll_x24, ll_x25)))
 
 def TwinContract.precondition_sound():
-  ll_a25 => ll_a26 => ll_a27 => twin_small_check_sound(ll_a25, ll_a26, ll_a27)
+  ll_a26 => ll_a27 => ll_a28 => twin_small_check_sound(ll_a26, ll_a27, ll_a28)
 
 def ClampTally.initial() -> L.Lean.Prod(Nat, Nat):
   (0n, 0n)
@@ -234,10 +237,10 @@ def both_capped_check_sound(s, ll_h0):
   (LA.sound(Con{S.Sem.fst(Nat, Nat, s), Con{L.Lean.Nat.sub(S.Sem.fst(Nat, Nat, s), 100n), Con{L.Lean.Nat.sub(S.Sem.snd(Nat, Nat, s), 100n), Con{S.Sem.snd(Nat, Nat, s), Nil{}}}}}, LA.FLe{LA.TVar{0n}, LA.TLit{100n}}, Con{LA.FLe{LA.TLit{0n}, LA.TVar{2n}}, Con{LA.FIs{LA.BLe{LA.TAdd{LA.TVar{1n}, LA.TVar{2n}}, LA.TLit{0n}}, True{}}, Con{LA.FSub{LA.TVar{1n}, LA.TVar{0n}, LA.TLit{100n}}, Nil{}}}}, 17n, LA.Fork{LA.Leaf{Con{1n, Con{0n, Con{0n, Con{1n, Con{1n, Con{1n, Nil{}}}}}}}}, LA.Leaf{Con{0n, Con{0n, Con{1n, Con{0n, Con{0n, Con{1n, Nil{}}}}}}}}}, {==}, ({==}, (ll_h0, ({==}, Unit{})))), LA.sound(Con{S.Sem.snd(Nat, Nat, s), Con{L.Lean.Nat.sub(S.Sem.fst(Nat, Nat, s), 100n), Con{S.Sem.fst(Nat, Nat, s), Con{L.Lean.Nat.sub(S.Sem.snd(Nat, Nat, s), 100n), Nil{}}}}}, LA.FLe{LA.TVar{0n}, LA.TLit{100n}}, Con{LA.FLe{LA.TLit{0n}, LA.TVar{1n}}, Con{LA.FIs{LA.BLe{LA.TAdd{LA.TVar{1n}, LA.TVar{3n}}, LA.TLit{0n}}, True{}}, Con{LA.FSub{LA.TVar{3n}, LA.TVar{0n}, LA.TLit{100n}}, Nil{}}}}, 17n, LA.Fork{LA.Leaf{Con{1n, Con{0n, Con{0n, Con{1n, Con{1n, Con{1n, Nil{}}}}}}}}, LA.Leaf{Con{0n, Con{0n, Con{1n, Con{0n, Con{0n, Con{1n, Nil{}}}}}}}}}, {==}, ({==}, (ll_h0, ({==}, Unit{})))))
 
 law PairClampContract.invariant_sound:
-  R.LexLeanModels.Sound1(L.Lean.Prod(Nat, Nat), (+ll_x28 => bothCappedCheck(ll_x28)), (+ll_x29 => BothCapped(ll_x29)))
+  R.LexLeanModels.Sound1(L.Lean.Prod(Nat, Nat), (+ll_x29 => bothCappedCheck(ll_x29)), (+ll_x30 => BothCapped(ll_x30)))
 
 def PairClampContract.invariant_sound():
-  ll_a30 => ll_a31 => both_capped_check_sound(ll_a30, ll_a31)
+  ll_a31 => ll_a32 => both_capped_check_sound(ll_a31, ll_a32)
 
 def ClampBoth.initial() -> L.Lean.Prod(Nat, Nat):
   (0n, 0n)
@@ -276,16 +279,16 @@ def PairClampModel(+__state: L.Lean.Prod(Nat, Nat), +__input: L.Lean.Prod(Nat, N
   ClampBoth(__state, __input)
 
 law BranchContract.invariant_sound:
-  R.LexLeanModels.Sound1(L.Lean.Prod(Nat, Nat), (+ll_x32 => twinCappedCheck(ll_x32)), (+ll_x33 => TwinCapped(ll_x33)))
+  R.LexLeanModels.Sound1(L.Lean.Prod(Nat, Nat), (+ll_x33 => twinCappedCheck(ll_x33)), (+ll_x34 => TwinCapped(ll_x34)))
 
 def BranchContract.invariant_sound():
-  ll_a34 => ll_a35 => twin_capped_check_sound(ll_a34, ll_a35)
+  ll_a35 => ll_a36 => twin_capped_check_sound(ll_a35, ll_a36)
 
 law BranchContract.precondition_sound:
-  R.LexLeanModels.Sound2(L.Lean.Prod(Nat, Nat), Nat, (+ll_x36 => +ll_x37 => twinSmallCheck(ll_x36, ll_x37)), (+ll_x38 => +ll_x39 => TwinSmall(ll_x38, ll_x39)))
+  R.LexLeanModels.Sound2(L.Lean.Prod(Nat, Nat), Nat, (+ll_x37 => +ll_x38 => twinSmallCheck(ll_x37, ll_x38)), (+ll_x39 => +ll_x40 => TwinSmall(ll_x39, ll_x40)))
 
 def BranchContract.precondition_sound():
-  ll_a40 => ll_a41 => ll_a42 => twin_small_check_sound(ll_a40, ll_a41, ll_a42)
+  ll_a41 => ll_a42 => ll_a43 => twin_small_check_sound(ll_a41, ll_a42, ll_a43)
 
 def ClampOrTally.initial() -> L.Lean.Prod(Nat, Nat):
   (0n, 0n)
@@ -340,16 +343,16 @@ def BranchModel(+__state: L.Lean.Prod(Nat, Nat), +__input: Nat) -> L.Lean.Prod(L
   ClampOrTally(__state, __input)
 
 law ChainContract.invariant_sound:
-  R.LexLeanModels.Sound1(L.Lean.Prod(Nat, Nat), (+ll_x43 => twinCappedCheck(ll_x43)), (+ll_x44 => TwinCapped(ll_x44)))
+  R.LexLeanModels.Sound1(L.Lean.Prod(Nat, Nat), (+ll_x44 => twinCappedCheck(ll_x44)), (+ll_x45 => TwinCapped(ll_x45)))
 
 def ChainContract.invariant_sound():
-  ll_a45 => ll_a46 => twin_capped_check_sound(ll_a45, ll_a46)
+  ll_a46 => ll_a47 => twin_capped_check_sound(ll_a46, ll_a47)
 
 law ChainContract.precondition_sound:
-  R.LexLeanModels.Sound2(L.Lean.Prod(Nat, Nat), Nat, (+ll_x47 => +ll_x48 => twinSmallCheck(ll_x47, ll_x48)), (+ll_x49 => +ll_x50 => TwinSmall(ll_x49, ll_x50)))
+  R.LexLeanModels.Sound2(L.Lean.Prod(Nat, Nat), Nat, (+ll_x48 => +ll_x49 => twinSmallCheck(ll_x48, ll_x49)), (+ll_x50 => +ll_x51 => TwinSmall(ll_x50, ll_x51)))
 
 def ChainContract.precondition_sound():
-  ll_a51 => ll_a52 => ll_a53 => twin_small_check_sound(ll_a51, ll_a52, ll_a53)
+  ll_a52 => ll_a53 => ll_a54 => twin_small_check_sound(ll_a52, ll_a53, ll_a54)
 
 law spill_tally:
   for +s: L.Lean.Prod(Nat, Nat)
@@ -406,10 +409,10 @@ def ChainModel(+__state: L.Lean.Prod(Nat, Nat), +__input: Nat) -> L.Lean.Prod(L.
   SpillTally(__state, __input)
 
 law RawChainContract.invariant_sound:
-  R.LexLeanModels.Sound1(L.Lean.Prod(Nat, Nat), (+ll_x54 => twinCappedCheck(ll_x54)), (+ll_x55 => TwinCapped(ll_x55)))
+  R.LexLeanModels.Sound1(L.Lean.Prod(Nat, Nat), (+ll_x55 => twinCappedCheck(ll_x55)), (+ll_x56 => TwinCapped(ll_x56)))
 
 def RawChainContract.invariant_sound():
-  ll_a56 => ll_a57 => twin_capped_check_sound(ll_a56, ll_a57)
+  ll_a57 => ll_a58 => twin_capped_check_sound(ll_a57, ll_a58)
 
 def TallySpillRaw.initial() -> L.Lean.Prod(Nat, Nat):
   (0n, 0n)

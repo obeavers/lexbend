@@ -591,12 +591,13 @@ def ll_match66(~ll_E_step: Data, ~step: @+ll_e: ll_E_step -> @+x: Nat -> Nat, +l
 def stepUnlessZero(~ll_E_step: Data, ~step: @+ll_e: ll_E_step -> @+x: Nat -> Nat, +ll_env_step: ll_E_step, +value: Nat) -> Nat:
   ll_match66(~ll_E_step, ~step, L.Lean.Nat.beq(value, 0n), ll_env_step, value)
 
+def ll_code68(+ll_e: L.Lean.Prod(Nat, Nat), +n: Nat) -> Nat:
+  +high = S.Sem.fst(Nat, Nat, ll_e)
+  +low = S.Sem.snd(Nat, Nat, ll_e)
+  L.Lean.Nat.add(L.Lean.Nat.add(n, low), L.Lean.Nat.add(high, high))
+
 def shiftTwice(+low: Nat, +high: Nat, +value: Nat) -> Nat:
-  applyTwice(~L.Lean.Prod(Nat, Nat), ~(+ll_e => +n => (
-    +high = S.Sem.fst(Nat, Nat, ll_e)
-    +low = S.Sem.snd(Nat, Nat, ll_e)
-    L.Lean.Nat.add(L.Lean.Nat.add(n, low), L.Lean.Nat.add(high, high))
-  )), (high, low), value)
+  applyTwice(~L.Lean.Prod(Nat, Nat), ~ll_code68, (high, low), value)
 
 law shift_twice:
   {shiftTwice(1n, 2n, 3n) == 13n : Nat}
@@ -604,14 +605,17 @@ law shift_twice:
 def shift_twice():
   {==}
 
+def ll_code69(+ll_e: Unit, +n: Nat) -> Nat:
+  L.Lean.Nat.add(n, 2n)
+
 law step_unless_zero:
-  L.Lean.Prod({stepUnlessZero(~Unit, ~(+ll_e => +n => L.Lean.Nat.add(n, 2n)), Unit{}, 5n) == 9n : Nat}, {stepUnlessZero(~Unit, ~(+ll_e => +n => L.Lean.Nat.add(n, 2n)), Unit{}, 0n) == 0n : Nat})
+  L.Lean.Prod({stepUnlessZero(~Unit, ~ll_code69, Unit{}, 5n) == 9n : Nat}, {stepUnlessZero(~Unit, ~ll_code69, Unit{}, 0n) == 0n : Nat})
 
 def step_unless_zero():
   ({==}, {==})
 
-def ll_match68(+ll_v69: List<&2, Nat>, +scale: Nat) -> Nat:
-  match ll_v69:
+def ll_match70(+ll_v71: List<&2, Nat>, +scale: Nat) -> Nat:
+  match ll_v71:
     case Nil{}:
       scale
     case Con{head, rest}:
@@ -619,7 +623,7 @@ def ll_match68(+ll_v69: List<&2, Nat>, +scale: Nat) -> Nat:
 
 def scaledHead(+values: List<&2, Nat>, +factor: Nat) -> Nat:
   +scale = L.Lean.Nat.add(factor, factor)
-  ll_match68(values, scale)
+  ll_match70(values, scale)
 
 law scaled_head:
   L.Lean.Prod({scaledHead(Con{3n, Nil{}}, 2n) == 7n : Nat}, {scaledHead(Nil{}, 2n) == 4n : Nat})
@@ -771,9 +775,9 @@ law implied_pair:
   L.Lean.Prod(S.Sem.le(y, 3n), S.Sem.le(x, 2n))
 
 def implied_pair(x, y, ll_h0, ll_h1):
-  S.Sem.and_prod(S.Sem.le(y, 3n), S.Sem.le(x, 2n), S.Sem.le(y, 3n), S.Sem.le(x, 2n), (ll_c72 => ll_c72), (ll_c73 => ll_c73), LA.sound(Con{y, Con{x, Nil{}}}, LA.FAnd{LA.FLe{LA.TVar{0n}, LA.TLit{3n}}, LA.FLe{LA.TVar{1n}, LA.TLit{2n}}}, Con{LA.FImp{LA.FLt{LA.TVar{1n}, LA.TVar{0n}}, LA.FAnd{LA.FLe{LA.TVar{0n}, LA.TLit{3n}}, LA.FLe{LA.TVar{1n}, LA.TLit{2n}}}}, Con{LA.FLt{LA.TVar{1n}, LA.TVar{0n}}, Nil{}}}, 15n, LA.Fork{LA.Fork{LA.Leaf{Con{1n, Con{1n, Nil{}}}}, LA.Leaf{Con{0n, Con{0n, Con{1n, Con{1n, Nil{}}}}}}}, LA.Fork{LA.Leaf{Con{1n, Con{1n, Nil{}}}}, LA.Leaf{Con{0n, Con{1n, Con{0n, Con{1n, Nil{}}}}}}}}, {==}, ((ll_c70 => (
-    +ll_c71 = {ll_h0(ll_c70) : L.Lean.Prod(S.Sem.le(y, 3n), S.Sem.le(x, 2n))}
-    (S.Sem.fst(S.Sem.le(y, 3n), S.Sem.le(x, 2n), ll_c71), S.Sem.snd(S.Sem.le(y, 3n), S.Sem.le(x, 2n), ll_c71))
+  S.Sem.and_prod(S.Sem.le(y, 3n), S.Sem.le(x, 2n), S.Sem.le(y, 3n), S.Sem.le(x, 2n), (ll_c74 => ll_c74), (ll_c75 => ll_c75), LA.sound(Con{y, Con{x, Nil{}}}, LA.FAnd{LA.FLe{LA.TVar{0n}, LA.TLit{3n}}, LA.FLe{LA.TVar{1n}, LA.TLit{2n}}}, Con{LA.FImp{LA.FLt{LA.TVar{1n}, LA.TVar{0n}}, LA.FAnd{LA.FLe{LA.TVar{0n}, LA.TLit{3n}}, LA.FLe{LA.TVar{1n}, LA.TLit{2n}}}}, Con{LA.FLt{LA.TVar{1n}, LA.TVar{0n}}, Nil{}}}, 15n, LA.Fork{LA.Fork{LA.Leaf{Con{1n, Con{1n, Nil{}}}}, LA.Leaf{Con{0n, Con{0n, Con{1n, Con{1n, Nil{}}}}}}}, LA.Fork{LA.Leaf{Con{1n, Con{1n, Nil{}}}}, LA.Leaf{Con{0n, Con{1n, Con{0n, Con{1n, Nil{}}}}}}}}, {==}, ((ll_c72 => (
+    +ll_c73 = {ll_h0(ll_c72) : L.Lean.Prod(S.Sem.le(y, 3n), S.Sem.le(x, 2n))}
+    (S.Sem.fst(S.Sem.le(y, 3n), S.Sem.le(x, 2n), ll_c73), S.Sem.snd(S.Sem.le(y, 3n), S.Sem.le(x, 2n), ll_c73))
   )), (ll_h1, Unit{}))))
 
 law assumed_pair:
@@ -785,7 +789,7 @@ law assumed_pair:
   S.Sem.le(L.Lean.Nat.add(x, y), 3n)
 
 def assumed_pair(x, y, ll_h0, ll_h1, ll_h2):
-  LA.sound(Con{x, Con{y, Nil{}}}, LA.FLe{LA.TAdd{LA.TVar{0n}, LA.TVar{1n}}, LA.TLit{3n}}, Con{LA.FImp{LA.FAnd{LA.FLe{LA.TVar{0n}, LA.TLit{1n}}, LA.FLe{LA.TVar{1n}, LA.TLit{1n}}}, LA.FLe{LA.TAdd{LA.TVar{0n}, LA.TVar{1n}}, LA.TLit{2n}}}, Con{LA.FLe{LA.TVar{0n}, LA.TLit{1n}}, Con{LA.FLe{LA.TVar{1n}, LA.TLit{1n}}, Nil{}}}}, 13n, LA.Fork{LA.Fork{LA.Leaf{Con{0n, Con{1n, Con{1n, Nil{}}}}}, LA.Leaf{Con{1n, Con{0n, Con{1n, Nil{}}}}}}, LA.Leaf{Con{0n, Con{0n, Con{1n, Con{1n, Nil{}}}}}}}, {==}, ((ll_c74 => ll_h0(S.Sem.and_prod(S.Sem.le(x, 1n), S.Sem.le(y, 1n), S.Sem.le(x, 1n), S.Sem.le(y, 1n), (ll_c75 => ll_c75), (ll_c76 => ll_c76), ll_c74))), (ll_h1, (ll_h2, Unit{}))))
+  LA.sound(Con{x, Con{y, Nil{}}}, LA.FLe{LA.TAdd{LA.TVar{0n}, LA.TVar{1n}}, LA.TLit{3n}}, Con{LA.FImp{LA.FAnd{LA.FLe{LA.TVar{0n}, LA.TLit{1n}}, LA.FLe{LA.TVar{1n}, LA.TLit{1n}}}, LA.FLe{LA.TAdd{LA.TVar{0n}, LA.TVar{1n}}, LA.TLit{2n}}}, Con{LA.FLe{LA.TVar{0n}, LA.TLit{1n}}, Con{LA.FLe{LA.TVar{1n}, LA.TLit{1n}}, Nil{}}}}, 13n, LA.Fork{LA.Fork{LA.Leaf{Con{0n, Con{1n, Con{1n, Nil{}}}}}, LA.Leaf{Con{1n, Con{0n, Con{1n, Nil{}}}}}}, LA.Leaf{Con{0n, Con{0n, Con{1n, Con{1n, Nil{}}}}}}}, {==}, ((ll_c76 => ll_h0(S.Sem.and_prod(S.Sem.le(x, 1n), S.Sem.le(y, 1n), S.Sem.le(x, 1n), S.Sem.le(y, 1n), (ll_c77 => ll_c77), (ll_c78 => ll_c78), ll_c76))), (ll_h1, (ll_h2, Unit{}))))
 
 law some_bounded:
   for +x: Nat
