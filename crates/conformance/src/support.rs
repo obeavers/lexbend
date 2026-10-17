@@ -2308,15 +2308,15 @@ pub fn normative_rows() -> Vec<(String, Vec<u8>)> {
     files
 }
 
-/// The files `SPEC.md` §21.2 lists as introduced solely for language 1.2 and
-/// solely for language 1.1: the older languages' compiler-semantics IDs leave
-/// them out. Read from the specification, not from the compiler.
+/// The files `SPEC.md` §21.2 lists as introduced solely for languages 2.2,
+/// 2.0, 1.2, and 1.1, in that order: the older languages' compiler-semantics
+/// IDs leave them out. Read from the specification, not from the compiler.
 ///
 /// # Panics
 ///
 /// Panics when §21.2 does not state a list.
 #[must_use]
-pub fn introduced_later() -> (Vec<String>, Vec<String>, Vec<String>) {
+pub fn introduced_later() -> (Vec<String>, Vec<String>, Vec<String>, Vec<String>) {
     let spec = spec_text();
     let section = spec
         .split("### 21.2 Compiler-semantics ID")
@@ -2345,7 +2345,11 @@ pub fn introduced_later() -> (Vec<String>, Vec<String>, Vec<String>) {
     };
     (
         listed(
-            "The language-1.2 ID excludes the files introduced solely for 2.0:",
+            "The language-2.0 ID excludes the files introduced solely for 2.2:",
+            "The language-1.2 ID",
+        ),
+        listed(
+            "excludes the files introduced solely for 2.0:",
             "The language-1.1 ID",
         ),
         listed(
@@ -2359,10 +2363,10 @@ pub fn introduced_later() -> (Vec<String>, Vec<String>, Vec<String>) {
     )
 }
 
-/// The compiler-semantics IDs of languages 1.0, 1.1 and 1.2 recomputed from
-/// rows of the normative tree (path and bytes, in bytewise path order): 1.2
-/// over every row, and the older two over the rows §21.2 does not list as
-/// introduced later (`RP-10`).
+/// The compiler-semantics IDs of languages 1.0, 1.1, 1.2, 2.0, and 2.2
+/// recomputed from rows of the normative tree (path and bytes, in bytewise
+/// path order): 2.2 over every row, and each older one over the rows §21.2
+/// does not list as introduced later (`RP-10`).
 #[must_use]
 pub fn semantics_ids(
     rows: &[(&str, &[u8])],
@@ -2371,8 +2375,9 @@ pub fn semantics_ids(
     lexlean::artifact::content_id::Sha256Digest,
     lexlean::artifact::content_id::Sha256Digest,
     lexlean::artifact::content_id::Sha256Digest,
+    lexlean::artifact::content_id::Sha256Digest,
 ) {
-    let (only_2_0, only_1_2, only_1_1) = introduced_later();
+    let (only_2_2, only_2_0, only_1_2, only_1_1) = introduced_later();
     let excluded = |path: &str, lists: &[&Vec<String>]| {
         lists.iter().any(|list| {
             list.iter().any(|item| {
@@ -2393,9 +2398,10 @@ pub fn semantics_ids(
         identity_tree_digest(&kept)
     };
     (
-        filtered(&[&only_2_0, &only_1_2, &only_1_1]),
-        filtered(&[&only_2_0, &only_1_2]),
-        filtered(&[&only_2_0]),
+        filtered(&[&only_2_2, &only_2_0, &only_1_2, &only_1_1]),
+        filtered(&[&only_2_2, &only_2_0, &only_1_2]),
+        filtered(&[&only_2_2, &only_2_0]),
+        filtered(&[&only_2_2]),
         identity_tree_digest(rows),
     )
 }

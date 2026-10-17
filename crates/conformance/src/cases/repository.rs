@@ -547,9 +547,14 @@ pub(crate) fn run(id: &str) {
             // §21.2: the older languages' IDs are the same digest over the
             // tree minus the files SPEC.md lists as introduced later. The
             // lists are read from the specification, not from the compiler.
-            let (only_2_0, only_1_2, only_1_1) = support::introduced_later();
-            let (ten, eleven, twelve, twenty) = support::semantics_ids(&borrowed);
-            assert_eq!(twenty, recomputed, "RP-10: the 2.0 ID");
+            let (only_2_2, only_2_0, only_1_2, only_1_1) = support::introduced_later();
+            let (ten, eleven, twelve, twenty, twenty_two) = support::semantics_ids(&borrowed);
+            assert_eq!(twenty_two, recomputed, "RP-10: the 2.2 ID");
+            assert_eq!(
+                twenty,
+                lexlean::compiler_semantics_id_for("2.0"),
+                "RP-10: the 2.0 ID"
+            );
             assert_eq!(
                 twelve,
                 lexlean::compiler_semantics_id_for("1.2"),
@@ -567,7 +572,12 @@ pub(crate) fn run(id: &str) {
             );
             // Every listed path exists, so a renamed file cannot silently
             // drop out of a list.
-            for item in only_2_0.iter().chain(&only_1_2).chain(&only_1_1) {
+            for item in only_2_2
+                .iter()
+                .chain(&only_2_0)
+                .chain(&only_1_2)
+                .chain(&only_1_1)
+            {
                 assert!(
                     borrowed
                         .iter()
@@ -581,6 +591,7 @@ pub(crate) fn run(id: &str) {
                 ("examples/nat-add-zero/lexlean.lock", "1.0", ten),
                 ("examples/semantic-1.1/lexlean.lock", "1.1", eleven),
                 ("examples/bend-nat-add-zero/lexlean.lock", "2.0", twenty),
+                ("examples/bend-semantic/lexlean.lock", "2.2", twenty_two),
             ] {
                 let bytes = std::fs::read(root.join(example).as_std_path()).expect("lock");
                 let lock = lexlean::api::parse_lock_bytes(example, &bytes).expect("lock parses");
