@@ -229,6 +229,7 @@ fn is_v2_2_file(path: &str) -> bool {
         || path == "language/bend-prelude/Runtime.bend"
         || path == "language/bend-prelude/runtime-registry.toml"
         || path == "language/bend-prelude/LinArith.bend"
+        || path == "language/bend-prelude/Reasoning.bend"
         || path == "language/bend-prelude/RUNTIME.md"
 }
 

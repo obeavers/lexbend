@@ -1074,7 +1074,7 @@ statement = "Every language-2.2 model cross-check restates its obligation agains
 id = "BN-16"
 level = "build"
 suite = "bend-backend"
-statement = "The language-2.2 support modules import only Base and the prelude and check under the pinned Bend, and every runtime registry row names a function, law, type, or constructor the runtime defines."
+statement = "The language-2.2 support modules import only Base, the prelude, and the support modules before them and check under the pinned Bend, and every runtime registry row names a function, law, type, or constructor the runtime defines."
 
 [[id]]
 id = "BN-17"

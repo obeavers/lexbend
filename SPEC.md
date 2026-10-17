@@ -429,6 +429,7 @@ The completed repository MUST have this layout. Additional files are allowed onl
 │   │   ├── LexLean.bend
 │   │   ├── LinArith.bend
 │   │   ├── README.md
+│   │   ├── Reasoning.bend
 │   │   ├── registry.toml
 │   │   ├── Runtime.bend
 │   │   ├── RUNTIME.md
@@ -6924,6 +6925,7 @@ import <relative path> as L
 import <relative path> as S
 import <relative path> as R
 import <relative path> as LA
+import <relative path> as RS
 import <relative path> as <alias>
 ...
 <items in source declaration order>
@@ -6932,8 +6934,8 @@ import <relative path> as <alias>
 The prelude (§18.10.6) is imported under `L` exactly when the module names it
 or any support module (§18.11.6). Each support module the module names is
 imported under its alias: `S` for `modules/LexLeanSemantic.bend`, `R` for
-`modules/LexLeanRuntime.bend`, and `LA` for `modules/LexLeanLinArith.bend`,
-in that order. The generated modules the module references follow in sorted
+`modules/LexLeanRuntime.bend`, `LA` for `modules/LexLeanLinArith.bend`, and
+`RS` for `modules/LexLeanReasoning.bend`, in that order. The generated modules the module references follow in sorted
 module-name order under the §18.10.1 aliases. Each source declaration
 contributes, in order, the auxiliary definitions its lowering introduces, its
 own items, and its cross-checks. Layout and determinism are those of §18.10.1.
@@ -7102,7 +7104,7 @@ certificate, is `LLB6008`. An induction hypothesis under premises, and a
 
 #### 18.11.6 Support modules and the runtime
 
-Three shipped modules beside the prelude carry what the lowering names:
+Four shipped modules beside the prelude carry what the lowering names:
 
 - `language/bend-prelude/Semantic.bend`: the folds and loops of the
   collection primitives over closure-converted steps, Boolean `if`, pair
@@ -7114,12 +7116,17 @@ Three shipped modules beside the prelude carry what the lowering names:
   `language/bend-prelude/runtime-registry.toml`; `RUNTIME.md` records how each
   is ported;
 - `language/bend-prelude/LinArith.bend`: the reflective linear-arithmetic
-  checker and its soundness law.
+  checker and its soundness law;
+- `language/bend-prelude/Reasoning.bend`: the predicates, generic laws, and
+  first-order lemmas the theorems of a reasoning declaration (§18.11.8) are
+  stated with and proved by.
 
-Each imports only `Base` and the prelude, holds no unfilled law, and checks
-under the pinned Bend with `ALL PROOFS CHECK`. A build publishes exactly the
-support modules its modules import, at the paths of §18.11.1, with the import
-of the prelude renamed to the prelude's build path. Fixed-width integers, byte
+The first three import only `Base` and the prelude; `Reasoning.bend` imports
+those and `Semantic.bend` and `Runtime.bend`. Each holds no unfilled law and
+checks under the pinned Bend with `ALL PROOFS CHECK`. A build publishes exactly
+the support modules its modules import, with those they import, at the paths
+of §18.11.1, with the imports of the prelude and of other support modules
+renamed to their build paths. Fixed-width integers, byte
 strings, keyed collections, and every runtime primitive lower only through a
 registry constant. A primitive or type the registry does not define at the
 required instance is `LLB6008`. `Ordering` is Base's `Cmp`, and equality of
@@ -9673,7 +9680,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `BN-13` | `bend-backend` | A language-2.2 well-founded definition lowers to proof-carrying fuel whose every recursive call carries its decrease evidence, and the pinned Bend refuses a call that consumes no fuel or whose evidence does not establish the decrease. | §18.11.4 |
 | `BN-14` | `bend-backend` | Language-2.2 proofs lower to explicit Bend terms, including linear arithmetic, decide by splitting every Boolean it quantifies, simplification that matches a successor in any of its forms, congruence, and boolean reflection, and the pinned Bend refuses a reflection whose induction steps the wrong successor. | §18.11.5 |
 | `BN-15` | `bend-backend` | Every language-2.2 model cross-check restates its obligation against the Bend runtime's LexLeanModels and is proved by its discharging theorem or by evaluation, and a restatement that drifts is refused by the pinned Bend. | §18.11.7 |
-| `BN-16` | `bend-backend` | The language-2.2 support modules import only Base and the prelude and check under the pinned Bend, and every runtime registry row names a function, law, type, or constructor the runtime defines. | §18.11.6 |
+| `BN-16` | `bend-backend` | The language-2.2 support modules import only Base, the prelude, and the support modules before them and check under the pinned Bend, and every runtime registry row names a function, law, type, or constructor the runtime defines. | §18.11.6 |
 | `BN-17` | `bend-backend` | A language-2.2 reasoning declaration is a hard error naming the theorem it generates. | §18.11.8 |
 | `BN-18` | `bend-backend` | The generated Bend of every language-2.2 example module checks and exports under the pinned Bend with every proof accepted. | §18.11 |
 | `BN-19` | `bend-backend` | A language-2.0 or 2.2 numeral above 4294967295 lowers to its base-65536 Horner form over the prelude's Lean.Nat.add and Lean.Nat.mul, and the pinned Bend accepts a proof that uses it without reducing it. | §18.10.6, §18.11.6 |
