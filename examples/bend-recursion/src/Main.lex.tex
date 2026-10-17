@@ -444,6 +444,20 @@ definition{
   body: (match (value =? 0) | Bool.true => 0 | Bool.false => (applyTwice step value))
 }
 
+definition{
+  name: shiftTwice,
+  parameters: [low : Nat, high : Nat, value : Nat],
+  result: Nat,
+  body: (applyTwice (fun [high, low] (n : Nat) => ((n + low) + (high + high))) value)
+}
+
+theorem{
+  name: shift_twice,
+  parameters: [],
+  statement: ((shiftTwice 1 2 3) = 13),
+  proof: reflexivity{}
+}
+
 theorem{
   name: step_unless_zero,
   parameters: [],
@@ -578,6 +592,36 @@ theorem{
     scrutinee: front
   },
   axioms: [propext]
+}
+
+definition{
+  name: swapSum,
+  parameters: [low : Nat, high : Nat],
+  result: Nat,
+  body: (let swapped : (Nat * Nat) := (high, low); (let doubled : Nat := (let bumped : Nat := ((first swapped) + 1); (bumped + bumped)); (doubled + (second swapped))))
+}
+
+theorem{name: swap_sum, parameters: [], statement: ((swapSum 2 3) = 10), proof: reflexivity{}}
+
+theorem{
+  name: implied_pair,
+  parameters: [x : Nat, y : Nat],
+  statement: (((x < y) -> ((y <= 3) /\ (x <= 2))) -> ((x < y) -> ((y <= 3) /\ (x <= 2)))),
+  proof: linear_arithmetic{}
+}
+
+theorem{
+  name: assumed_pair,
+  parameters: [x : Nat, y : Nat],
+  statement: ((((x <= 1) /\ (y <= 1)) -> ((x + y) <= 2)) -> ((x <= 1) -> ((y <= 1) -> ((x + y) <= 3)))),
+  proof: linear_arithmetic{}
+}
+
+theorem{
+  name: some_bounded,
+  parameters: [x : Nat, v : Nat],
+  statement: (((ctor Option.some [Nat] x) = (ctor Option.some [Nat] v)) -> ((x <= 4) -> (v <= 4))),
+  proof: linear_arithmetic{}
 }
 \end{semanticmodule}
 \end{lexlean}

@@ -397,10 +397,10 @@ impl Lower<'_, '_> {
                     } else {
                         let (rest_type, _) = self.tuple(&captured[index + 1..]);
                         let head = call(
-                            self.support("Sem.fst"),
+                            self.support("fst"),
                             vec![ty.clone(), rest_type.clone(), rest.clone()],
                         );
-                        rest = call(self.support("Sem.snd"), vec![ty.clone(), rest_type, rest]);
+                        rest = call(self.support("snd"), vec![ty.clone(), rest_type, rest]);
                         head
                     };
                     stmts.push(Stmt::Share {

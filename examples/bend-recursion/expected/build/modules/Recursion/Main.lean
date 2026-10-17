@@ -191,6 +191,11 @@ public theorem first_even : (firstEven ((3 :: (5 :: (8 :: (2 :: ([] : List (Nat)
 
 @[expose] public def stepUnlessZero (step : ((Nat) -> (Nat))) (value : Nat) : Nat := (match (Nat.beq (value) (0)) with | Bool.true => 0 | Bool.false => applyTwice (step) (value))
 
+@[expose] public def shiftTwice (low : Nat) (high : Nat) (value : Nat) : Nat := applyTwice ((fun (n : Nat) => ((n + low) + (high + high)))) (value)
+
+public theorem shift_twice : (shiftTwice (1) (2) (3) = 13) := by
+  rfl
+
 public theorem step_unless_zero : ((stepUnlessZero ((fun (n : Nat) => (n + 2))) (5) = 9) /\ (stepUnlessZero ((fun (n : Nat) => (n + 2))) (0) = 0)) := by
   decide
 
@@ -243,5 +248,25 @@ public theorem any_high_join (front : List (Signal)) (back : List (Signal)) : (a
     rfl
   | cons head rest hypothesis =>
     simp only [anyHigh, hypothesis, joinAll, or_associative]
+
+@[expose] public def swapSum (low : Nat) (high : Nat) : Nat := (let swapped : (Prod (Nat) (Nat)) := (high, low); (let doubled : Nat := (let bumped : Nat := ((swapped).1 + 1); (bumped + bumped)); (doubled + (swapped).2)))
+
+public theorem swap_sum : (swapSum (2) (3) = 10) := by
+  rfl
+
+public theorem implied_pair (x : Nat) (y : Nat) : (((x < y) -> ((y <= 3) /\ (x <= 2))) -> ((x < y) -> ((y <= 3) /\ (x <= 2)))) := by
+  intros
+  try set_option linter.unusedSimpArgs false in simp only [← Bool.not_eq_true, Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true', and_true, true_and, Option.some.injEq, Nat.beq_eq, Nat.blt_eq, Nat.ble_eq, LexLeanRuntime.subtract, LexLeanRuntime.multiply] at *
+  all_goals omega
+
+public theorem assumed_pair (x : Nat) (y : Nat) : ((((x <= 1) /\ (y <= 1)) -> ((x + y) <= 2)) -> ((x <= 1) -> ((y <= 1) -> ((x + y) <= 3)))) := by
+  intros
+  try set_option linter.unusedSimpArgs false in simp only [← Bool.not_eq_true, Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true', and_true, true_and, Option.some.injEq, Nat.beq_eq, Nat.blt_eq, Nat.ble_eq, LexLeanRuntime.subtract, LexLeanRuntime.multiply] at *
+  all_goals omega
+
+public theorem some_bounded (x : Nat) (v : Nat) : ((Option.some (x) = Option.some (v)) -> ((x <= 4) -> (v <= 4))) := by
+  intros
+  try set_option linter.unusedSimpArgs false in simp only [← Bool.not_eq_true, Bool.and_eq_true, Bool.or_eq_true, Bool.not_eq_true', and_true, true_and, Option.some.injEq, Nat.beq_eq, Nat.blt_eq, Nat.ble_eq, LexLeanRuntime.subtract, LexLeanRuntime.multiply] at *
+  all_goals omega
 
 end Recursion.Main

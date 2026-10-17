@@ -1645,7 +1645,7 @@ impl<'p, 'a> Lower<'p, 'a> {
                     return self.term(&unfolded, scope);
                 }
                 let name = synthetic(inner.get(&binder.name)?.0.clone());
-                let value = self.term(value, scope)?;
+                let value = self.shared_value(value, &ty, scope)?;
                 let tail = self.term(body, &inner)?;
                 let stmt = if self.is_data(&ty) {
                     Stmt::Share {
@@ -2033,6 +2033,23 @@ impl<'p, 'a> Lower<'p, 'a> {
         Ok(BTerm::Call(synthetic(name), args))
     }
 
+    /// A `let`'s value: a pair or a block is annotated with the binder's
+    /// type, which Bend cannot infer from its parts.
+    fn shared_value(
+        &mut self,
+        value: &SemanticTerm,
+        ty: &SemanticType,
+        scope: &Scope,
+    ) -> Result<BTerm, Diagnostic> {
+        let value = self.term(value, scope)?;
+        Ok(match value {
+            BTerm::Pair(..) | BTerm::Block(..) => {
+                BTerm::Ann(Box::new(value), Box::new(self.ty(ty)?))
+            }
+            other => other,
+        })
+    }
+
     /// A parameter, reusable when its type is `Data`.
     fn param(&mut self, spelled: &str, ty: &SemanticType) -> Result<Param, Diagnostic> {
         Ok(Param {
@@ -2374,7 +2391,7 @@ impl<'p, 'a> Lower<'p, 'a> {
                 let ty = self.canonical(&binder.r#type);
                 let inner = scope.with_let(&binder.name, ty.clone())?;
                 let name = synthetic(inner.get(&binder.name)?.0.clone());
-                let value = self.term(value, scope)?;
+                let value = self.shared_value(value, &ty, scope)?;
                 let stmt = if self.is_data(&ty) {
                     Stmt::Share {
                         name,
