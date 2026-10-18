@@ -258,9 +258,9 @@ pub(crate) fn run(id: &str) {
             let recursion = example_build("bend-recursion");
             let text = module_bend(&recursion, "Recursion/Main");
             assert!(text.contains(
-                "def ll_code68(+ll_e: L.Lean.Prod(Nat, Nat), +n: Nat) -> Nat:\n  +high = S.Sem.fst(Nat, Nat, ll_e)\n  +low = S.Sem.snd(Nat, Nat, ll_e)\n  L.Lean.Nat.add(L.Lean.Nat.add(n, low), L.Lean.Nat.add(high, high))\n"
+                "def ll_code98(+ll_e: L.Lean.Prod(Nat, Nat), +n: Nat) -> Nat:\n  +high = S.Sem.fst(Nat, Nat, ll_e)\n  +low = S.Sem.snd(Nat, Nat, ll_e)\n  L.Lean.Nat.add(L.Lean.Nat.add(n, low), L.Lean.Nat.add(high, high))\n"
             ) && text.contains(
-                "  applyTwice(~L.Lean.Prod(Nat, Nat), ~ll_code68, (high, low), value)\n"
+                "  applyTwice(~L.Lean.Prod(Nat, Nat), ~ll_code98, (high, low), value)\n"
             ), "a lambda capturing two locals rebinds them from the pair it is passed");
             if support::bend_backed(id) {
                 let (dir, modules) = generated_modules(&build);
@@ -271,8 +271,8 @@ pub(crate) fn run(id: &str) {
                 let (accepted, output) = check_planted(&recursion, "Recursion/Main", &|text| {
                     replace_one(
                         text,
-                        "~ll_code68, (high, low), value)\n",
-                        "~ll_code68, (low, high), value)\n",
+                        "~ll_code98, (high, low), value)\n",
+                        "~ll_code98, (low, high), value)\n",
                     )
                 });
                 assert!(
@@ -403,7 +403,7 @@ pub(crate) fn run(id: &str) {
             };
             let implied = proof_of("implied_pair");
             assert!(
-                implied.contains("{ll_h0(ll_c72) : L.Lean.Prod(S.Sem.le(y, 3n), S.Sem.le(x, 2n))}")
+                implied.contains("{ll_h0(ll_c102) : L.Lean.Prod(S.Sem.le(y, 3n), S.Sem.le(x, 2n))}")
                     && implied.matches("LA.sound(").count() == 1
                     && implied.starts_with("def implied_pair(x, y, ll_h0, ll_h1):\n  S.Sem.and_prod("),
                 "a premise implying a data conjunction is rebuilt as `holds` reads it, and a conjunction over it is one certificate"
@@ -744,7 +744,7 @@ pub(crate) fn run(id: &str) {
                 "each member keeps its name and signature"
             );
             assert!(
-                main.contains("(+ll_a57 => {walk.ll_go(ll_f52, walk.ll_sel.walk{ll_a57}) : Nat})"),
+                main.contains("(+ll_a61 => {walk.ll_go(ll_f56, walk.ll_sel.walk{ll_a61}) : Nat})"),
                 "a call in a lifted match is passed in as a function over a piece of the fuel"
             );
             if support::bend_backed(id) {
@@ -757,7 +757,7 @@ pub(crate) fn run(id: &str) {
                 let (accepted, output) = check_planted(&build, "Recursion/Main", &|text| {
                     replace_one(
                         text,
-                        "walk.ll_go(ll_f52, walk.ll_sel.depth{number})",
+                        "walk.ll_go(ll_f56, walk.ll_sel.depth{number})",
                         "walk.ll_go(1n+ll_f52, walk.ll_sel.depth{number})",
                     )
                 });
@@ -834,29 +834,29 @@ pub(crate) fn run(id: &str) {
             let build = example_build("bend-recursion");
             let main = module_bend(&build, "Recursion/Main");
             assert!(
-                main.contains("        case Con{later, more}:\n          match more:\n            case Nil{}:\n              ll_match61(later, head)\n"),
+                main.contains("        case Con{later, more}:\n          match more:\n            case Nil{}:\n              ll_match91(later, head)\n"),
                 "the element matched after the tail is passed to an auxiliary: {main}"
             );
             assert!(
                 main.contains(
-                    "def ll_match61(+ll_v62: Nat, +head: Nat) -> Nat:\n  match ll_v62:\n"
+                    "def ll_match91(+ll_v92: Nat, +head: Nat) -> Nat:\n  match ll_v92:\n"
                 ),
                 "the auxiliary matches its parameter"
             );
             assert!(
-                main.contains("    case Con{head, rest}:\n      ll_match64(isEven(head), head, (+ll_unit => firstEven(rest)))\n")
-                    && main.contains("    case False{}:\n      ll_k63(Unit{})\n"),
+                main.contains("    case Con{head, rest}:\n      ll_match94(isEven(head), head, (+ll_unit => firstEven(rest)))\n")
+                    && main.contains("    case False{}:\n      ll_k93(Unit{})\n"),
                 "the recursive call is passed in as a function the recursing branch applies"
             );
             assert!(
-                main.contains("def ll_match66(~ll_E_step: Data, ~step: @+ll_e: ll_E_step -> @+x: Nat -> Nat, +ll_v67: Bool, +ll_env_step: ll_E_step, +value: Nat) -> Nat:\n")
+                main.contains("def ll_match96(~ll_E_step: Data, ~step: @+ll_e: ll_E_step -> @+x: Nat -> Nat, +ll_v97: Bool, +ll_env_step: ll_E_step, +value: Nat) -> Nat:\n")
                     && main.contains("      applyTwice(~ll_E_step, ~step, ll_env_step, value)\n")
-                    && main.contains("  ll_match66(~ll_E_step, ~step, L.Lean.Nat.beq(value, 0n), ll_env_step, value)\n"),
+                    && main.contains("  ll_match96(~ll_E_step, ~step, L.Lean.Nat.beq(value, 0n), ll_env_step, value)\n"),
                 "a function parameter reaches the auxiliary as its code and environment"
             );
             assert!(
                 main.contains(
-                    "  +scale = L.Lean.Nat.add(factor, factor)\n  ll_match70(values, scale)\n"
+                    "  +scale = L.Lean.Nat.add(factor, factor)\n  ll_match100(values, scale)\n"
                 ),
                 "a match after a `let` on a local bound before it is lifted"
             );
@@ -889,6 +889,53 @@ pub(crate) fn run(id: &str) {
                     !accepted && output.starts_with("SOME PROOFS FAIL"),
                     "the passed function is the one applied: {output}"
                 );
+            }
+        }
+        // §18.11.3: a simultaneous group states the equations it lowers.
+        "BN-25" => {
+            let build = example_build("bend-recursion");
+            let main = module_bend(&build, "Recursion/Main");
+            let syntax = module_bend(&build, "Recursion/Syntax");
+            for law in [
+                "law exprSize.ll_eq_literal:\n",
+                "law exprSize.ll_eq_plus:\n",
+                "law exprSize.ll_eq_block:\n",
+                "law statementsSize.ll_eq_nil:\n",
+                "law statementsSize.ll_eq_cons:\n",
+                "law statementSize.ll_eq_assign:\n",
+                "law statementSize.ll_eq_sequence:\n",
+            ] {
+                assert!(main.contains(law), "the group states `{law}`: {main}");
+            }
+            assert!(
+                main.contains(
+                    "{exprSize(Recursion_Syntax.Expr.block{Recursion_Syntax.Expr.ll_from2("
+                ),
+                "a Lean list field enters the family through its conversion"
+            );
+            assert!(
+                syntax.contains("law Expr.ll_to_from2:\n"),
+                "the family's list conversion round-trips: {syntax}"
+            );
+            if support::bend_backed(id) {
+                let (dir, generated) = generated_modules(&build);
+                for path in generated {
+                    let (accepted, output) = support::bend_check(&dir.path().join(&path));
+                    assert!(accepted, "{path}: {output}");
+                }
+                // The plant: a member whose lowered branch is not Lean's.
+                let (accepted, output) = check_planted(&build, "Recursion/Main", &|text| {
+                    replace_one(
+                        text,
+                        "        case exprSize.ll_sel.exprSize{ll_es}:\n          1n\n",
+                        "        case exprSize.ll_sel.exprSize{ll_es}:\n          2n\n",
+                    )
+                });
+                assert!(
+                    !accepted,
+                    "a lowered branch that breaks its equation is refused"
+                );
+                assert!(output.contains("exprSize.ll_eq_literal"), "{output}");
             }
         }
         // §10.5: a Bend project needs no Lean.

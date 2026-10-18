@@ -28,7 +28,7 @@
 //!   since Bend has no forward reference, and one that recurses
 //!   simultaneously is one definition over its members' common type and a
 //!   selector of the member (`group.rs`), over an indexed family when that
-//!   type is a nested or mutual inductive (`family.rs`), both exploratory;
+//!   type is a nested or mutual inductive (`family.rs`);
 //!   a well-founded definition runs on proof-carrying fuel
 //!   (`wellfounded.rs`).
 //! - **Binder order.** Bend matches a local only while no later-bound local
@@ -327,6 +327,12 @@ pub struct Lower<'p, 'a> {
     /// Bend name: what a generated theorem's proof unfolds and splits
     /// (see `reasoning`).
     emitted: BTreeMap<String, Item>,
+    /// Each lifted match's auxiliary, by what it lowers: the match, its free
+    /// locals with their spellings, types, and representations, the type
+    /// parameters, and the goal. Lowering the same match again reuses the
+    /// auxiliary, so a term that restates a definition's body (a group's
+    /// equation, see `group`) converts with it.
+    lifted_aux: BTreeMap<String, String>,
 }
 
 fn synthetic(text: impl Into<String>) -> Name {
@@ -447,6 +453,7 @@ impl<'p, 'a> Lower<'p, 'a> {
             lifted: false,
             codes: BTreeMap::new(),
             emitted: BTreeMap::new(),
+            lifted_aux: BTreeMap::new(),
         }
     }
 
@@ -1981,7 +1988,38 @@ impl<'p, 'a> Lower<'p, 'a> {
                     .map(|(spelled, ty)| (name.clone(), spelled.clone(), ty.clone()))
             })
             .collect();
-        let name = self.fresh("match");
+        let key = format!(
+            "{scrutinee:?}|{branches:?}|{:?}|{:?}|{:?}|{:?}",
+            free.iter()
+                .map(|(source, spelled, ty)| (
+                    source,
+                    spelled,
+                    ty,
+                    scope.family(source).is_some(),
+                    scope.closures.contains_key(source)
+                ))
+                .collect::<Vec<_>>(),
+            hoisted
+                .iter()
+                .map(|call| call.signature())
+                .collect::<Vec<_>>(),
+            self.type_parameters,
+            result_type,
+        );
+        // The hoisted calls' spellings are fresh per lowering, so the key
+        // names them by position; a whole quoted local is replaced, never a
+        // suffix of a longer one.
+        let key = hoisted
+            .iter()
+            .enumerate()
+            .fold(key, |key, (position, call)| {
+                key.replace(
+                    &format!("{:?}", generated(call.name())),
+                    &format!("\"<hoisted {position}>\""),
+                )
+            });
+        let known = self.lifted_aux.get(&key).cloned();
+        let name = known.clone().unwrap_or_else(|| self.fresh("match"));
         let target = self.fresh("v");
         let mut params = Vec::new();
         for type_parameter in self.type_parameters.clone() {
@@ -2079,21 +2117,24 @@ impl<'p, 'a> Lower<'p, 'a> {
         self.lifted = saved_lifted;
         let cases = cases?;
         let result = self.ty(&result_type)?;
-        self.aux.push(Item::Def {
-            name: synthetic(name.clone()),
-            params,
-            result,
-            result_source: here(),
-            body: Body {
-                stmts: Vec::new(),
-                tail: Tail::Match {
-                    scrutinee: synthetic(target),
-                    cases,
-                    source: here(),
+        if known.is_none() {
+            self.lifted_aux.insert(key, name.clone());
+            self.aux.push(Item::Def {
+                name: synthetic(name.clone()),
+                params,
+                result,
+                result_source: here(),
+                body: Body {
+                    stmts: Vec::new(),
+                    tail: Tail::Match {
+                        scrutinee: synthetic(target),
+                        cases,
+                        source: here(),
+                    },
                 },
-            },
-            source: here(),
-        });
+                source: here(),
+            });
+        }
         let mut args: Vec<BTerm> = self
             .type_parameters
             .clone()

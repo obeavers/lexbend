@@ -48,12 +48,18 @@ versions, and the entries below say what each tag does and does not claim.
   common type and a generated selector of the member; when that type is a
   nested or mutual inductive, the inductive set lowers as one Bend type
   indexed by its base and nested list types, each constructor carrying the
-  equation of its index (SPEC.md §18.11.3). This encoding is exploratory
-  and still to be confirmed: it is checked by the pinned Bend and the kernel
-  recheck on `bend-recursion`, which now holds the 1.2 example's
-  `SyntaxSize` and `Folding` groups, but its coverage and cost (a proof that
-  evaluates a large interpreter run by reflexivity can exhaust the checker)
-  are being explored, and a proof that splits a family value is refused. A
+  equation of its index (SPEC.md §18.11.3). Each lowered group carries its
+  members' Lean defining equations as laws proved by reflexivity, one per
+  member and constructor at which the body splits no local, and each family
+  list a law that the conversion from a Lean list and back is the identity,
+  so the pinned Bend refuses a lowering that breaks an equation; the
+  remaining step, that every family value is a Lean value, rests on
+  BendTT's canonicity. `bend-recursion` holds the 1.2 example's `SyntaxSize`
+  and `Folding` groups, and the compiler project's `Comparison` and
+  evaluator groups state 81 equations, all accepted by the checker and the
+  kernel recheck. A proof that splits a family value is refused, and a proof
+  that evaluates a large interpreter run by reflexivity can exhaust the
+  kernel's fixed step budget. A
   match that would break Bend's binder order, including one after a `let`,
   lowers to an auxiliary definition, which receives a function parameter it
   uses as its code and environment. `decide` matches every Boolean its
@@ -67,7 +73,7 @@ versions, and the entries below say what each tag does and does not claim.
   theorem of its Lean modules, and with the compiler project's five
   reasoning oracles checks under the pinned Bend and the kernel recheck.
   Language 2.2 refuses, with `LLB6008`, a well-founded definition in a
-  mutual group and a higher-order function passed as a value. New: `BN-01`..`BN-24`, `CF-19`, `CF-20`,
+  mutual group and a higher-order function passed as a value. New: `BN-01`..`BN-25`, `CF-19`, `CF-20`,
   `VR-24`..`VR-30`; schemas `project-v3`/`-v4`, `lock-v3`/`-v4`,
   `build-manifest-v3`/`-v4`, `attestation-v3`/`-v4`, `semantic-snapshot-v3`,
   `coverage-v2`, `source-map-v2`; `lexlean init --language 2.0|2.2`. The

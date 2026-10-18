@@ -178,3 +178,11 @@ Feature: bend-backend
     And a configuration naming only one of `lean_workspace` and `lean_toolchain` is refused with LLC0101
     And the semantic example with a production root is refused with LLC0101 naming the root
     And every committed language-2.0 or 2.2 example without a production root is Lean-free
+
+  @BN-25 @build
+  Scenario: Every simultaneous mutual group a language-2.2 module lowers carries, for each member and each constructor of its recursive parameter's Lean type at which the member's body splits no local, a Bend law stating that member's Lean defining equation there, proved by reflexivity, and every list of an indexed family a law that converting a Lean list into the family and back is the identity, so the pinned Bend refuses a lowered group that breaks a member's equation.
+    Given the language-2.2 recursion example, whose `SyntaxSize` group recurses over the indexed family of `Expr`, `Stmt`, and `List Stmt`
+    When it is built and its modules are checked by the pinned Bend
+    Then its main module states `exprSize`'s equation for `literal`, `plus`, and `block`, `statementsSize`'s for `nil` and `cons`, and `statementSize`'s for `assign` and `sequence`, each proved by reflexivity
+    And its syntax module proves that `Expr.ll_to2` undoes `Expr.ll_from2` by induction on the list
+    And every module checks, and the lowered `exprSize` with its `literal` branch altered is refused

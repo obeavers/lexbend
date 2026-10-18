@@ -162,59 +162,38 @@ def ll_code22(+ll_e: Unit, +__out: List<&2, L.Lean.Int>, +__value: L.Lean.Int) -
 def DigitNet.layer3(+__values: List<&2, L.Lean.Int>) -> List<&2, L.Lean.Int>:
   S.Sem.listFold(~L.Lean.Int, ~List<&2, L.Lean.Int>, ~Unit, ~ll_code22, Unit{}, __values, Nil{})
 
-def ll_match25(+ll_v26: List<&2, L.Lean.Int>, +__sum: L.Lean.Prod(L.Lean.Int, List<&2, L.Lean.Int>), +__weight: L.Lean.Int) -> L.Lean.Prod(L.Lean.Int, List<&2, L.Lean.Int>):
-  match ll_v26:
-    case Nil{}:
-      __sum
-    case Con{__value, __rest}:
-      (L.Lean.Int.sub(S.Sem.fst(L.Lean.Int, List<&2, L.Lean.Int>, __sum), L.Lean.Int.neg(L.Lean.Int.mul(__weight, __value))), __rest)
-
-def ll_code27(+ll_e: Unit, +__sum: L.Lean.Prod(L.Lean.Int, List<&2, L.Lean.Int>), +__weight: L.Lean.Int) -> L.Lean.Prod(L.Lean.Int, List<&2, L.Lean.Int>):
-  ll_match25(S.Sem.snd(L.Lean.Int, List<&2, L.Lean.Int>, __sum), __sum, __weight)
-
-def ll_match23(+ll_v24: List<&2, L.Lean.Int>, +__acc: L.Lean.Prod(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>), +__row: List<&2, L.Lean.Int>, +__values: List<&2, L.Lean.Int>) -> L.Lean.Prod(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>):
-  match ll_v24:
-    case Nil{}:
-      __acc
-    case Con{__bias, __biases}:
-      (R.LexLeanRuntime.append.List(L.Lean.Int, S.Sem.fst(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>, __acc), Con{L.Lean.Int.sub(__bias, L.Lean.Int.neg(S.Sem.fst(L.Lean.Int, List<&2, L.Lean.Int>, S.Sem.listFold(~L.Lean.Int, ~L.Lean.Prod(L.Lean.Int, List<&2, L.Lean.Int>), ~Unit, ~ll_code27, Unit{}, __row, (L.ofNat{0n}, __values))))), Nil{}}), __biases)
-
-def ll_code28(+ll_e: List<&2, L.Lean.Int>, +__acc: L.Lean.Prod(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>), +__row: List<&2, L.Lean.Int>) -> L.Lean.Prod(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>):
-  +__values = ll_e
-  ll_match23(S.Sem.snd(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>, __acc), __acc, __row, __values)
-
 def DigitNet.layer4(+__values: List<&2, L.Lean.Int>) -> List<&2, L.Lean.Int>:
-  S.Sem.fst(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>, S.Sem.listFold(~List<&2, L.Lean.Int>, ~L.Lean.Prod(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>), ~List<&2, L.Lean.Int>, ~ll_code28, __values, outputWeights(), (Nil{}, outputBias())))
+  S.Sem.fst(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>, S.Sem.listFold(~List<&2, L.Lean.Int>, ~L.Lean.Prod(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>), ~List<&2, L.Lean.Int>, ~ll_code20, __values, outputWeights(), (Nil{}, outputBias())))
 
 def DigitNet.logits(+glyph: Models_Glyphs.Glyph) -> List<&2, L.Lean.Int>:
   DigitNet.layer4(DigitNet.layer3(DigitNet.layer2(DigitNet.layer1(DigitNet.encoded(glyph)))))
 
-def ll_match29(+ll_v30: Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>) -> Nat:
-  match ll_v30:
+def ll_match25(+ll_v26: Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>) -> Nat:
+  match ll_v26:
     case None{}:
       0n
     case Some{__winner}:
       S.Sem.fst(Nat, L.Lean.Int, __winner)
 
-def ll_match33(+ll_v34: Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, +__label: Nat, +__score: L.Lean.Int) -> Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>:
-  match ll_v34:
+def ll_match29(+ll_v30: Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, +__label: Nat, +__score: L.Lean.Int) -> Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>:
+  match ll_v30:
     case None{}:
       Some{(__label, __score)}
     case Some{__leader}:
       S.Sem.ite(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, R.LexLeanCollections.lessThan.Int(S.Sem.snd(Nat, L.Lean.Int, __leader), __score), Some{(__label, __score)}, Some{__leader})
 
-def ll_match31(+ll_v32: List<&2, Nat>, +__best: L.Lean.Prod(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, List<&2, Nat>), +__score: L.Lean.Int) -> L.Lean.Prod(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, List<&2, Nat>):
-  match ll_v32:
+def ll_match27(+ll_v28: List<&2, Nat>, +__best: L.Lean.Prod(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, List<&2, Nat>), +__score: L.Lean.Int) -> L.Lean.Prod(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, List<&2, Nat>):
+  match ll_v28:
     case Nil{}:
       __best
     case Con{__label, __labels}:
-      (ll_match33(S.Sem.fst(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, List<&2, Nat>, __best), __label, __score), __labels)
+      (ll_match29(S.Sem.fst(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, List<&2, Nat>, __best), __label, __score), __labels)
 
-def ll_code35(+ll_e: Unit, +__best: L.Lean.Prod(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, List<&2, Nat>), +__score: L.Lean.Int) -> L.Lean.Prod(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, List<&2, Nat>):
-  ll_match31(S.Sem.snd(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, List<&2, Nat>, __best), __best, __score)
+def ll_code31(+ll_e: Unit, +__best: L.Lean.Prod(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, List<&2, Nat>), +__score: L.Lean.Int) -> L.Lean.Prod(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, List<&2, Nat>):
+  ll_match27(S.Sem.snd(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, List<&2, Nat>, __best), __best, __score)
 
 def DigitNet(+glyph: Models_Glyphs.Glyph) -> Nat:
-  ll_match29(S.Sem.fst(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, List<&2, Nat>, S.Sem.listFold(~L.Lean.Int, ~L.Lean.Prod(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, List<&2, Nat>), ~Unit, ~ll_code35, Unit{}, DigitNet.logits(glyph), (None{}, Con{0n, Con{1n, Con{2n, Con{3n, Con{4n, Con{5n, Con{6n, Con{7n, Con{8n, Con{9n, Nil{}}}}}}}}}}}))))
+  ll_match25(S.Sem.fst(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, List<&2, Nat>, S.Sem.listFold(~L.Lean.Int, ~L.Lean.Prod(Maybe<&2, L.Lean.Prod(Nat, L.Lean.Int)>, List<&2, Nat>), ~Unit, ~ll_code31, Unit{}, DigitNet.logits(glyph), (None{}, Con{0n, Con{1n, Con{2n, Con{3n, Con{4n, Con{5n, Con{6n, Con{7n, Con{8n, Con{9n, Nil{}}}}}}}}}}}))))
 
 law digit_net_exact:
   for +glyph: Models_Glyphs.Glyph
@@ -285,32 +264,32 @@ law same_digit_sound:
 def same_digit_sound(expected, observed, ll_h0):
   LA.sound(Con{expected, Con{observed, Nil{}}}, LA.FEq{LA.TVar{0n}, LA.TVar{1n}}, Con{LA.FIs{LA.BEq{LA.TVar{0n}, LA.TVar{1n}}, True{}}, Nil{}}, 9n, LA.Fork{LA.Leaf{Con{1n, Con{0n, Con{1n, Nil{}}}}}, LA.Leaf{Con{0n, Con{1n, Con{1n, Nil{}}}}}}, {==}, (ll_h0, Unit{}))
 
-def ll_code36(+ll_e: Unit, +count: Nat, +example: L.Lean.Prod(Models_Glyphs.Glyph, Nat)) -> Nat:
+def ll_code32(+ll_e: Unit, +count: Nat, +example: L.Lean.Prod(Models_Glyphs.Glyph, Nat)) -> Nat:
   S.Sem.ite(Nat, sameDigit(DigitNet(S.Sem.fst(Models_Glyphs.Glyph, Nat, example)), S.Sem.snd(Models_Glyphs.Glyph, Nat, example)), L.Lean.Nat.add(count, 1n), count)
 
 law labeled_agreement:
-  L.Lean.Prod({R.LexLeanRuntime.length.List(L.Lean.Prod(Models_Glyphs.Glyph, Nat), labeledGlyphs()) == 5n : Nat}, {S.Sem.listFold(~L.Lean.Prod(Models_Glyphs.Glyph, Nat), ~Nat, ~Unit, ~ll_code36, Unit{}, labeledGlyphs(), 0n) == 4n : Nat})
+  L.Lean.Prod({R.LexLeanRuntime.length.List(L.Lean.Prod(Models_Glyphs.Glyph, Nat), labeledGlyphs()) == 5n : Nat}, {S.Sem.listFold(~L.Lean.Prod(Models_Glyphs.Glyph, Nat), ~Nat, ~Unit, ~ll_code32, Unit{}, labeledGlyphs(), 0n) == 4n : Nat})
 
 def labeled_agreement():
   ({==}, {==})
 
 law DigitEvidence.labeled_agreement:
-  R.LexLeanModels.Agreement(Models_Glyphs.Glyph, Nat, (+ll_x37 => DigitNet(ll_x37)), (+ll_x38 => +ll_x39 => sameDigit(ll_x38, ll_x39)), labeledGlyphs(), 5n, 4n)
+  R.LexLeanModels.Agreement(Models_Glyphs.Glyph, Nat, (+ll_x33 => DigitNet(ll_x33)), (+ll_x34 => +ll_x35 => sameDigit(ll_x34, ll_x35)), labeledGlyphs(), 5n, 4n)
 
 def DigitEvidence.labeled_agreement():
   ({==}, {==})
 
 law DigitEvidence.digit_net_exact:
-  R.LexLeanModels.EquivalentTotal(Models_Glyphs.Glyph, Nat, (+ll_x40 => DigitNet(ll_x40)), (+ll_x41 => Models_Glyphs.digitOf(ll_x41)))
+  R.LexLeanModels.EquivalentTotal(Models_Glyphs.Glyph, Nat, (+ll_x36 => DigitNet(ll_x36)), (+ll_x37 => Models_Glyphs.digitOf(ll_x37)))
 
 def DigitEvidence.digit_net_exact():
-  ll_a42 => digit_net_exact(ll_a42)
+  ll_a38 => digit_net_exact(ll_a38)
 
 law DigitEvidence.digit_net_correct:
-  R.LexLeanModels.SatisfiesTotal(Models_Glyphs.Glyph, Nat, (+ll_x43 => +ll_x44 => Recognizes(ll_x43, ll_x44)), (+ll_x45 => DigitNet(ll_x45)))
+  R.LexLeanModels.SatisfiesTotal(Models_Glyphs.Glyph, Nat, (+ll_x39 => +ll_x40 => Recognizes(ll_x39, ll_x40)), (+ll_x41 => DigitNet(ll_x41)))
 
 def DigitEvidence.digit_net_correct():
-  ll_a46 => digit_net_correct(ll_a46)
+  ll_a42 => digit_net_correct(ll_a42)
 
 def DigitModel(+__input: Models_Glyphs.Glyph) -> Nat:
   DigitNet(__input)

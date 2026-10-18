@@ -7005,13 +7005,6 @@ already lowered; every member keeps its name, signature, and definitional
 equations. A group that passes one of its members as a value, or that holds
 a well-founded definition (§18.11.4), is `LLB6008`.
 
-*Exploratory, to be confirmed.* The lowering of simultaneous recursion
-below is checked by the pinned Bend and by its kernel recheck on every
-committed example that uses it, but its coverage of the semantic surface,
-its cost on large proofs by evaluation, and the faithfulness argument for
-the indexed encoding are still being explored; it may change shape before
-it is relied on for production certificates (D7).
-
 A group in which several members call themselves and one another needs
 simultaneous recursion, which Bend cannot state as separate definitions.
 When every member recurses over one type, its *carrier*, the group lowers to
@@ -7064,6 +7057,27 @@ none), built around the call on the same decreasing argument, and the
 branch applies it: only the branch the match takes makes the call, as in
 Lean. A call whose decreasing argument the match's own binders reach is
 `LLB6008`.
+
+A lowered group states its own faithfulness, and the pinned Bend checks it.
+For each member and each constructor of its recursive parameter's Lean type
+at which the member's body splits no local, the module carries the law
+`<member>.ll_eq_<constructor>`, proved by reflexivity: the member, called by
+its Lean name on that constructor applied to fresh fields (a list field
+entering the family through `T.ll_fromj`), equals the member's body there,
+each member call in it a call of `F.ll_go`. A lowering whose selector,
+dispatch, or family embedding breaks a member's Lean equation is therefore
+refused. Where the body splits a local, `F.ll_go` splits it as a statement
+and a claim could hold only a lifted match, which is stuck until its
+scrutinee is a constructor, so no law is stated there. Every list of a
+family carries `T.ll_to_fromj`, proved by induction on the list: converting
+a Lean list into the family and back is the identity, so the conversion at
+each boundary loses nothing. The converse, that every family list at an
+index is the image of a Lean list, is not provable in BendTT, which has no
+proof irrelevance to identify two proofs of an index equation; it follows
+from the canonicity of BendTT's closed values, a property of the kernel that
+no module checks. A proof that evaluates a large closed term through a group
+(an interpreter run proved by `{==}`) can exhaust the kernel's fixed step
+budget (§22.13).
 
 #### 18.11.4 Well-founded definitions
 
@@ -8200,6 +8214,15 @@ After an accepting recheck, verification reads that file and records its
 SHA-256 as the `kernel_sha256` of the attestation's `bend` object, so a
 verified attestation names the kernel that accepted the program; an accepting
 recheck with no kernel there is `LLV7019`.
+
+The kernel normalizes strictly and gives each reduction, conversion, and
+check a fixed budget of 400,000,000 steps, set in its source. A proof by
+evaluation that the lazy checker of stage 3 accepts can exhaust that budget
+(the kernel reports running out of fuel) and is then `LLV7021`: the
+compiler's GNAF fixtures, each a closed interpreter run proved by `{==}`,
+do so with ten times the budget, and with a thousand times it the kernel
+gave no verdict within twelve minutes. The budget is the
+pinned Bend's and no generated module can raise it.
 
 A project whose every module lowers to Bend and that declares no production
 root is verified by Bend alone, and every language-2.0 project is one. After
@@ -9742,6 +9765,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `BN-22` | `bend-backend` | A language-2.2 nested or mutual inductive that a simultaneous mutual group recurses over lowers to one Bend type indexed by its base and nested list types, each constructor carrying the equation of its index, and the pinned Bend checks the groups over it. | §18.11.3 |
 | `BN-23` | `bend-backend` | A language-2.2 match on a computed value, or on a local bound before a `let` or before one an enclosing match has opened, lowers to an auxiliary definition that receives each function parameter it uses as its code and environment, each recursive call in its branches passed in as a function over a piece of the decreasing argument, and the pinned Bend checks it. | §18.11.3 |
 | `BN-24` | `bend-backend` | A language-2.0 or 2.2 project whose configuration names no Lean workspace or toolchain carries no Lean: its lock pins no Lean file, its build emits no Lean module, it is verified by Bend alone, and a production root in it is refused. | §10.5 |
+| `BN-25` | `bend-backend` | Every simultaneous mutual group a language-2.2 module lowers carries, for each member and each constructor of its recursive parameter's Lean type at which the member's body splits no local, a Bend law stating that member's Lean defining equation there, proved by reflexivity, and every list of an indexed family a law that converting a Lean list into the family and back is the identity, so the pinned Bend refuses a lowered group that breaks a member's equation. | §18.11.3 |
 | `TX-01` | `latex-pdf` | Canonical LaTeX is rendered solely from linked IR and never copies source text or controls. | §19.1 |
 | `TX-02` | `latex-pdf` | Every module uses the exact canonical LaTeX preamble and no host or timestamp metadata. | §19.2 |
 | `TX-03` | `latex-pdf` | Statements use only canonical controlled proposition and definition renderings. | §19.3, §19.4 |
@@ -9978,7 +10002,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `RT-03` | `runtime` | A verification compiles every runtime module that a project's generated modules, or the calculus modules its certificates are checked against, import before the project's modules, replays it with `leanchecker`, and audits each of its declarations against the axioms its row pins; the committed verification of a project that uses the collections prints them, the runtime's own project verifies under the pinned Lean, and a row that pins another axiom set than its declaration observes fails with LLV7005. | §17.12, §22.3, §22.5, §22.6 |
 | `RT-04` | `runtime` | No Lean runtime text remains in the language-1.2 compiler: a generated language-1.2 module imports the runtime modules whose constants it names and declares nothing under a runtime namespace, and the only Lean runtime text in the compiler's source outside unit-test items, in one string literal or in several written together, is the decoder of core module 2, which loads native modules and so cannot be one; a runtime text planted in any of its shapes, raw or escaped, with or without a namespace line, split across literals, or after a test module, is found. | §17.12, §18.1 |
 
-**Total required capability IDs:** 420.
+**Total required capability IDs:** 421.
 
 No row may be downgraded to `some-true` or `open`. Upstream Lean facts are ledger/authority rows, not substitutions for these build behaviors.
 
