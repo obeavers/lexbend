@@ -347,7 +347,7 @@ fn verify_bend(
             write_staged(staging.path(), relative, bytes)?;
         }
     }
-    let workspace_root = project.root.join(&project.config.lean_workspace);
+    let workspace_root = project.workspace_root();
     let normalizer = Normalizer::new(&staging_utf8, &project.root, &workspace_root, &tool.bin);
     let mut records = Vec::new();
     let mut module_paths = Vec::new();
@@ -438,7 +438,7 @@ fn publish_bend_alone(
     let verified_root = verified_root(project);
     let (staging, staging_utf8) = open_staging(&verified_root)?;
     let provider_root = pdf_provider_root(project)?;
-    let workspace_root = project.root.join(&project.config.lean_workspace);
+    let workspace_root = project.workspace_root();
     let normalizer = Normalizer::new(&staging_utf8, &project.root, &workspace_root, &tool.bin);
     stage_build(staging.path(), build)?;
     stage_bend(staging.path(), build, &bend_records)?;
@@ -938,10 +938,11 @@ fn source_span(checked: &CheckedProject, module: &RenderedModule, range: (usize,
 }
 
 /// The source span of one generated declaration (§20.1: the primary
-/// location is the thing that failed). The Lean backend emits a
-/// declaration's name under the `declaration` role and its own reference
-/// origin, mapped to the declaration's whole source range, so the first
-/// coverage row carrying that origin under that role locates it. An
+/// location is the thing that failed). Each backend emits a declaration's
+/// name under the `declaration` role and its own reference origin, mapped to
+/// the declaration's whole source range, so the first coverage row carrying
+/// that origin under that role locates it: in the Lean, or, in a project
+/// that carries none, the Bend (§10.5). An
 /// axiom-policy, replay, or audit failure is about that declaration, not
 /// about the project manifest.
 fn declaration_span(
@@ -954,13 +955,15 @@ fn declaration_span(
         module: document_module.to_owned(),
         component: component.to_owned(),
     };
-    module
-        .coverage
-        .lean
-        .iter()
+    let (artifact, rows) = match (&module.coverage.lean, &module.coverage.bend) {
+        (Some(rows), _) => (0, rows),
+        (None, Some(rows)) => (2, rows),
+        (None, None) => return None,
+    };
+    rows.iter()
         .filter(|row| row.origin == origin)
         .find_map(|row| {
-            let mapping = module.map.remap(0, row.byte_start)?;
+            let mapping = module.map.remap(artifact, row.byte_start)?;
             if mapping.role == MapRole::Declaration {
                 mapping.src_range
             } else {
@@ -1012,10 +1015,14 @@ fn release_non_diagnostic_buffers(build: &mut RenderedBuild) {
 /// elaboration, so releasing each module at that point lowers the parent
 /// process throughout the remaining topological sequence.
 fn release_module_diagnostic_buffers(module: &mut RenderedModule) {
-    module.lean_text.clear();
-    module.lean_text.shrink_to_fit();
-    module.coverage.lean.clear();
-    module.coverage.lean.shrink_to_fit();
+    if let Some(lean) = &mut module.lean {
+        lean.text.clear();
+        lean.text.shrink_to_fit();
+    }
+    if let Some(rows) = &mut module.coverage.lean {
+        rows.clear();
+        rows.shrink_to_fit();
+    }
     module.map.sources.clear();
     module.map.sources.shrink_to_fit();
     module.map.mappings.clear();
@@ -1113,12 +1120,12 @@ fn generated_name_notes(
         })
         .map(|mapping| mapping.gen_start)
         .min()
-        .unwrap_or(module.lean_text.len());
+        .unwrap_or(module.lean_text().len());
     let mut notes = Vec::new();
     for name in names {
-        let local = module.coverage.lean.iter().find_map(|row| {
+        let local = module.lean_coverage().iter().find_map(|row| {
             let within = row.byte_start >= declaration_start && row.byte_end <= declaration_end;
-            let text = module.lean_text.get(row.byte_start..row.byte_end);
+            let text = module.lean_text().get(row.byte_start..row.byte_end);
             match (&row.origin, within, text) {
                 (Origin::Local(id), true, Some(text)) if text == name => Some(*id),
                 _ => None,
@@ -1209,7 +1216,7 @@ fn remap_lean_output(
                 message.message
             ),
         );
-        let offset = lean_position_to_byte(&module.lean_text, message.line, message.column);
+        let offset = lean_position_to_byte(module.lean_text(), message.line, message.column);
         let generated_note = format!(
             "generated location: {}:{}:{}",
             message.path, message.line, message.column
@@ -1232,9 +1239,9 @@ fn remap_lean_output(
                         {
                             diagnostic = diagnostic.with_span(source_span(checked, module, range));
                         }
-                        let generated_end = module.lean_text[offset..]
+                        let generated_end = module.lean_text()[offset..]
                             .find(char::is_whitespace)
-                            .map_or(module.lean_text.len(), |length| offset + length);
+                            .map_or(module.lean_text().len(), |length| offset + length);
                         diagnostic = diagnostic.with_note(format!(
                             "{generated_note} (unmapped generated bytes {offset}..{generated_end})"
                         ));
@@ -1687,7 +1694,7 @@ pub fn run_part(
         let mut texts: Vec<&str> = build
             .modules
             .iter()
-            .map(|module| module.lean_text.as_str())
+            .map(|module| module.lean_text())
             .collect();
         if !certified.is_empty() {
             for module in crate::production::preserve::TARGET_MODULES {
@@ -1792,11 +1799,11 @@ pub fn run_part(
             .get(&module.module)
             .is_some_and(|checked| checked.document.semantic.is_some());
         let audited = if is_core {
-            generated_core_source_audit(&module.lean_text)
+            generated_core_source_audit(module.lean_text())
         } else if is_semantic {
-            generated_semantic_source_audit(&module.lean_text)
+            generated_semantic_source_audit(module.lean_text())
         } else {
-            generated_source_audit(&module.lean_text, false)
+            generated_source_audit(module.lean_text(), false)
         };
         if let Err(reason) = audited {
             return Err(fail(internal(format!(
@@ -1826,11 +1833,7 @@ pub fn run_part(
     let verified_root = verified_root(project);
     let (staging, staging_utf8) = open_staging(&verified_root)?;
     let provider_root = pdf_provider_root(project)?;
-    let workspace_root = if project.config.lean_workspace == "." {
-        project.root.clone()
-    } else {
-        project.root.join(&project.config.lean_workspace)
-    };
+    let workspace_root = project.workspace_root();
     let normalizer = Normalizer::new(
         &staging_utf8,
         &project.root,
@@ -1854,7 +1857,7 @@ pub fn run_part(
         write_staged(
             staging.path(),
             &format!("lean-src/{module_path}.lean"),
-            module.lean_text.as_bytes(),
+            module.lean_text().as_bytes(),
         )?;
     }
     for module in &runtime_modules {

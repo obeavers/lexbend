@@ -1,21 +1,8 @@
 spec = "lexlean/lock/3"
 language = "2.0"
-compiler_semantics = "479b81f45dce0ac5ede79d0a9c845c5d6c06c515f940a59a3350be81313885eb"
-project_config_sha256 = "89edce406799fdfe27ca4462f601a84028c6dad4ed813ec33f9fdf4b5a0ae252"
-lean_toolchain = "leanprover/lean4:v4.32.1"
+compiler_semantics = "2416fa625b0529a03571524213d8be227b01efb7b3de4bb4787e2395ca87d493"
+project_config_sha256 = "b16095d6a15c50952de48b59297c2e9887b0bc65c392dcca555009f514ab19f1"
 bend_toolchain = "bend 2.0.37"
-
-[[workspace_file]]
-path = "lake-manifest.json"
-sha256 = "882ef319454e50178e1610d657ff3dbdfed8605628a0a4840645314299f0cd3b"
-
-[[workspace_file]]
-path = "lakefile.toml"
-sha256 = "f12245e149dbe7d716f47e71e6310d85b4b1719cebb9bfe49b01996dcb9821a5"
-
-[[workspace_file]]
-path = "lean-toolchain"
-sha256 = "8e3538e0ab5f81a3ee04927d8838c8c674e0e112838b4b3ce87ec218143276af"
 
 [[package]]
 id = "example.logic"

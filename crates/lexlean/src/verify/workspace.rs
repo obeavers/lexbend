@@ -15,13 +15,7 @@ fn mismatch(message: impl Into<String>) -> Diagnostic {
 /// Check the recorded workspace pins against the current files and the
 /// availability of every Lake manifest dependency (VR-17).
 pub fn preflight(project: &Project, lock: &Lock) -> Result<(), Diagnostic> {
-    let workspace_relative = |name: &str| {
-        if project.config.lean_workspace == "." {
-            name.to_owned()
-        } else {
-            format!("{}/{name}", project.config.lean_workspace)
-        }
-    };
+    let workspace_relative = |name: &str| project.config.workspace_path(name);
     // The project `lean-toolchain` must carry the exact pinned string
     // (§8.2, §10.4); a hash match against a lock is not enough on its own.
     let toolchain_relative = workspace_relative("lean-toolchain");
@@ -91,11 +85,7 @@ pub fn preflight(project: &Project, lock: &Lock) -> Result<(), Diagnostic> {
                     .get("name")
                     .and_then(|value| value.as_str())
                     .unwrap_or("");
-                let workspace_root = if project.config.lean_workspace == "." {
-                    project.root.clone()
-                } else {
-                    project.root.join(&project.config.lean_workspace)
-                };
+                let workspace_root = project.workspace_root();
                 let materialized = workspace_root.join(".lake").join("packages").join(name);
                 let path_dir = package
                     .get("dir")
@@ -120,11 +110,7 @@ pub fn reject_module_conflicts(
     project: &Project,
     module_names: &[String],
 ) -> Result<(), Diagnostic> {
-    let workspace_root = if project.config.lean_workspace == "." {
-        project.root.clone()
-    } else {
-        project.root.join(&project.config.lean_workspace)
-    };
+    let workspace_root = project.workspace_root();
     for module in module_names {
         let relative: String = module.replace('.', "/") + ".lean";
         let candidate = workspace_root.join(&relative);

@@ -992,6 +992,27 @@ fn check_project_inline(
             )
             .with_span(span_of_range(&load.path, &load.atoms, range))]));
         }
+        // §10.5: a production root is extracted from Lean and certified by
+        // Lean proofs, so a project that carries no Lean has none.
+        if let Some(root) = production
+            .as_ref()
+            .and_then(|report| report.roots.first())
+            .filter(|_| !project.config.carries_lean())
+        {
+            let range = load
+                .ast
+                .semantic
+                .as_ref()
+                .map_or((0, load.atoms.len()), |ast| ast.data.range);
+            return Err(err(vec![Diagnostic::new(
+                code!("LLC0101"),
+                format!(
+                    "phase production: `{}` is a production root, and the project carries no Lean to extract and certify it: name a lean_workspace and a lean_toolchain in {}",
+                    root.root, project.config_name
+                ),
+            )
+            .with_span(span_of_range(&load.path, &load.atoms, range))]));
+        }
         report_bytes =
             report_bytes.saturating_add(production.as_ref().map_or(0, |report| report.bytes));
         let document = DocumentModule {
@@ -1024,7 +1045,7 @@ fn check_project_inline(
             module: module_name.clone(),
             source: rows.clone(),
             latex: Vec::new(),
-            lean: Vec::new(),
+            lean: None,
             bend: None,
         };
         if let Err(reason) = coverage.check_source_closure(&load.path, &load.atoms) {

@@ -2567,8 +2567,8 @@ fn weakened_library() -> (String, String) {
                 .iter()
                 .find(|module| module.lean_module == "LexLeanTarget.Certification")
                 .expect("Certification")
-                .lean_text
-                .clone()
+                .lean_text()
+                .to_owned()
         });
         let plant = "(if (Nat.blt (bound) (cost)) then Option.none else Option.some (Obligation.memberUnproven (position)))";
         assert_eq!(

@@ -66,6 +66,9 @@ pub struct Lock {
     pub compiler_semantics: Sha256Digest,
     /// SHA-256 of the canonical project configuration.
     pub project_config_sha256: Sha256Digest,
+    /// Whether the lock pins Lean: false only for a project that carries
+    /// none (§10.5).
+    pub carries_lean: bool,
     /// Workspace pin rows sorted by path.
     pub workspace_files: Vec<(String, Sha256Digest)>,
     /// Package rows sorted by `(id, version)`.
@@ -101,10 +104,12 @@ impl Lock {
             "project_config_sha256 = {}\n",
             toml_string(&self.project_config_sha256.to_hex())
         ));
-        out.push_str(&format!(
-            "lean_toolchain = {}\n",
-            toml_string(crate::LEAN_TOOLCHAIN)
-        ));
+        if self.carries_lean {
+            out.push_str(&format!(
+                "lean_toolchain = {}\n",
+                toml_string(crate::LEAN_TOOLCHAIN)
+            ));
+        }
         if crate::lowers_to_bend(&self.language) {
             out.push_str(&format!(
                 "bend_toolchain = {}\n",
@@ -177,7 +182,8 @@ struct RawLock {
     language: String,
     compiler_semantics: String,
     project_config_sha256: String,
-    lean_toolchain: String,
+    #[serde(default)]
+    lean_toolchain: Option<String>,
     #[serde(default)]
     bend_toolchain: Option<String>,
     #[serde(rename = "workspace_file", default)]
@@ -267,11 +273,27 @@ pub fn parse_lock(path: &str, bytes: &[u8]) -> Result<Lock, Vec<Diagnostic>> {
             format!("{path}: unsupported lock language `{}`", raw.language),
         ));
     }
-    if raw.lean_toolchain != crate::LEAN_TOOLCHAIN {
-        diagnostics.push(lock_error(format!(
-            "{path}: lock pins `{}`, not the language-1.0 toolchain",
-            raw.lean_toolchain
-        )));
+    match raw.lean_toolchain.as_deref() {
+        Some(toolchain) if toolchain != crate::LEAN_TOOLCHAIN => {
+            diagnostics.push(lock_error(format!(
+                "{path}: lock pins `{toolchain}`, not the language-1.0 toolchain"
+            )));
+        }
+        Some(_) => {}
+        // §10.5: only a Bend project carries no Lean, and a lock without a
+        // Lean toolchain pins no Lean workspace file.
+        None if !crate::lowers_to_bend(&raw.language) => {
+            diagnostics.push(lock_error(format!(
+                "{path}: a language-{} lock pins the Lean toolchain",
+                raw.language
+            )));
+        }
+        None if !raw.workspace_files.is_empty() => {
+            diagnostics.push(lock_error(format!(
+                "{path}: a lock that pins no Lean toolchain pins no Lean workspace file"
+            )));
+        }
+        None => {}
     }
     let bend_expected = crate::lowers_to_bend(&raw.language).then_some(crate::BEND_TOOLCHAIN);
     if raw.bend_toolchain.as_deref() != bend_expected {
@@ -376,6 +398,7 @@ pub fn parse_lock(path: &str, bytes: &[u8]) -> Result<Lock, Vec<Diagnostic>> {
             .collect(),
     });
     let lock = Lock {
+        carries_lean: raw.lean_toolchain.is_some(),
         language: raw.language,
         compiler_semantics,
         project_config_sha256,
@@ -1066,13 +1089,7 @@ fn pin_candidate(project: &Project, relative: &str) -> Result<Option<Vec<u8>>, D
 /// configuration, and `lake-manifest.json` when present. Every pinned file
 /// is confined: no symlink component (§25.1).
 pub fn workspace_pins(project: &Project) -> Result<Vec<(String, Sha256Digest)>, Vec<Diagnostic>> {
-    let workspace_relative = |name: &str| {
-        if project.config.lean_workspace == "." {
-            name.to_owned()
-        } else {
-            format!("{}/{name}", project.config.lean_workspace)
-        }
-    };
+    let workspace_relative = |name: &str| project.config.workspace_path(name);
     let mut diagnostics = Vec::new();
     let mut rows = Vec::new();
 
@@ -1166,12 +1183,13 @@ pub fn compute_lock(
             }
         }
     }
-    let workspace_files = match workspace_pins(project) {
-        Ok(rows) => rows,
-        Err(mut pin_diagnostics) => {
+    let workspace_files = if project.config.carries_lean() {
+        workspace_pins(project).unwrap_or_else(|mut pin_diagnostics| {
             diagnostics.append(&mut pin_diagnostics);
             Vec::new()
-        }
+        })
+    } else {
+        Vec::new()
     };
     let pdf = project.config.pdf.as_ref().map(|provider| {
         let resources = provider
@@ -1209,6 +1227,7 @@ pub fn compute_lock(
             language: project.config.language.clone(),
             compiler_semantics: crate::compiler_semantics_id_for(&project.config.language),
             project_config_sha256: project.config.config_sha256(),
+            carries_lean: project.config.carries_lean(),
             workspace_files,
             packages: resolved.rows,
             pdf,

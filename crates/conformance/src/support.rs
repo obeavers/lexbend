@@ -1229,8 +1229,8 @@ pub fn lean_text(build: &lexlean::api::RenderedBuild, module: &str) -> String {
         .iter()
         .find(|m| m.module == module)
         .unwrap_or_else(|| panic!("module {module} in build"))
-        .lean_text
-        .clone()
+        .lean_text()
+        .to_owned()
 }
 
 /// The canonical LaTeX text of one module from a rendered build.

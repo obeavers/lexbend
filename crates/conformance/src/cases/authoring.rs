@@ -828,7 +828,8 @@ fn tooling_notation() {
         let mut mapped = 0usize;
         for (left, right) in rendered_data.modules.iter().zip(&rendered_notation.modules) {
             assert_eq!(
-                left.lean_text, right.lean_text,
+                left.lean_text(),
+                right.lean_text(),
                 "{name}: the generated Lean differs"
             );
             assert_eq!(

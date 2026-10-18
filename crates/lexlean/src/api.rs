@@ -205,18 +205,42 @@ pub struct RenderedModule {
     /// Every declaration installed by the generated module, frozen before
     /// foundation-sized core expression DAGs are released.
     pub declaration_names: Vec<String>,
-    /// The generated Lean text.
-    pub lean_text: String,
+    /// The generated Lean module, for a project that carries Lean (§10.5).
+    pub lean: Option<RenderedLean>,
     /// The canonical LaTeX text.
     pub tex_text: String,
     /// The complete coverage record.
     pub coverage: Coverage,
     /// The module source map.
     pub map: SourceMap,
-    /// Build-relative artifact paths.
-    pub lean_path: String,
-    /// The `.tex` path.
+    /// The build-relative `.tex` path.
     pub tex_path: String,
+    /// The build-relative `.bend` path, for a module that lowers to Bend.
+    pub bend_path: Option<String>,
+}
+
+impl RenderedModule {
+    /// The generated Lean text: empty only in a project that carries no
+    /// Lean, which Bend verifies alone and so never reaches a Lean stage
+    /// (§10.5, §22.13).
+    #[must_use]
+    pub fn lean_text(&self) -> &str {
+        self.lean.as_ref().map_or("", |lean| lean.text.as_str())
+    }
+
+    /// The generated Lean coverage rows, as [`Self::lean_text`].
+    #[must_use]
+    pub fn lean_coverage(&self) -> &[crate::source::coverage::OutputRow] {
+        self.coverage.lean.as_deref().unwrap_or_default()
+    }
+}
+
+/// One generated Lean module of a build.
+pub struct RenderedLean {
+    /// The build-relative `.lean` path.
+    pub path: String,
+    /// The generated Lean text.
+    pub text: String,
 }
 
 /// A fully rendered build (§21.5).
@@ -279,13 +303,20 @@ pub fn render_build(
     )
     .map_err(LexLeanError::from_diagnostic)?;
     for (name, checked_module) in &checked.modules {
-        let lean_emitter = crate::backend::lean::render_module(
-            checked_module,
-            &checked.closure,
-            &project.config.module_prefix,
-            &aliases,
-        )
-        .map_err(LexLeanError::from_diagnostic)?;
+        // §10.5: a project that carries no Lean renders none.
+        let lean_emitter = project
+            .config
+            .carries_lean()
+            .then(|| {
+                crate::backend::lean::render_module(
+                    checked_module,
+                    &checked.closure,
+                    &project.config.module_prefix,
+                    &aliases,
+                )
+            })
+            .transpose()
+            .map_err(LexLeanError::from_diagnostic)?;
         let tex_emitter = crate::backend::latex::render_module(checked_module, &checked.closure)
             .map_err(LexLeanError::from_diagnostic)?;
         let lean_module = checked_module.document.lean_module.clone();
@@ -296,7 +327,9 @@ pub fn render_build(
         let coverage_path = format!("coverage/{module_path}.coverage.json");
         let closure_path = format!("lexicons/{name}.closure.json");
 
-        // The module source map over both artifacts (§20.3).
+        // The module source map over every artifact (§20.3). An artifact's
+        // ID names its kind, so a module that has no Lean artifact keeps the
+        // IDs of the others.
         let mut map = SourceMap {
             source_id: checked.source_id,
             semantic_id: checked.semantic_id,
@@ -306,25 +339,34 @@ pub fn render_build(
                 path: checked_module.document.source_path.clone(),
                 sha256: checked_module.document.source_sha256,
             }],
-            artifacts: vec![
-                MapArtifact {
-                    id: 0,
-                    kind: ArtifactKind::Lean,
-                    path: lean_path.clone(),
-                },
-                MapArtifact {
-                    id: 1,
-                    kind: ArtifactKind::Tex,
-                    path: tex_path.clone(),
-                },
-            ],
+            artifacts: Vec::new(),
             nodes: Vec::new(),
             mappings: Vec::new(),
         };
-        lean_emitter.fold_into_map(&mut map, 0, 0);
+        if let Some(emitter) = &lean_emitter {
+            map.artifacts.push(MapArtifact {
+                id: 0,
+                kind: ArtifactKind::Lean,
+                path: lean_path.clone(),
+            });
+            emitter.fold_into_map(&mut map, 0, 0);
+        }
+        map.artifacts.push(MapArtifact {
+            id: 1,
+            kind: ArtifactKind::Tex,
+            path: tex_path.clone(),
+        });
         tex_emitter.fold_into_map(&mut map, 1, 0);
         let bend_emitter = bend_emitters.get(name);
         let bend_path = crate::backend::bend::module_path(&lean_module);
+        if lean_emitter.is_none() && bend_emitter.is_none() {
+            return Err(LexLeanError::from_diagnostic(Diagnostic::new(
+                code!("LLB6008"),
+                format!(
+                    "module `{name}` does not lower to Bend, and the project carries no Lean to generate it in (§10.5)"
+                ),
+            )));
+        }
         if let Some(emitter) = bend_emitter {
             map.artifacts.push(MapArtifact {
                 id: 2,
@@ -338,7 +380,9 @@ pub fn render_build(
             module: name.clone(),
             source: checked_module.coverage_source.clone(),
             latex: tex_emitter.coverage_rows(),
-            lean: lean_emitter.coverage_rows(),
+            lean: lean_emitter
+                .as_ref()
+                .map(crate::backend::Emitter::coverage_rows),
             bend: bend_emitter.map(crate::backend::Emitter::coverage_rows),
         };
         let mut declaration_names: Vec<String> = checked_module
@@ -372,13 +416,13 @@ pub fn render_build(
         }
         // Output coverage closure is checked mechanically before anything
         // is published (§19.6, §20.5).
-        if let Err(reason) =
-            crate::backend::check_output_closure(lean_emitter.text(), &coverage.lean)
-        {
-            return Err(LexLeanError::from_diagnostic(Diagnostic::new(
-                code!("LLB6001"),
-                format!("generated Lean for `{name}` has incomplete output coverage: {reason}"),
-            )));
+        if let (Some(emitter), Some(rows)) = (&lean_emitter, &coverage.lean) {
+            if let Err(reason) = crate::backend::check_output_closure(emitter.text(), rows) {
+                return Err(LexLeanError::from_diagnostic(Diagnostic::new(
+                    code!("LLB6001"),
+                    format!("generated Lean for `{name}` has incomplete output coverage: {reason}"),
+                )));
+            }
         }
         if let (Some(emitter), Some(rows)) = (bend_emitter, &coverage.bend) {
             if let Err(reason) = crate::backend::check_output_closure(emitter.text(), rows) {
@@ -401,26 +445,32 @@ pub fn render_build(
             .closure
             .closure_json(name, &checked_module.visible)
             .to_file_bytes();
-        let lean_bytes = lean_emitter.text().as_bytes().to_vec();
         let tex_bytes = tex_emitter.text().as_bytes().to_vec();
         let map_bytes = map.to_json().to_file_bytes();
         let coverage_bytes = coverage.to_json().to_file_bytes();
 
-        outputs.push(file_row("lean", &lean_path, &lean_bytes));
+        let lean = lean_emitter.map(|emitter| RenderedLean {
+            path: lean_path,
+            text: emitter.text().to_owned(),
+        });
+        if let Some(lean) = &lean {
+            outputs.push(file_row("lean", &lean.path, lean.text.as_bytes()));
+            files.push((lean.path.clone(), lean.text.as_bytes().to_vec()));
+        }
         outputs.push(file_row("tex", &tex_path, &tex_bytes));
         outputs.push(file_row("map", &map_path, &map_bytes));
         outputs.push(file_row("coverage", &coverage_path, &coverage_bytes));
         outputs.push(file_row("lexicon-closure", &closure_path, &closure_json));
-        files.push((lean_path.clone(), lean_bytes));
         files.push((tex_path.clone(), tex_bytes));
         files.push((map_path, map_bytes));
         files.push((coverage_path, coverage_bytes));
         files.push((closure_path, closure_json));
-        if let Some(bend_emitter) = bend_emitter {
-            let bend_bytes = bend_emitter.text().as_bytes().to_vec();
+        let bend_path = bend_emitter.map(|emitter| {
+            let bend_bytes = emitter.text().as_bytes().to_vec();
             outputs.push(file_row("bend", &bend_path, &bend_bytes));
-            files.push((bend_path, bend_bytes));
-        }
+            files.push((bend_path.clone(), bend_bytes));
+            bend_path
+        });
         // §17.13: the eligibility of every production root is a build
         // artifact, so the closure, effects, and dispositions that admitted
         // a root are content-addressed evidence beside the generated code.
@@ -461,12 +511,12 @@ pub fn render_build(
             module: name.clone(),
             lean_module,
             declaration_names,
-            lean_text: lean_emitter.text().to_owned(),
+            lean,
             tex_text: tex_emitter.text().to_owned(),
             coverage,
             map,
-            lean_path,
             tex_path,
+            bend_path,
         });
     }
 
@@ -549,6 +599,7 @@ pub fn render_build(
         source_id: checked.source_id,
         semantic_id: checked.semantic_id,
         build_id: this_build_id,
+        carries_lean: project.config.carries_lean(),
         selection: checked.modules.keys().cloned().collect(),
         modules: manifest_modules,
         inputs,
@@ -1024,7 +1075,13 @@ impl Engine {
                         BuiltUnit {
                             module: module.module.clone(),
                             artifacts: ModuleArtifacts {
-                                paths: vec![module.lean_path.clone(), module.tex_path.clone()],
+                                paths: module
+                                    .lean
+                                    .iter()
+                                    .map(|lean| lean.path.clone())
+                                    .chain([module.tex_path.clone()])
+                                    .chain(module.bend_path.clone())
+                                    .collect(),
                             },
                         },
                     )
@@ -1316,20 +1373,15 @@ impl Engine {
         };
         copy_file(&self.project.config_name)?;
         copy_file(&config.lockfile)?;
-        let workspace = |name: &str| {
-            if config.lean_workspace == "." {
-                name.to_owned()
-            } else {
-                format!("{}/{name}", config.lean_workspace)
+        if config.carries_lean() {
+            for pin in [
+                "lean-toolchain",
+                "lakefile.toml",
+                "lakefile.lean",
+                "lake-manifest.json",
+            ] {
+                copy_file(&config.workspace_path(pin))?;
             }
-        };
-        for pin in [
-            "lean-toolchain",
-            "lakefile.toml",
-            "lakefile.lean",
-            "lake-manifest.json",
-        ] {
-            copy_file(&workspace(pin))?;
         }
         for root in &config.source_roots {
             copy_dir(root)?;

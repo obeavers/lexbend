@@ -1119,6 +1119,12 @@ suite = "bend-backend"
 statement = "A language-2.2 match on a computed value, or on a local bound before a `let` or before one an enclosing match has opened, lowers to an auxiliary definition that receives each function parameter it uses as its code and environment, each recursive call in its branches passed in as a function over a piece of the decreasing argument, and the pinned Bend checks it."
 
 [[id]]
+id = "BN-24"
+level = "build"
+suite = "bend-backend"
+statement = "A language-2.0 or 2.2 project whose configuration names no Lean workspace or toolchain carries no Lean: its lock pins no Lean file, its build emits no Lean module, it is verified by Bend alone, and a production root in it is refused."
+
+[[id]]
 id = "TX-01"
 level = "build"
 suite = "latex-pdf"

@@ -737,7 +737,7 @@ No project file may override the language grammar, backend, verifier sequence, a
 
 ### 10.1 `lexlean.toml`
 
-`lexlean.toml` is UTF-8, NFC, LF-terminated TOML. Comments are forbidden. Unknown fields are errors. Every field below is required except `[pdf]`, and `bend_toolchain`, which language 2.0 requires and every other language rejects.
+`lexlean.toml` is UTF-8, NFC, LF-terminated TOML. Comments are forbidden. Unknown fields are errors. Every field below is required except `[pdf]`; `bend_toolchain`, which languages 2.0 and 2.2 require and every other language rejects; and `lean_workspace` and `lean_toolchain`, which a language-2.0 or 2.2 project may omit together (§10.5).
 
 ```toml
 spec = "lexlean/project/1"
@@ -795,8 +795,8 @@ Input whitespace does not affect this canonical serialization. A project may be 
 | `entrypoints` | Nonempty, unique, sorted project-relative `.lex.tex` files beneath a source root. |
 | `build_root` | Project-relative directory; must resolve within the project and must not be a symlink. |
 | `lockfile` | Project-relative regular-file path; exactly one lock file. |
-| `lean_workspace` | Project-relative directory containing `lean-toolchain` and a Lake configuration. |
-| `lean_toolchain` | Exactly the language-1.0 toolchain string. |
+| `lean_workspace` | Project-relative directory containing `lean-toolchain` and a Lake configuration. Optional in languages 2.0 and 2.2, together with `lean_toolchain` (§10.5). |
+| `lean_toolchain` | Exactly the language-1.0 toolchain string. Present exactly when `lean_workspace` is. |
 | `bend_toolchain` | Languages 2.0 and 2.2 only, and required there: exactly `bend 2.0.37`, written after `lean_toolchain` (another language rejects the field, and a Bend language rejects any other value, `LLC0101`). |
 | `lexicon_source` | Unique by package and sorted by package identifier. |
 | `artifact_source` | Languages 1.2 and 2.2 only (another language rejects the field, `LLC0101`): optional `[[artifact_source]]` tables `sha256 = "<64 lowercase hex>"`, `path = "<project-relative file>"`, sorted by `sha256`, unique by digest and by path, never beneath the build root. Each names the content-addressed bytes of one model artifact (§17.12); `check`, `build`, `fmt`, and `verify` read the file, confined (§25.1), and require its SHA-256 to equal the configured digest (`LLR3007`). Artifacts are never fetched. |
@@ -877,13 +877,30 @@ The project `lean-toolchain` MUST contain the exact toolchain string. `lexlean l
 
 If both Lake configuration forms exist, locking fails. Verification requires the recorded files to match and requires all manifest dependencies to be locally available.
 
+### 10.5 Lean-free Bend projects
+
+A language-2.0 or 2.2 configuration may omit `lean_workspace` and
+`lean_toolchain` together; naming exactly one of them is `LLC0101`. A project
+without them is *Lean-free*. Its lock records neither `lean_toolchain` nor any
+`[[workspace_file]]` (§10.4 does not apply), its build runs no Lean backend
+and publishes no `modules/<path>.lean`, no `lean` coverage rows, no Lean
+artifact in a source map (the TeX and Bend artifacts keep their IDs, 1 and 2),
+and a manifest without `lean_toolchain`, and it is verified by Bend alone
+(§22.13). A production root (§17.12) is extracted and certified through Lean,
+so a production root in a Lean-free project is `LLC0101`, naming the root; a
+module Bend does not lower has no other backend there, `LLB6008`. Verifying by
+Bend alone still builds BendTT's kernel with the Lean that §22.13 names: that
+Lean belongs to Bend's toolchain, and the project pins none of it.
+`lexlean init --language 2.0|2.2` creates a Lean-free project: its
+configuration, `src/Main.lex.tex`, and a `.gitignore`, and no Lake file.
+
 ---
 
 ## 11. Lock file
 
 ### 11.1 General
 
-`lexlean.lock` is generated, canonical TOML with no comments and final LF. Users MUST NOT hand-edit it. `lexlean lock --check` regenerates it in memory and compares exact bytes. Language 1.0 and 1.1 use `spec = "lexlean/lock/1"`. Language 1.2 uses `spec = "lexlean/lock/2"`. Language 2.0 uses `spec = "lexlean/lock/3"`: the version-1 fields with `bend_toolchain = "bend 2.0.37"` written after `lean_toolchain`, which no earlier lock schema has. Language 2.2 uses `spec = "lexlean/lock/4"`: the language-2.0 fields with `language = "2.2"`. `lexlean lock` migrates locks to the appropriate schema for the project language.
+`lexlean.lock` is generated, canonical TOML with no comments and final LF. Users MUST NOT hand-edit it. `lexlean lock --check` regenerates it in memory and compares exact bytes. Language 1.0 and 1.1 use `spec = "lexlean/lock/1"`. Language 1.2 uses `spec = "lexlean/lock/2"`. Language 2.0 uses `spec = "lexlean/lock/3"`: the version-1 fields with `bend_toolchain = "bend 2.0.37"` written after `lean_toolchain`, which no earlier lock schema has. Language 2.2 uses `spec = "lexlean/lock/4"`: the language-2.0 fields with `language = "2.2"`. The lock of a Lean-free project (§10.5) omits `lean_toolchain` and every `[[workspace_file]]`. `lexlean lock` migrates locks to the appropriate schema for the project language.
 
 The top-level schema is:
 
@@ -6701,7 +6718,8 @@ document module, at
 modules/<full-module-path>.bend
 ```
 
-beside the module's `.lean` and `.tex`. A module that holds a native core,
+beside the module's `.tex` and, in a project that carries Lean (§10.5), its
+`.lean`. A module that holds a native core,
 semantic, or tooling module (§17.10–§17.20) has no Bend file. The Bend
 language is the one the pinned Bend release defines (`bend 2.0.37`). Bend is
 dependently typed, with one universe, an affine runtime discipline, and no
@@ -6901,7 +6919,8 @@ semantic module to Bend: one `.bend` file per semantic module, at
 modules/<full-module-path>.bend
 ```
 
-beside its `.lean` and `.tex`. A language-2.2 document module lowers exactly
+beside its `.tex` and, in a project that carries Lean (§10.5), its `.lean`. A
+language-2.2 document module lowers exactly
 as under language 2.0 (§18.10). A native core module is `LLP2003` under
 language 2.2, as under language 2.0, and a tooling module is never part of a
 user project (§17.20). The generated Lean of a language-2.2 module is that of
@@ -7643,7 +7662,8 @@ production/<full-module-path>.eligibility.json
 ```
 
 The `production/` report exists only for a language-1.2 module that declares a
-production root (§17.13). Paths in manifests use `/` regardless of host OS.
+production root (§17.13), and the `.lean` only in a project that carries Lean
+(§10.5). Paths in manifests use `/` regardless of host OS.
 
 ### 21.6 Build manifest
 
@@ -8175,7 +8195,8 @@ root is verified by Bend alone, and every language-2.0 project is one. After
 the four stages come only its declaration rows, the staged verified set
 (§22.8, with no `.olean`), the configured PDF rendering (§19.7), the
 attestation, and publication: no Lean, Lake, or `leanchecker` process runs,
-and no Lean toolchain need be installed. It has one declaration row per
+and the toolchain of §8.2 need not be installed. A Lean-free project
+(§10.5) is always verified this way. It has one declaration row per
 document and semantic declaration, recording the premises its Bend form takes
 and, as `observed`, the axioms they stand for. Stage 1 has admitted every
 premise, and no Lean proof exists whose axiom footprint an `\exactaxioms`
@@ -8257,7 +8278,7 @@ Selections canonicalize to a sorted set. APIs and CLI results are always project
 lexlean init [PATH] --name <name> --module-prefix <prefix>
 ```
 
-Creates a new project only in an absent or empty directory. It writes canonical config, a canonical initial lock for builtin packages and workspace pins, `lean-toolchain`, a minimal Lake workspace, `src/Main.lex.tex`, and `.gitignore`. It never overwrites.
+Creates a new project only in an absent or empty directory. It writes canonical config, a canonical initial lock for builtin packages and workspace pins, `lean-toolchain`, a minimal Lake workspace, `src/Main.lex.tex`, and `.gitignore`; under `--language 2.0` or `2.2` it writes a Lean-free project (§10.5), with no Lean toolchain, Lake workspace, or workspace pin. It never overwrites.
 
 #### `lock`
 
@@ -9709,6 +9730,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `BN-21` | `bend-backend` | A language-2.2 mutual group whose members recurse simultaneously over one type lowers to one Bend definition over that type and a generated selector of the member, every member keeping its name and signature, and the pinned Bend checks it. | §18.11.3 |
 | `BN-22` | `bend-backend` | A language-2.2 nested or mutual inductive that a simultaneous mutual group recurses over lowers to one Bend type indexed by its base and nested list types, each constructor carrying the equation of its index, and the pinned Bend checks the groups over it. | §18.11.3 |
 | `BN-23` | `bend-backend` | A language-2.2 match on a computed value, or on a local bound before a `let` or before one an enclosing match has opened, lowers to an auxiliary definition that receives each function parameter it uses as its code and environment, each recursive call in its branches passed in as a function over a piece of the decreasing argument, and the pinned Bend checks it. | §18.11.3 |
+| `BN-24` | `bend-backend` | A language-2.0 or 2.2 project whose configuration names no Lean workspace or toolchain carries no Lean: its lock pins no Lean file, its build emits no Lean module, it is verified by Bend alone, and a production root in it is refused. | §10.5 |
 | `TX-01` | `latex-pdf` | Canonical LaTeX is rendered solely from linked IR and never copies source text or controls. | §19.1 |
 | `TX-02` | `latex-pdf` | Every module uses the exact canonical LaTeX preamble and no host or timestamp metadata. | §19.2 |
 | `TX-03` | `latex-pdf` | Statements use only canonical controlled proposition and definition renderings. | §19.3, §19.4 |
@@ -9944,7 +9966,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `RT-03` | `runtime` | A verification compiles every runtime module that a project's generated modules, or the calculus modules its certificates are checked against, import before the project's modules, replays it with `leanchecker`, and audits each of its declarations against the axioms its row pins; the committed verification of a project that uses the collections prints them, the runtime's own project verifies under the pinned Lean, and a row that pins another axiom set than its declaration observes fails with LLV7005. | §17.12, §22.3, §22.5, §22.6 |
 | `RT-04` | `runtime` | No Lean runtime text remains in the language-1.2 compiler: a generated language-1.2 module imports the runtime modules whose constants it names and declares nothing under a runtime namespace, and the only Lean runtime text in the compiler's source outside unit-test items, in one string literal or in several written together, is the decoder of core module 2, which loads native modules and so cannot be one; a runtime text planted in any of its shapes, raw or escaped, with or without a namespace line, split across literals, or after a test module, is found. | §17.12, §18.1 |
 
-**Total required capability IDs:** 418.
+**Total required capability IDs:** 419.
 
 No row may be downgraded to `some-true` or `open`. Upstream Lean facts are ledger/authority rows, not substitutions for these build behaviors.
 

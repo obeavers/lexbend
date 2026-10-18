@@ -1149,10 +1149,7 @@ pub fn stage(project: &P) -> Staged {
     // The runtime modules the generated modules import (SPEC.md §17.12),
     // first, in their dependency order.
     for runtime in lexlean::backend::runtime::imported_by(
-        rendered
-            .modules
-            .iter()
-            .map(|module| module.lean_text.as_str()),
+        rendered.modules.iter().map(|module| module.lean_text()),
     )
     .expect("the shipped runtime")
     {
@@ -1170,7 +1167,7 @@ pub fn stage(project: &P) -> Staged {
         let mut later = Vec::new();
         for module in remaining {
             let ready = module
-                .lean_text
+                .lean_text()
                 .lines()
                 .filter_map(|line| line.strip_prefix("public import "))
                 .map(str::trim)
@@ -1179,7 +1176,7 @@ pub fn stage(project: &P) -> Staged {
                 later.push(module);
                 continue;
             }
-            compile(&module.lean_module, &module.lean_text);
+            compile(&module.lean_module, module.lean_text());
             done.insert(module.lean_module.clone());
         }
         remaining = later;

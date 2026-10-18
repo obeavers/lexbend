@@ -272,7 +272,7 @@ pub fn staged(project: &P, certified: &[Certified]) -> Workspace {
     let user: Vec<(String, String)> = rendered
         .modules
         .iter()
-        .map(|module| (module.lean_module.clone(), module.lean_text.clone()))
+        .map(|module| (module.lean_module.clone(), module.lean_text().to_owned()))
         .collect();
     let certificates: Vec<Certificate> = certified.iter().flat_map(Certified::all).collect();
     workspace(&user, &certificates).expect("the workspace stages")
@@ -1613,7 +1613,7 @@ pub fn plant(project: &P, mutations: &[Mutation]) -> Vec<Planted> {
     let user: Vec<(String, String)> = rendered
         .modules
         .iter()
-        .map(|module| (module.lean_module.clone(), module.lean_text.clone()))
+        .map(|module| (module.lean_module.clone(), module.lean_text().to_owned()))
         .collect();
     let base = workspace(&user, &[]).expect("the workspace stages");
     let scratch = tempfile::Builder::new()

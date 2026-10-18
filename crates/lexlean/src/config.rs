@@ -196,8 +196,9 @@ pub struct ProjectConfig {
     pub build_root: String,
     /// The lock file path.
     pub lockfile: String,
-    /// The Lake workspace directory.
-    pub lean_workspace: String,
+    /// The Lake workspace directory; `None` for a language-2.0 or 2.2
+    /// project that carries no Lean (§10.5).
+    pub lean_workspace: Option<String>,
     /// Configured lexicon sources, sorted by package.
     pub lexicon_sources: Vec<LexiconSource>,
     /// Language 1.2: model artifact sources, sorted by digest.
@@ -219,8 +220,10 @@ struct RawProject {
     entrypoints: Vec<String>,
     build_root: String,
     lockfile: String,
-    lean_workspace: String,
-    lean_toolchain: String,
+    #[serde(default)]
+    lean_workspace: Option<String>,
+    #[serde(default)]
+    lean_toolchain: Option<String>,
     #[serde(default)]
     bend_toolchain: Option<String>,
     #[serde(rename = "lexicon_source")]
@@ -472,11 +475,34 @@ pub fn parse_project(path: &str, bytes: &[u8]) -> Result<ProjectConfig, Vec<Diag
             ),
         ));
     }
-    if raw.lean_toolchain != crate::LEAN_TOOLCHAIN {
-        diagnostics.push(config_error(
+    // §10.5: a Bend project may carry no Lean, and then names neither half of
+    // a Lean configuration; a workspace without its toolchain, or the
+    // reverse, is half of one.
+    match (&raw.lean_workspace, &raw.lean_toolchain) {
+        (Some(_), Some(toolchain)) => {
+            if toolchain != crate::LEAN_TOOLCHAIN {
+                diagnostics.push(config_error(
+                    path,
+                    format!("lean_toolchain must be exactly `{}`", crate::LEAN_TOOLCHAIN),
+                ));
+            }
+        }
+        (None, None) if crate::lowers_to_bend(&raw.language) => {}
+        (None, None) => diagnostics.push(config_error(
             path,
-            format!("lean_toolchain must be exactly `{}`", crate::LEAN_TOOLCHAIN),
-        ));
+            format!(
+                "language {} names a lean_workspace and a lean_toolchain; only a language-2.0 or 2.2 project may carry no Lean",
+                raw.language
+            ),
+        )),
+        (Some(_), None) => diagnostics.push(config_error(
+            path,
+            "lean_workspace names a Lean workspace without a lean_toolchain".to_owned(),
+        )),
+        (None, Some(_)) => diagnostics.push(config_error(
+            path,
+            "lean_toolchain pins a Lean toolchain without a lean_workspace".to_owned(),
+        )),
     }
     // §18.10, §18.11: languages 2.0 and 2.2 pin the Bend release their modules
     // lower to; no other language has a Bend toolchain.
@@ -548,13 +574,14 @@ pub fn parse_project(path: &str, bytes: &[u8]) -> Result<ProjectConfig, Vec<Diag
             ));
         }
     }
-    if raw.lean_workspace != "." && !is_project_relative(&raw.lean_workspace) {
+    if let Some(workspace) = raw
+        .lean_workspace
+        .as_deref()
+        .filter(|workspace| *workspace != "." && !is_project_relative(workspace))
+    {
         diagnostics.push(config_error(
             path,
-            format!(
-                "lean_workspace: `{}` is not a project-relative directory",
-                raw.lean_workspace
-            ),
+            format!("lean_workspace: `{workspace}` is not a project-relative directory"),
         ));
     }
     // The lock file, the configuration, the entrypoints, and the build
@@ -978,6 +1005,22 @@ fn toml_array(values: &[String]) -> String {
 }
 
 impl ProjectConfig {
+    /// Whether the project carries Lean: every project but a language-2.0 or
+    /// 2.2 one whose configuration names no Lean workspace (§10.5).
+    #[must_use]
+    pub fn carries_lean(&self) -> bool {
+        self.lean_workspace.is_some()
+    }
+
+    /// The project-relative path of a file in the Lake workspace.
+    #[must_use]
+    pub fn workspace_path(&self, name: &str) -> String {
+        match self.lean_workspace.as_deref() {
+            None | Some(".") => name.to_owned(),
+            Some(workspace) => format!("{workspace}/{name}"),
+        }
+    }
+
     /// The canonical TOML serialization (§10.1): fixed key order, sorted
     /// tables, LF, one final LF, no comments.
     #[must_use]
@@ -1000,14 +1043,13 @@ impl ProjectConfig {
         ));
         out.push_str(&format!("build_root = {}\n", toml_string(&self.build_root)));
         out.push_str(&format!("lockfile = {}\n", toml_string(&self.lockfile)));
-        out.push_str(&format!(
-            "lean_workspace = {}\n",
-            toml_string(&self.lean_workspace)
-        ));
-        out.push_str(&format!(
-            "lean_toolchain = {}\n",
-            toml_string(crate::LEAN_TOOLCHAIN)
-        ));
+        if let Some(workspace) = &self.lean_workspace {
+            out.push_str(&format!("lean_workspace = {}\n", toml_string(workspace)));
+            out.push_str(&format!(
+                "lean_toolchain = {}\n",
+                toml_string(crate::LEAN_TOOLCHAIN)
+            ));
+        }
         if crate::lowers_to_bend(&self.language) {
             out.push_str(&format!(
                 "bend_toolchain = {}\n",

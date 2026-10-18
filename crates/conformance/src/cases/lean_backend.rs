@@ -285,15 +285,15 @@ pub(crate) fn run(id: &str) {
             let build = support::rendered(&P::example());
             let module = &build.modules[0];
             assert!(
-                module.lean_text.contains("(llv0 : Nat)"),
+                module.lean_text().contains("(llv0 : Nat)"),
                 "the leading universal is a declaration parameter: {}",
-                module.lean_text
+                module.lean_text()
             );
             assert!(
-                !module.lean_text.contains('\u{2200}'),
+                !module.lean_text().contains('\u{2200}'),
                 "no residual quantifier for the peeled binder"
             );
-            let at = module.lean_text.find("llv0").expect("the parameter");
+            let at = module.lean_text().find("llv0").expect("the parameter");
             let mapping = module.map.remap(0, at).expect("the parameter is mapped");
             assert_eq!(mapping.role, lexlean::artifact::source_map::MapRole::Binder);
             let normalized = &support::checked_project(&P::example()).modules["Main"].normalized;
@@ -305,8 +305,7 @@ pub(crate) fn run(id: &str) {
             );
             assert!(
                 module
-                    .coverage
-                    .lean
+                    .lean_coverage()
                     .iter()
                     .any(|row| row.byte_start <= at && at < row.byte_end),
                 "the parameter token has a coverage origin"
@@ -467,8 +466,8 @@ pub(crate) fn run(id: &str) {
         "LN-10" => {
             let build = support::rendered(&P::example());
             let module = &build.modules[0];
-            let text = module.lean_text.as_bytes();
-            let rows = &module.coverage.lean;
+            let text = module.lean_text().as_bytes();
+            let rows = module.lean_coverage();
             for (index, byte) in text.iter().enumerate() {
                 if byte.is_ascii_whitespace() {
                     continue;
@@ -481,7 +480,7 @@ pub(crate) fn run(id: &str) {
                     covering,
                     1,
                     "lean byte {index} ({:?}) is covered exactly once, found {covering}",
-                    module.lean_text[index..].chars().next()
+                    module.lean_text()[index..].chars().next()
                 );
                 assert!(
                     module.map.remap(0, index).is_some(),
@@ -497,8 +496,7 @@ pub(crate) fn run(id: &str) {
             let inlined = support::rendered(&support::ext_project(support::DEFINED_MODULE));
             let module = &inlined.modules[0];
             let rows: Vec<&lexlean::source::coverage::OutputRow> = module
-                .coverage
-                .lean
+                .lean_coverage()
                 .iter()
                 .filter(|row| {
                     matches!(
@@ -510,7 +508,7 @@ pub(crate) fn run(id: &str) {
                 .collect();
             let spelled: Vec<&str> = rows
                 .iter()
-                .map(|row| &module.lean_text[row.byte_start..row.byte_end])
+                .map(|row| &module.lean_text()[row.byte_start..row.byte_end])
                 .collect();
             assert_eq!(
                 spelled,
@@ -519,7 +517,7 @@ pub(crate) fn run(id: &str) {
                     "Nat.succ", "Nat.zero", ")", ")"
                 ],
                 "both occurrences of the inlined value are covered token by token: {}",
-                module.lean_text
+                module.lean_text()
             );
             for row in rows {
                 let mapping = module
@@ -621,8 +619,11 @@ pub(crate) fn run(id: &str) {
             let build = support::rendered(&project);
             let module = &build.modules[0];
             assert_eq!(module.lean_module, "LexLeanExample.Main");
-            assert_eq!(module.lean_path, "modules/LexLeanExample/Main.lean");
-            assert!(module.lean_text.contains("namespace LexLeanExample.Main"));
+            assert_eq!(
+                module.lean.as_ref().expect("Lean").path,
+                "modules/LexLeanExample/Main.lean"
+            );
+            assert!(module.lean_text().contains("namespace LexLeanExample.Main"));
 
             let renamed = P::example();
             renamed.edit(
@@ -632,8 +633,13 @@ pub(crate) fn run(id: &str) {
             );
             renamed.relock();
             let build = support::rendered(&renamed);
-            assert_eq!(build.modules[0].lean_path, "modules/Other/Main.lean");
-            assert!(build.modules[0].lean_text.contains("namespace Other.Main"));
+            assert_eq!(
+                build.modules[0].lean.as_ref().expect("Lean").path,
+                "modules/Other/Main.lean"
+            );
+            assert!(build.modules[0]
+                .lean_text()
+                .contains("namespace Other.Main"));
         }
         other => panic!("no lean-backend case is wired for {other}"),
     }

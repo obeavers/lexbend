@@ -146,7 +146,12 @@ pub(crate) fn run(id: &str) {
             let build = example_build("bend-semantic");
             let again = example_build("bend-semantic");
             assert_eq!(build.files, again.files, "the build is byte-deterministic");
-            for extension in ["bend", "lean", "tex"] {
+            // The example carries no Lean (§10.5).
+            assert!(
+                !build.files.iter().any(|(path, _)| path.ends_with(".lean")),
+                "the Lean-free example renders no Lean"
+            );
+            for extension in ["bend", "tex"] {
                 assert!(
                     build.files.iter().any(
                         |(path, _)| path == &format!("modules/LanguageTwelve/Main.{extension}")
@@ -886,6 +891,8 @@ pub(crate) fn run(id: &str) {
                 );
             }
         }
+        // §10.5: a Bend project needs no Lean.
+        "BN-24" => super::bend_verification::lean_free(id),
         other => panic!("no language-2.2 bend-backend case is wired for {other}"),
     }
 }

@@ -120,7 +120,7 @@ pub(crate) fn run(id: &str) {
             let source = support::checked_project(&P::example());
             let normalized = &source.modules["Main"].normalized;
             let binder_at = module
-                .lean_text
+                .lean_text()
                 .find("(llv0 : Nat)")
                 .expect("the parameter");
             let binder = map.remap(0, binder_at + 1).expect("mapped");
@@ -131,7 +131,7 @@ pub(crate) fn run(id: &str) {
                 "n",
                 "the binder maps to its own introduction"
             );
-            let rfl_at = module.lean_text.find("rfl").expect("rfl");
+            let rfl_at = module.lean_text().find("rfl").expect("rfl");
             let proof = map.remap(0, rfl_at).expect("mapped");
             assert_eq!(proof.role, MapRole::Proof);
             let (start, end) = proof.src_range.expect("a source range");
@@ -153,7 +153,7 @@ pub(crate) fn run(id: &str) {
                 MapRole::Synthetic,
                 "the preamble is synthetic"
             );
-            let module_at = module.lean_text.find("module").expect("module keyword");
+            let module_at = module.lean_text().find("module").expect("module keyword");
             assert_eq!(
                 map.remap(0, module_at).expect("mapped").role,
                 MapRole::Synthetic
@@ -170,7 +170,7 @@ pub(crate) fn run(id: &str) {
                 .find(|artifact| artifact.path.ends_with(".lean"))
                 .expect("the lean artifact")
                 .id;
-            let rfl_at = module.lean_text.find("rfl").expect("rfl");
+            let rfl_at = module.lean_text().find("rfl").expect("rfl");
             let mapping = map
                 .remap(lean_artifact, rfl_at)
                 .expect("rfl remaps to source");
@@ -269,7 +269,7 @@ pub(crate) fn run(id: &str) {
             let module = &rendered.modules[0];
             // Output rows partition (LN-10/TX-06 check per-byte; here the
             // row discipline itself).
-            for rows in [&module.coverage.lean, &module.coverage.latex] {
+            for rows in [module.lean_coverage(), &module.coverage.latex] {
                 for pair in rows.windows(2) {
                     assert!(
                         pair[0].byte_end <= pair[1].byte_start,
@@ -282,7 +282,7 @@ pub(crate) fn run(id: &str) {
             // rejects a synthetic gap, overlap, and out-of-range row.
             use lexlean::backend::check_output_closure;
             use lexlean::source::coverage::{Origin, OutputRow};
-            check_output_closure(&module.lean_text, &module.coverage.lean)
+            check_output_closure(module.lean_text(), module.lean_coverage())
                 .expect("lean rows close");
             check_output_closure(&module.tex_text, &module.coverage.latex).expect("tex rows close");
             let row = |start: usize, end: usize| OutputRow {
@@ -307,9 +307,9 @@ pub(crate) fn run(id: &str) {
                 check_output_closure("ab  cd\n", &[row(0, 2), row(4, 6)]),
                 Ok(())
             );
-            let mut broken = module.coverage.lean.clone();
+            let mut broken = module.lean_coverage().to_vec();
             broken.pop();
-            assert!(check_output_closure(&module.lean_text, &broken).is_err());
+            assert!(check_output_closure(module.lean_text(), &broken).is_err());
         }
         // §21.1: the exact frame function.
         "AR-05" => {

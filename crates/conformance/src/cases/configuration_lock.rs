@@ -1204,7 +1204,7 @@ pub(crate) fn run(id: &str) {
             let original_lean: Vec<String> = support::rendered(&ex11)
                 .modules
                 .iter()
-                .map(|module| module.lean_text.clone())
+                .map(|module| module.lean_text().to_owned())
                 .collect();
             migrated.edit("lexlean.toml", "language = \"1.1\"", "language = \"1.2\"");
             let source_dir = migrated.root.join("src");
@@ -1229,7 +1229,7 @@ pub(crate) fn run(id: &str) {
             let migrated_lean: Vec<String> = support::rendered(&migrated)
                 .modules
                 .iter()
-                .map(|module| module.lean_text.clone())
+                .map(|module| module.lean_text().to_owned())
                 .collect();
             // Language 1.2 imports the portable runtime module instead of
             // splicing the frozen runtime text (§17.12, rule 6 and *Runtime
@@ -1303,9 +1303,9 @@ pub(crate) fn run(id: &str) {
             let project = P::copy_example("bend-nat-add-zero");
             let config = project.read("lexlean.toml");
             assert!(config.contains("language = \"2.0\"\n"));
+            // A Lean-free example: the Bend pin follows the lock file (§10.5).
             assert!(config.contains(&format!(
-                "lean_toolchain = \"{}\"\nbend_toolchain = \"{}\"\n",
-                lexlean::LEAN_TOOLCHAIN,
+                "lockfile = \"lexlean.lock\"\nbend_toolchain = \"{}\"\n",
                 lexlean::BEND_TOOLCHAIN
             )));
             let lock = project.read("lexlean.lock");
@@ -1376,9 +1376,9 @@ pub(crate) fn run(id: &str) {
             let project = P::copy_example("bend-semantic");
             let config = project.read("lexlean.toml");
             assert!(config.contains("language = \"2.2\"\n"));
+            // A Lean-free example: the Bend pin follows the lock file (§10.5).
             assert!(config.contains(&format!(
-                "lean_toolchain = \"{}\"\nbend_toolchain = \"{}\"\n",
-                lexlean::LEAN_TOOLCHAIN,
+                "lockfile = \"lexlean.lock\"\nbend_toolchain = \"{}\"\n",
                 lexlean::BEND_TOOLCHAIN
             )));
             let lock = project.read("lexlean.lock");
@@ -1420,12 +1420,9 @@ pub(crate) fn run(id: &str) {
                 .is_err(),
                 "a 2.2 lock under schema v3 is refused"
             );
-            // `init` creates a project of either Bend language that checks
-            // and builds its Bend.
-            for (language, spec, host) in [
-                ("2.0", "lexlean/lock/3", true),
-                ("2.2", "lexlean/lock/4", false),
-            ] {
+            // `init` creates a Lean-free project of either Bend language
+            // that checks and builds its Bend (§10.5).
+            for (language, spec) in [("2.0", "lexlean/lock/3"), ("2.2", "lexlean/lock/4")] {
                 let dir = tempfile::tempdir().expect("tempdir");
                 let root = camino::Utf8Path::from_path(dir.path()).expect("utf8");
                 let (exit, _, stderr) = support::cli_in(
@@ -1449,11 +1446,18 @@ pub(crate) fn run(id: &str) {
                     lock.starts_with(&format!("spec = \"{spec}\"\nlanguage = \"{language}\"\n")),
                     "{lock}"
                 );
-                assert_eq!(
-                    root.join("FreshHost.lean").exists(),
-                    host,
-                    "language {language} keeps its surface's skeleton"
-                );
+                assert!(!lock.contains("lean_toolchain"), "{lock}");
+                for file in [
+                    "FreshHost.lean",
+                    "lean-toolchain",
+                    "lakefile.toml",
+                    "lake-manifest.json",
+                ] {
+                    assert!(
+                        !root.join(file).exists(),
+                        "language {language} init writes no `{file}`"
+                    );
+                }
                 let (exit, _, stderr) = support::cli_in(root, &["build"]);
                 assert_eq!(exit, 0, "language {language} builds: {stderr}");
             }

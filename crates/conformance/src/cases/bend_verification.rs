@@ -81,10 +81,35 @@ fn verified_attestation_with(
     (attestation, verified.root)
 }
 
-/// The language-2.2 semantic example with a production root: the one thing
-/// that keeps a project whose modules all lower to Bend on the Lean stages.
+/// Give a Lean-free project the Lean workspace a production root needs
+/// (§10.4, §10.5): the configuration fields and the Lake files `init` writes.
+fn carry_lean(project: &P) {
+    let config = project.read_raw("lexlean.toml").replacen(
+        "bend_toolchain = ",
+        &format!(
+            "lean_workspace = \".\"\nlean_toolchain = \"{}\"\nbend_toolchain = ",
+            lexlean::LEAN_TOOLCHAIN
+        ),
+        1,
+    );
+    project.write("lexlean.toml", &config);
+    project.write("lean-toolchain", &format!("{}\n", lexlean::LEAN_TOOLCHAIN));
+    project.write(
+        "lakefile.toml",
+        "name = \"language_twelve_host\"\nversion = \"0.1.0\"\n",
+    );
+    project.write(
+        "lake-manifest.json",
+        "{\"version\": \"1.2.0\",\n \"packagesDir\": \".lake/packages\",\n \"packages\": [],\n \"name\": \"language_twelve_host\",\n \"lakeDir\": \".lake\",\n \"fixedToolchain\": false}\n",
+    );
+}
+
+/// The language-2.2 semantic example with a production root, and the Lean
+/// the root needs: the one thing that keeps a project whose modules all
+/// lower to Bend on the Lean stages.
 fn rooted_semantic() -> P {
     let project = P::copy_example("bend-semantic");
+    carry_lean(&project);
     let main = project.read_raw("src/Main.lex.tex");
     let rooted = main.replacen(
         "  body: (let doubled : Nat := (n + n); (doubled + 1))\n}",
@@ -169,6 +194,176 @@ fn verdict_available(id: &str) -> bool {
         );
     }
     available
+}
+
+/// The Lake files a Lean workspace pins (§10.4).
+const LAKE_FILES: [&str; 4] = [
+    "lean-toolchain",
+    "lakefile.toml",
+    "lakefile.lean",
+    "lake-manifest.json",
+];
+
+/// A copy of a committed Bend example with no Lean workspace, toolchain, or
+/// Lake file, relocked.
+fn lean_free_copy(example: &str) -> P {
+    let project = P::copy_example(example);
+    let config: String = project
+        .read_raw("lexlean.toml")
+        .lines()
+        .filter(|line| {
+            !line.starts_with("lean_workspace = ") && !line.starts_with("lean_toolchain = ")
+        })
+        .map(|line| format!("{line}\n"))
+        .collect();
+    project.write("lexlean.toml", &config);
+    for file in lean_workspace_files(&project.root) {
+        std::fs::remove_file(project.root.join(file).as_std_path()).expect("remove a Lean file");
+    }
+    project.relock();
+    project
+}
+
+/// A file of a rendered build, as text.
+fn build_text(build: &lexlean::api::RenderedBuild, path: &str) -> Option<String> {
+    build
+        .files
+        .iter()
+        .find(|(candidate, _)| candidate == path)
+        .map(|(_, bytes)| String::from_utf8_lossy(bytes).into_owned())
+}
+
+/// The Lake files and Lean host modules at the root of a project.
+fn lean_workspace_files(root: &camino::Utf8Path) -> Vec<String> {
+    std::fs::read_dir(root.as_std_path())
+        .expect("project root")
+        .filter_map(Result::ok)
+        .map(|entry| entry.file_name().to_string_lossy().into_owned())
+        .filter(|name| LAKE_FILES.contains(&name.as_str()) || name.ends_with(".lean"))
+        .collect()
+}
+
+/// Whether a committed example's sources declare a production root.
+fn declares_production_root(example: &camino::Utf8Path) -> bool {
+    walkdir::WalkDir::new(example.join("src").as_std_path())
+        .into_iter()
+        .filter_map(Result::ok)
+        .filter(|entry| entry.path().to_string_lossy().ends_with(".lex.tex"))
+        .any(|entry| {
+            std::fs::read_to_string(entry.path()).is_ok_and(|text| text.contains("production: {"))
+        })
+}
+
+/// BN-24 (§10.5): a Bend project with no Lean configuration carries no Lean.
+pub(crate) fn lean_free(id: &str) {
+    for (example, module) in [
+        ("bend-nat-add-zero", "LexLeanExample/Main"),
+        ("bend-semantic", "LanguageTwelve/Main"),
+    ] {
+        let project = lean_free_copy(example);
+        let lock = project.read_raw("lexlean.lock");
+        assert!(!lock.contains("lean_toolchain"), "{example}: {lock}");
+        assert!(!lock.contains("workspace_file"), "{example}: {lock}");
+        let build = support::rendered(&project);
+        let lean: Vec<&String> = build
+            .files
+            .iter()
+            .map(|(path, _)| path)
+            .filter(|path| path.ends_with(".lean"))
+            .collect();
+        assert!(lean.is_empty(), "{example} publishes Lean: {lean:?}");
+        assert!(
+            build_text(&build, &format!("modules/{module}.bend")).is_some(),
+            "{example} publishes its Bend"
+        );
+        let manifest = build_text(&build, "manifest.json").expect("manifest");
+        assert!(
+            !manifest.contains("lean_toolchain"),
+            "{example}: {manifest}"
+        );
+        let coverage =
+            build_text(&build, &format!("coverage/{module}.coverage.json")).expect("coverage");
+        let coverage: serde_json::Value = serde_json::from_str(&coverage).expect("JSON");
+        assert!(
+            coverage.get("lean").is_none(),
+            "{example} records Lean coverage"
+        );
+        let map = build_text(&build, &format!("maps/{module}.map.json")).expect("map");
+        assert!(
+            !map.contains("\"kind\":\"lean\""),
+            "{example} maps Lean: {map}"
+        );
+        // The pinned Bend where it can recheck in its kernel, a stand-in
+        // that accepts where it cannot: the routing is what is under test.
+        let stand_in;
+        let bend = match bend_dir().filter(|_| verdict_available(id)) {
+            Some(dir) => dir,
+            None if support::posix_shell_backed(id) => {
+                stand_in = accepting_bend();
+                stand_in.path().to_path_buf()
+            }
+            None => continue,
+        };
+        let (attestation, root) = verified_attestation(&project, &path_with(&bend));
+        assert_bend_only(&attestation, &root, example);
+    }
+    // Half a Lean configuration names a workspace with no toolchain, or the
+    // reverse.
+    for kept in [
+        "lean_workspace = \".\"\n",
+        "lean_toolchain = \"leanprover/lean4:v4.32.1\"\n",
+    ] {
+        let project = lean_free_copy("bend-semantic");
+        let config = project.read_raw("lexlean.toml").replacen(
+            "bend_toolchain = ",
+            &format!("{kept}bend_toolchain = "),
+            1,
+        );
+        project.write("lexlean.toml", &config);
+        let error = lexlean::project::Project::load(&project.root.join("lexlean.toml"))
+            .err()
+            .unwrap_or_else(|| panic!("`{}` alone is refused", kept.trim_end()));
+        support::expect_code(&error, "LLC0101");
+    }
+    // A production root needs the Lean that extracts and certifies it.
+    let project = lean_free_copy("bend-semantic");
+    project.write(
+        "src/Main.lex.tex",
+        &rooted_semantic().read_raw("src/Main.lex.tex"),
+    );
+    let error = project.check_err();
+    support::expect_code(&error, "LLC0101");
+    assert!(error.to_string().contains("doubledSuccessor"), "{error}");
+    // Every committed Bend example a production root does not hold to Lean
+    // is Lean-free.
+    let mut lean_free = 0usize;
+    for entry in std::fs::read_dir(support::repo_root().join("examples").as_std_path())
+        .expect("examples")
+        .filter_map(Result::ok)
+    {
+        let example = camino::Utf8PathBuf::from_path_buf(entry.path()).expect("utf8");
+        let Ok(config) = std::fs::read_to_string(example.join("lexlean.toml").as_std_path()) else {
+            continue;
+        };
+        if !(config.contains("language = \"2.0\"") || config.contains("language = \"2.2\"")) {
+            continue;
+        }
+        if declares_production_root(&example) {
+            assert!(
+                config.contains("lean_toolchain = "),
+                "{example} keeps Lean for its roots"
+            );
+            continue;
+        }
+        assert!(
+            !config.contains("lean_toolchain = "),
+            "{example} names a Lean toolchain"
+        );
+        let lean = lean_workspace_files(&example);
+        assert!(lean.is_empty(), "{example} holds {lean:?}");
+        lean_free += 1;
+    }
+    assert!(lean_free > 0, "the Bend examples include Lean-free ones");
 }
 
 pub(crate) fn run(id: &str) {
