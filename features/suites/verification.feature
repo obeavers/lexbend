@@ -212,3 +212,11 @@ Feature: verification
     Then both examples verify with no Lean toolchain present, and each attestation is `lexlean/attestation/3` with no `toolchain`, `oleans`, or `lake_workspace` and only `bend` processes
     And `even_or_not` records the premise `excluded-middle` and observes `Classical.choice`, `Quot.sound`, and `propext`
     And the example with a production root still needs the Lean toolchain, and the live verification runs no Lean, Lake, or leanchecker process
+
+  @VR-30 @build
+  Scenario: A Bend kernel recheck that accepts records as the attestation's bend kernel_sha256 the SHA-256 of the BendTT kernel the pinned Bend ran, the one under the home's .bend/bendtt at the pinned kernel key, which a prebuilt kernel may occupy in place of one built with Lean, and an accepting recheck with no kernel there is LLV7019.
+    Given the language-2.2 semantic example, a Bend that accepts every check, and a home whose `.bend/bendtt/b9f3e0253abffb11/bendtt` holds known bytes
+    When the example is verified with that Bend and that home, again with an empty home, and, where the pinned Bend and its kernel are installed, with them
+    Then the first attestation's `bend.kernel_sha256` is the SHA-256 of those bytes
+    And the verification with an empty home fails with LLV7019 after the recheck
+    And the live attestation's `bend.kernel_sha256` is the SHA-256 of the installed kernel, whose key is derived from the installed `bendtt.lean`

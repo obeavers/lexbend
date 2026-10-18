@@ -1455,6 +1455,12 @@ suite = "verification"
 statement = "A language-2.0 or 2.2 project whose every module lowers to Bend and that declares no production root is verified by Bend alone, running no Lean, Lake, or leanchecker process and needing no Lean toolchain, and its attestation is schema v3, recording the Bend toolchain, only Bend and PDF processes, and on each declaration row its premises and, as observed, the axioms they stand for."
 
 [[id]]
+id = "VR-30"
+level = "build"
+suite = "verification"
+statement = "A Bend kernel recheck that accepts records as the attestation's bend kernel_sha256 the SHA-256 of the BendTT kernel the pinned Bend ran, the one under the home's .bend/bendtt at the pinned kernel key, which a prebuilt kernel may occupy in place of one built with Lean, and an accepting recheck with no kernel there is LLV7019."
+
+[[id]]
 id = "CL-01"
 level = "build"
 suite = "cli-api"

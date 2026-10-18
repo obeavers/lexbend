@@ -10,6 +10,7 @@ use std::process::ExitCode;
 use camino::Utf8PathBuf;
 
 mod audit;
+mod bendtt;
 mod ci;
 mod codegen;
 mod release_manifest;
@@ -40,6 +41,7 @@ fn main() -> ExitCode {
         "ci-summary" => ci::ci_summary(&root, &std::env::args().skip(2).collect::<Vec<_>>()),
         "ci-hints" => ci::ci_hints(&std::env::args().skip(2).collect::<Vec<_>>()),
         "ci-shards" => ci::ci_shards(&root),
+        "bendtt-kernel" => bendtt::export(&root, &std::env::args().skip(2).collect::<Vec<_>>()),
         "release-artifacts" => release_artifacts(&root),
         "release-check" => release_check(&root),
         "validate" => codegen::check_model(&root, false).and_then(|()| spec_links::validate(&root)),
@@ -66,6 +68,8 @@ fn main() -> ExitCode {
                                          (--from verify-telemetry.jsonl --out hints.json)\n\
                  ci-shards               §9.4: the committed partition of an example's verification\n\
                                          runs every process once in import order\n\
+                 bendtt-kernel           §22.13: export the pinned Bend's compiled BendTT kernel and its\n\
+                                         digest (--out DIR, default target/bendtt)\n\
                  release-artifacts       §30.3: derive the release/ artifact set from the repository\n\
                  release-check           RP-12: refuse release until §30.3/§30.4 are fully satisfied\n\
                  validate                validate-model then validate-spec-links\n\
