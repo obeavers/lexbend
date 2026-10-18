@@ -1125,6 +1125,12 @@ suite = "bend-backend"
 statement = "A language-2.0 or 2.2 project whose configuration names no Lean workspace or toolchain carries no Lean: its lock pins no Lean file, its build emits no Lean module, it is verified by Bend alone, and a production root in it is refused."
 
 [[id]]
+id = "BN-25"
+level = "build"
+suite = "bend-backend"
+statement = "Every simultaneous mutual group a language-2.2 module lowers carries, for each member and each constructor of its recursive parameter's Lean type at which the member's body splits no local, a Bend law stating that member's Lean defining equation there, proved by reflexivity, and every list of an indexed family a law that converting a Lean list into the family and back is the identity, so the pinned Bend refuses a lowered group that breaks a member's equation."
+
+[[id]]
 id = "TX-01"
 level = "build"
 suite = "latex-pdf"

@@ -16,9 +16,9 @@
 //!
 //! A list bound from such a field keeps its family form while it is
 //! matched or passed to a group member, and converts to a Bend `List` at
-//! any other use, so every signature keeps Lean's types. The encoding is
-//! exploratory: it is checked by the pinned Bend and its kernel, and its
-//! coverage of the semantic surface is still being confirmed.
+//! any other use, so every signature keeps Lean's types. Each list's
+//! conversion carries a law that converting a Lean list in and back is the
+//! identity (`list_round_trip`).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -676,6 +676,7 @@ impl Lower<'_, '_> {
             let index = family.bases.len() + k;
             items.push(self.list_from_definition(family, &parameters, index)?);
             items.push(self.list_to_definition(family, &parameters, index)?);
+            items.append(&mut self.list_round_trip(family, &parameters, index)?);
         }
         self.type_parameters.clear();
         Ok(items)
@@ -804,6 +805,127 @@ impl Lower<'_, '_> {
             },
             source: here(),
         })
+    }
+
+    /// `Fam.ll_to_from{index}`: converting a Lean list into the family and
+    /// back is the identity, by induction on the list (§18.11.3). The other
+    /// direction holds only up to the index equations the family's
+    /// constructors carry, which BendTT does not identify.
+    fn list_round_trip(
+        &mut self,
+        family: &Arc<Family>,
+        parameters: &[SemanticType],
+        index: usize,
+    ) -> Result<Vec<Item>, Diagnostic> {
+        let element = family
+            .element(index, parameters)
+            .ok_or_else(|| fail("a list index names no list"))?;
+        let list = SemanticType::List {
+            element: Box::new(element),
+        };
+        let list_type = self.ty(&list)?;
+        let name = names::global(&format!("{}.ll_to_from{index}", family.name))?;
+        let helper = format!("{name}.i0");
+        let from = names::global(&format!("{}.ll_from{index}", family.name))?;
+        let to = names::global(&format!("{}.ll_to{index}", family.name))?;
+        let templates = self.templates(parameters)?;
+        let round = |lower_templates: &[BTerm], xs: BTerm| {
+            let mut inner = lower_templates.to_vec();
+            inner.push(xs);
+            let mut outer = lower_templates.to_vec();
+            outer.push(call(from.clone(), inner));
+            call(to.clone(), outer)
+        };
+        let claim = |xs: BTerm, templates: &[BTerm]| {
+            BTerm::Equal(
+                Box::new(round(templates, xs.clone())),
+                Box::new(xs),
+                Box::new(list_type.clone()),
+            )
+        };
+        let mut params = self.type_params(&family.type_parameters)?;
+        params.push(self.param("ll_xs", &list)?);
+        let mut recursive = templates.clone();
+        recursive.push(var("ll_t"));
+        // `Con{ll_h, to(from(ll_t))} == Con{ll_h, ll_t}`, rewritten by the
+        // hypothesis on the tail.
+        let motive = BTerm::Equal(
+            Box::new(BTerm::Constructor(
+                synthetic("Con"),
+                vec![var("ll_h"), BTerm::Hole],
+            )),
+            Box::new(BTerm::Constructor(
+                synthetic("Con"),
+                vec![var("ll_h"), var("ll_t")],
+            )),
+            Box::new(list_type.clone()),
+        );
+        let symmetric = call(
+            "Equal.sym".to_owned(),
+            vec![
+                list_type.clone(),
+                round(&templates, var("ll_t")),
+                var("ll_t"),
+                var("ll_r"),
+            ],
+        );
+        let cons = Body {
+            stmts: vec![
+                Stmt::Let {
+                    name: synthetic("ll_r"),
+                    value: call(helper.clone(), recursive),
+                    source: here(),
+                },
+                Stmt::Rewrite {
+                    proof: symmetric,
+                    motive,
+                    source: here(),
+                },
+            ],
+            tail: Tail::Term(BTerm::Refl, here()),
+        };
+        let definition = Item::Def {
+            name: synthetic(helper.clone()),
+            params: params.clone(),
+            result: claim(var("ll_xs"), &templates),
+            result_source: here(),
+            body: Body {
+                stmts: Vec::new(),
+                tail: Tail::Match {
+                    scrutinee: synthetic("ll_xs"),
+                    cases: vec![
+                        (
+                            Pattern::Constructor(synthetic("Nil"), Vec::new()),
+                            Body::term(BTerm::Refl, here()),
+                        ),
+                        (
+                            Pattern::Constructor(
+                                synthetic("Con"),
+                                vec![synthetic("+ll_h"), synthetic("+ll_t")],
+                            ),
+                            cons,
+                        ),
+                    ],
+                    source: here(),
+                },
+            },
+            source: here(),
+        };
+        let mut arguments: Vec<BTerm> = family
+            .type_parameters
+            .iter()
+            .map(|p| names::local(p).map(var))
+            .collect::<Result<_, _>>()?;
+        arguments.push(var("ll_xs"));
+        let law = Item::Law {
+            name: synthetic(name),
+            params,
+            claim: claim(var("ll_xs"), &templates),
+            claim_source: here(),
+            proof: Body::term(call(helper, arguments), here()),
+            source: here(),
+        };
+        Ok(vec![definition, law])
     }
 
     /// The body of a branch Bend reads as impossible: `proof` equates index

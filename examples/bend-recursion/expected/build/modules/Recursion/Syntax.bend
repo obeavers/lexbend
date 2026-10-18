@@ -92,6 +92,22 @@ def Expr.ll_to2(+ll_x: Expr<Expr.ll_index.i2{}>) -> List<&2, Expr<Expr.ll_index.
     case Expr.ll_cons2{ll_h, ll_t, _}:
       Con{ll_h, Expr.ll_to2(ll_t)}
 
+def Expr.ll_to_from2.i0(+ll_xs: List<&2, Expr<Expr.ll_index.i1{}>>) -> {Expr.ll_to2(Expr.ll_from2(ll_xs)) == ll_xs : List<&2, Expr<Expr.ll_index.i1{}>>}:
+  match ll_xs:
+    case Nil{}:
+      {==}
+    case Con{+ll_h, +ll_t}:
+      ll_r = Expr.ll_to_from2.i0(ll_t)
+      %Equal.sym(List<&2, Expr<Expr.ll_index.i1{}>>, Expr.ll_to2(Expr.ll_from2(ll_t)), ll_t, ll_r) : {Con{ll_h, _} == Con{ll_h, ll_t} : List<&2, Expr<Expr.ll_index.i1{}>>}
+      {==}
+
+law Expr.ll_to_from2:
+  for +ll_xs: List<&2, Expr<Expr.ll_index.i1{}>>
+  {Expr.ll_to2(Expr.ll_from2(ll_xs)) == ll_xs : List<&2, Expr<Expr.ll_index.i1{}>>}
+
+def Expr.ll_to_from2(ll_xs):
+  Expr.ll_to_from2.i0(ll_xs)
+
 type Term is Data:
   Term.literal{a0: Nat}
   Term.plus{a0: Term, a1: Term}

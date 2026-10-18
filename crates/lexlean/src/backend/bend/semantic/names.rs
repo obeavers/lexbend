@@ -58,6 +58,12 @@ pub fn global(name: &str) -> Result<String, Diagnostic> {
 ///
 /// `LLB6008` when the name is not a Bend identifier.
 pub fn local(name: &str) -> Result<String, Diagnostic> {
+    // A local the lowering introduces carries its Bend spelling (see
+    // `generated`), which no source name, spelled with its `ll_` escape,
+    // can equal.
+    if let Some(spelled) = name.strip_prefix('\u{1}') {
+        return Ok(spelled.to_owned());
+    }
     if !valid_segment(name) {
         return Err(fail(format!("the local `{name}` has no Bend spelling")));
     }

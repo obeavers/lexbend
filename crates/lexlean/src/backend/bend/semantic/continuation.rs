@@ -55,6 +55,15 @@ impl Hoisted {
     pub fn ty(&self) -> &SemanticType {
         &self.ty
     }
+
+    /// What the function computes, without its spelling: two lifted
+    /// matches whose hoisted calls agree here are the same match.
+    pub fn signature(&self) -> String {
+        format!(
+            "{:?}|{:?}|{:?}|{:?}",
+            self.function, self.type_arguments, self.arguments, self.ty
+        )
+    }
 }
 
 impl Lower<'_, '_> {

@@ -91,6 +91,59 @@ def statementsSize(+statements: List<&2, Recursion_Syntax.Expr<Recursion_Syntax.
 def statementSize(+statement: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>) -> Nat:
   exprSize.ll_go(Recursion_Syntax.Expr.ll_index.i1{}, statement, exprSize.ll_sel.statementSize{{==}})
 
+law exprSize.ll_eq_literal:
+  for +ll_f1: Nat
+  {exprSize(Recursion_Syntax.Expr.literal{ll_f1, {==}}) == 1n : Nat}
+
+def exprSize.ll_eq_literal(ll_f1):
+  {==}
+
+law exprSize.ll_eq_plus:
+  for +ll_f2: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i0{}>
+  for +ll_f3: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i0{}>
+  {exprSize(Recursion_Syntax.Expr.plus{ll_f2, ll_f3, {==}}) == L.Lean.Nat.add(L.Lean.Nat.add(exprSize.ll_go(Recursion_Syntax.Expr.ll_index.i0{}, ll_f2, exprSize.ll_sel.exprSize{{==}}), exprSize.ll_go(Recursion_Syntax.Expr.ll_index.i0{}, ll_f3, exprSize.ll_sel.exprSize{{==}})), 1n) : Nat}
+
+def exprSize.ll_eq_plus(ll_f2, ll_f3):
+  {==}
+
+law exprSize.ll_eq_block:
+  for +ll_f4: List<&2, Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>>
+  for +ll_f5: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i0{}>
+  {exprSize(Recursion_Syntax.Expr.block{Recursion_Syntax.Expr.ll_from2(ll_f4), ll_f5, {==}}) == L.Lean.Nat.add(exprSize.ll_go(Recursion_Syntax.Expr.ll_index.i2{}, Recursion_Syntax.Expr.ll_from2(ll_f4), exprSize.ll_sel.statementsSize{{==}}), exprSize.ll_go(Recursion_Syntax.Expr.ll_index.i0{}, ll_f5, exprSize.ll_sel.exprSize{{==}})) : Nat}
+
+def exprSize.ll_eq_block(ll_f4, ll_f5):
+  {==}
+
+law statementsSize.ll_eq_nil:
+  {statementsSize(Nil{}) == 0n : Nat}
+
+def statementsSize.ll_eq_nil():
+  {==}
+
+law statementsSize.ll_eq_cons:
+  for +ll_f10: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>
+  for +ll_f11: List<&2, Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>>
+  {statementsSize(Con{ll_f10, ll_f11}) == L.Lean.Nat.add(exprSize.ll_go(Recursion_Syntax.Expr.ll_index.i1{}, ll_f10, exprSize.ll_sel.statementSize{{==}}), exprSize.ll_go(Recursion_Syntax.Expr.ll_index.i2{}, Recursion_Syntax.Expr.ll_from2(ll_f11), exprSize.ll_sel.statementsSize{{==}})) : Nat}
+
+def statementsSize.ll_eq_cons(ll_f10, ll_f11):
+  {==}
+
+law statementSize.ll_eq_assign:
+  for +ll_f6: String
+  for +ll_f7: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i0{}>
+  {statementSize(Recursion_Syntax.Stmt.assign{ll_f6, ll_f7, {==}}) == L.Lean.Nat.add(exprSize.ll_go(Recursion_Syntax.Expr.ll_index.i0{}, ll_f7, exprSize.ll_sel.exprSize{{==}}), 1n) : Nat}
+
+def statementSize.ll_eq_assign(ll_f6, ll_f7):
+  {==}
+
+law statementSize.ll_eq_sequence:
+  for +ll_f8: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>
+  for +ll_f9: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>
+  {statementSize(Recursion_Syntax.Stmt.sequence{ll_f8, ll_f9, {==}}) == L.Lean.Nat.add(exprSize.ll_go(Recursion_Syntax.Expr.ll_index.i1{}, ll_f8, exprSize.ll_sel.statementSize{{==}}), exprSize.ll_go(Recursion_Syntax.Expr.ll_index.i1{}, ll_f9, exprSize.ll_sel.statementSize{{==}})) : Nat}
+
+def statementSize.ll_eq_sequence(ll_f8, ll_f9):
+  {==}
+
 def isEven(+number: Nat) -> Bool:
   match number:
     case 0n:
@@ -442,6 +495,65 @@ def foldStatements(+statements: List<&2, Recursion_Syntax.Expr<Recursion_Syntax.
 def foldStatement(+statement: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>) -> Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>:
   foldExpr.ll_go(Recursion_Syntax.Expr.ll_index.i1{}, statement, foldExpr.ll_sel.foldStatement{{==}})
 
+law foldExpr.ll_eq_literal:
+  for +ll_f37: Nat
+  {foldExpr(Recursion_Syntax.Expr.literal{ll_f37, {==}}) == Recursion_Syntax.Expr.literal{ll_f37, {==}} : Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i0{}>}
+
+def foldExpr.ll_eq_literal(ll_f37):
+  {==}
+
+law foldExpr.ll_eq_plus:
+  for +ll_f38: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i0{}>
+  for +ll_f39: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i0{}>
+  {foldExpr(Recursion_Syntax.Expr.plus{ll_f38, ll_f39, {==}}) == (
+    +foldedLeft = {foldExpr.ll_go(Recursion_Syntax.Expr.ll_index.i0{}, ll_f38, foldExpr.ll_sel.foldExpr{{==}}) : Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i0{}>}
+    (
+      +foldedRight = {foldExpr.ll_go(Recursion_Syntax.Expr.ll_index.i0{}, ll_f39, foldExpr.ll_sel.foldExpr{{==}}) : Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i0{}>}
+      ll_match40(foldedLeft, foldedLeft, foldedRight)
+    )
+  ) : Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i0{}>}
+
+def foldExpr.ll_eq_plus(ll_f38, ll_f39):
+  {==}
+
+law foldExpr.ll_eq_block:
+  for +ll_f44: List<&2, Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>>
+  for +ll_f45: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i0{}>
+  {foldExpr(Recursion_Syntax.Expr.block{Recursion_Syntax.Expr.ll_from2(ll_f44), ll_f45, {==}}) == Recursion_Syntax.Expr.block{Recursion_Syntax.Expr.ll_from2({foldExpr.ll_go(Recursion_Syntax.Expr.ll_index.i2{}, Recursion_Syntax.Expr.ll_from2(ll_f44), foldExpr.ll_sel.foldStatements{{==}}) : List<&2, Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>>}), {foldExpr.ll_go(Recursion_Syntax.Expr.ll_index.i0{}, ll_f45, foldExpr.ll_sel.foldExpr{{==}}) : Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i0{}>}, {==}} : Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i0{}>}
+
+def foldExpr.ll_eq_block(ll_f44, ll_f45):
+  {==}
+
+law foldStatements.ll_eq_nil:
+  {foldStatements(Nil{}) == Nil{} : List<&2, Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>>}
+
+def foldStatements.ll_eq_nil():
+  {==}
+
+law foldStatements.ll_eq_cons:
+  for +ll_f50: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>
+  for +ll_f51: List<&2, Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>>
+  {foldStatements(Con{ll_f50, ll_f51}) == Con{{foldExpr.ll_go(Recursion_Syntax.Expr.ll_index.i1{}, ll_f50, foldExpr.ll_sel.foldStatement{{==}}) : Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>}, {foldExpr.ll_go(Recursion_Syntax.Expr.ll_index.i2{}, Recursion_Syntax.Expr.ll_from2(ll_f51), foldExpr.ll_sel.foldStatements{{==}}) : List<&2, Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>>}} : List<&2, Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>>}
+
+def foldStatements.ll_eq_cons(ll_f50, ll_f51):
+  {==}
+
+law foldStatement.ll_eq_assign:
+  for +ll_f46: String
+  for +ll_f47: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i0{}>
+  {foldStatement(Recursion_Syntax.Stmt.assign{ll_f46, ll_f47, {==}}) == Recursion_Syntax.Stmt.assign{ll_f46, {foldExpr.ll_go(Recursion_Syntax.Expr.ll_index.i0{}, ll_f47, foldExpr.ll_sel.foldExpr{{==}}) : Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i0{}>}, {==}} : Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>}
+
+def foldStatement.ll_eq_assign(ll_f46, ll_f47):
+  {==}
+
+law foldStatement.ll_eq_sequence:
+  for +ll_f48: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>
+  for +ll_f49: Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>
+  {foldStatement(Recursion_Syntax.Stmt.sequence{ll_f48, ll_f49, {==}}) == Recursion_Syntax.Stmt.sequence{{foldExpr.ll_go(Recursion_Syntax.Expr.ll_index.i1{}, ll_f48, foldExpr.ll_sel.foldStatement{{==}}) : Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>}, {foldExpr.ll_go(Recursion_Syntax.Expr.ll_index.i1{}, ll_f49, foldExpr.ll_sel.foldStatement{{==}}) : Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>}, {==}} : Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i1{}>}
+
+def foldStatement.ll_eq_sequence(ll_f48, ll_f49):
+  {==}
+
 law folding_sample:
   {foldExpr(Recursion_Syntax.Expr.block{Recursion_Syntax.Expr.ll_from2(Con{Recursion_Syntax.Stmt.assign{"x", Recursion_Syntax.Expr.plus{Recursion_Syntax.Expr.literal{1n, {==}}, Recursion_Syntax.Expr.literal{2n, {==}}, {==}}, {==}}, Nil{}}), Recursion_Syntax.Expr.plus{Recursion_Syntax.Expr.literal{2n, {==}}, Recursion_Syntax.Expr.plus{Recursion_Syntax.Expr.literal{3n, {==}}, Recursion_Syntax.Expr.literal{4n, {==}}, {==}}, {==}}, {==}}) == Recursion_Syntax.Expr.block{Recursion_Syntax.Expr.ll_from2(Con{Recursion_Syntax.Stmt.assign{"x", Recursion_Syntax.Expr.literal{3n, {==}}, {==}}, Nil{}}), Recursion_Syntax.Expr.literal{9n, {==}}, {==}} : Recursion_Syntax.Expr<Recursion_Syntax.Expr.ll_index.i0{}>}
 
@@ -459,15 +571,15 @@ def walk.ll_out(ll_s: walk.ll_sel) -> Type:
     case walk.ll_sel.depth{_}:
       Maybe<&2, Nat>
 
-def ll_match55(+ll_v56: Maybe<&2, Nat>, +rest: List<&2, Nat>, ll_k53: @+x: List<&2, Nat> -> Nat, ll_k54: @+x: List<&2, Nat> -> Nat) -> Nat:
-  match ll_v56:
-    case None{}:
-      ll_k53(rest)
-    case Some{halvings}:
-      L.Lean.Nat.add(halvings, ll_k54(rest))
-
-def ll_match59(+ll_v60: Maybe<&2, Nat>) -> Maybe<&2, Nat>:
+def ll_match59(+ll_v60: Maybe<&2, Nat>, +rest: List<&2, Nat>, ll_k57: @+x: List<&2, Nat> -> Nat, ll_k58: @+x: List<&2, Nat> -> Nat) -> Nat:
   match ll_v60:
+    case None{}:
+      ll_k57(rest)
+    case Some{halvings}:
+      L.Lean.Nat.add(halvings, ll_k58(rest))
+
+def ll_match63(+ll_v64: Maybe<&2, Nat>) -> Maybe<&2, Nat>:
+  match ll_v64:
     case None{}:
       None{}
     case Some{halvings}:
@@ -481,30 +593,44 @@ def walk.ll_go(+ll_x: Nat, +ll_s: walk.ll_sel) -> walk.ll_out(ll_s):
           0n
         case walk.ll_sel.depth{number}:
           None{}
-    case 1n+ll_f52:
+    case 1n+ll_f56:
       match ll_s:
         case walk.ll_sel.walk{path}:
           match path:
             case Nil{}:
               0n
             case Con{number, rest}:
-              ll_match55({walk.ll_go(ll_f52, walk.ll_sel.depth{number}) : Maybe<&2, Nat>}, rest, (+ll_a57 => {walk.ll_go(ll_f52, walk.ll_sel.walk{ll_a57}) : Nat}), (+ll_a58 => {walk.ll_go(ll_f52, walk.ll_sel.walk{ll_a58}) : Nat}))
+              ll_match59({walk.ll_go(ll_f56, walk.ll_sel.depth{number}) : Maybe<&2, Nat>}, rest, (+ll_a61 => {walk.ll_go(ll_f56, walk.ll_sel.walk{ll_a61}) : Nat}), (+ll_a62 => {walk.ll_go(ll_f56, walk.ll_sel.walk{ll_a62}) : Nat}))
         case walk.ll_sel.depth{number}:
           match number:
             case 0n:
-              Some{{walk.ll_go(ll_f52, walk.ll_sel.walk{Nil{}}) : Nat}}
+              Some{{walk.ll_go(ll_f56, walk.ll_sel.walk{Nil{}}) : Nat}}
             case 1n+smaller:
               match smaller:
                 case 0n:
                   Some{0n}
                 case 1n+lower:
-                  ll_match59({walk.ll_go(ll_f52, walk.ll_sel.depth{lower}) : Maybe<&2, Nat>})
+                  ll_match63({walk.ll_go(ll_f56, walk.ll_sel.depth{lower}) : Maybe<&2, Nat>})
 
 def walk(+fuel: Nat, +path: List<&2, Nat>) -> Nat:
   walk.ll_go(fuel, walk.ll_sel.walk{path})
 
 def depth(+fuel: Nat, +number: Nat) -> Maybe<&2, Nat>:
   walk.ll_go(fuel, walk.ll_sel.depth{number})
+
+law walk.ll_eq_zero:
+  for +path: List<&2, Nat>
+  {walk(0n, path) == 0n : Nat}
+
+def walk.ll_eq_zero(path):
+  {==}
+
+law depth.ll_eq_zero:
+  for +number: Nat
+  {depth(0n, number) == None{} : Maybe<&2, Nat>}
+
+def depth.ll_eq_zero(number):
+  {==}
 
 law walk_sample:
   {walk(10n, Con{4n, Con{7n, Con{1n, Nil{}}}}) == 5n : Nat}
@@ -524,8 +650,8 @@ law depth_nine:
 def depth_nine():
   {==}
 
-def ll_match61(+ll_v62: Nat, +head: Nat) -> Nat:
-  match ll_v62:
+def ll_match91(+ll_v92: Nat, +head: Nat) -> Nat:
+  match ll_v92:
     case 0n:
       head
     case 1n+previous:
@@ -542,7 +668,7 @@ def secondOfTwo(+values: List<&2, Nat>) -> Nat:
         case Con{later, more}:
           match more:
             case Nil{}:
-              ll_match61(later, head)
+              ll_match91(later, head)
             case Con{ignored, others}:
               0n
 
@@ -558,19 +684,19 @@ law second_of_two_zero:
 def second_of_two_zero():
   {==}
 
-def ll_match64(+ll_v65: Bool, +head: Nat, ll_k63: @+x: Unit -> Maybe<&2, Nat>) -> Maybe<&2, Nat>:
-  match ll_v65:
+def ll_match94(+ll_v95: Bool, +head: Nat, ll_k93: @+x: Unit -> Maybe<&2, Nat>) -> Maybe<&2, Nat>:
+  match ll_v95:
     case True{}:
       Some{head}
     case False{}:
-      ll_k63(Unit{})
+      ll_k93(Unit{})
 
 def firstEven(+values: List<&2, Nat>) -> Maybe<&2, Nat>:
   match values:
     case Nil{}:
       None{}
     case Con{head, rest}:
-      ll_match64(isEven(head), head, (+ll_unit => firstEven(rest)))
+      ll_match94(isEven(head), head, (+ll_unit => firstEven(rest)))
 
 law first_even:
   {firstEven(Con{3n, Con{5n, Con{8n, Con{2n, Nil{}}}}}) == Some{8n} : Maybe<&2, Nat>}
@@ -581,23 +707,23 @@ def first_even():
 def applyTwice(~ll_E_step: Data, ~step: @+ll_e: ll_E_step -> @+x: Nat -> Nat, +ll_env_step: ll_E_step, +value: Nat) -> Nat:
   step(ll_env_step, step(ll_env_step, value))
 
-def ll_match66(~ll_E_step: Data, ~step: @+ll_e: ll_E_step -> @+x: Nat -> Nat, +ll_v67: Bool, +ll_env_step: ll_E_step, +value: Nat) -> Nat:
-  match ll_v67:
+def ll_match96(~ll_E_step: Data, ~step: @+ll_e: ll_E_step -> @+x: Nat -> Nat, +ll_v97: Bool, +ll_env_step: ll_E_step, +value: Nat) -> Nat:
+  match ll_v97:
     case True{}:
       0n
     case False{}:
       applyTwice(~ll_E_step, ~step, ll_env_step, value)
 
 def stepUnlessZero(~ll_E_step: Data, ~step: @+ll_e: ll_E_step -> @+x: Nat -> Nat, +ll_env_step: ll_E_step, +value: Nat) -> Nat:
-  ll_match66(~ll_E_step, ~step, L.Lean.Nat.beq(value, 0n), ll_env_step, value)
+  ll_match96(~ll_E_step, ~step, L.Lean.Nat.beq(value, 0n), ll_env_step, value)
 
-def ll_code68(+ll_e: L.Lean.Prod(Nat, Nat), +n: Nat) -> Nat:
+def ll_code98(+ll_e: L.Lean.Prod(Nat, Nat), +n: Nat) -> Nat:
   +high = S.Sem.fst(Nat, Nat, ll_e)
   +low = S.Sem.snd(Nat, Nat, ll_e)
   L.Lean.Nat.add(L.Lean.Nat.add(n, low), L.Lean.Nat.add(high, high))
 
 def shiftTwice(+low: Nat, +high: Nat, +value: Nat) -> Nat:
-  applyTwice(~L.Lean.Prod(Nat, Nat), ~ll_code68, (high, low), value)
+  applyTwice(~L.Lean.Prod(Nat, Nat), ~ll_code98, (high, low), value)
 
 law shift_twice:
   {shiftTwice(1n, 2n, 3n) == 13n : Nat}
@@ -605,17 +731,17 @@ law shift_twice:
 def shift_twice():
   {==}
 
-def ll_code69(+ll_e: Unit, +n: Nat) -> Nat:
+def ll_code99(+ll_e: Unit, +n: Nat) -> Nat:
   L.Lean.Nat.add(n, 2n)
 
 law step_unless_zero:
-  L.Lean.Prod({stepUnlessZero(~Unit, ~ll_code69, Unit{}, 5n) == 9n : Nat}, {stepUnlessZero(~Unit, ~ll_code69, Unit{}, 0n) == 0n : Nat})
+  L.Lean.Prod({stepUnlessZero(~Unit, ~ll_code99, Unit{}, 5n) == 9n : Nat}, {stepUnlessZero(~Unit, ~ll_code99, Unit{}, 0n) == 0n : Nat})
 
 def step_unless_zero():
   ({==}, {==})
 
-def ll_match70(+ll_v71: List<&2, Nat>, +scale: Nat) -> Nat:
-  match ll_v71:
+def ll_match100(+ll_v101: List<&2, Nat>, +scale: Nat) -> Nat:
+  match ll_v101:
     case Nil{}:
       scale
     case Con{head, rest}:
@@ -623,7 +749,7 @@ def ll_match70(+ll_v71: List<&2, Nat>, +scale: Nat) -> Nat:
 
 def scaledHead(+values: List<&2, Nat>, +factor: Nat) -> Nat:
   +scale = L.Lean.Nat.add(factor, factor)
-  ll_match70(values, scale)
+  ll_match100(values, scale)
 
 law scaled_head:
   L.Lean.Prod({scaledHead(Con{3n, Nil{}}, 2n) == 7n : Nat}, {scaledHead(Nil{}, 2n) == 4n : Nat})
@@ -775,9 +901,9 @@ law implied_pair:
   L.Lean.Prod(S.Sem.le(y, 3n), S.Sem.le(x, 2n))
 
 def implied_pair(x, y, ll_h0, ll_h1):
-  S.Sem.and_prod(S.Sem.le(y, 3n), S.Sem.le(x, 2n), S.Sem.le(y, 3n), S.Sem.le(x, 2n), (ll_c74 => ll_c74), (ll_c75 => ll_c75), LA.sound(Con{y, Con{x, Nil{}}}, LA.FAnd{LA.FLe{LA.TVar{0n}, LA.TLit{3n}}, LA.FLe{LA.TVar{1n}, LA.TLit{2n}}}, Con{LA.FImp{LA.FLt{LA.TVar{1n}, LA.TVar{0n}}, LA.FAnd{LA.FLe{LA.TVar{0n}, LA.TLit{3n}}, LA.FLe{LA.TVar{1n}, LA.TLit{2n}}}}, Con{LA.FLt{LA.TVar{1n}, LA.TVar{0n}}, Nil{}}}, 15n, LA.Fork{LA.Fork{LA.Leaf{Con{1n, Con{1n, Nil{}}}}, LA.Leaf{Con{0n, Con{0n, Con{1n, Con{1n, Nil{}}}}}}}, LA.Fork{LA.Leaf{Con{1n, Con{1n, Nil{}}}}, LA.Leaf{Con{0n, Con{1n, Con{0n, Con{1n, Nil{}}}}}}}}, {==}, ((ll_c72 => (
-    +ll_c73 = {ll_h0(ll_c72) : L.Lean.Prod(S.Sem.le(y, 3n), S.Sem.le(x, 2n))}
-    (S.Sem.fst(S.Sem.le(y, 3n), S.Sem.le(x, 2n), ll_c73), S.Sem.snd(S.Sem.le(y, 3n), S.Sem.le(x, 2n), ll_c73))
+  S.Sem.and_prod(S.Sem.le(y, 3n), S.Sem.le(x, 2n), S.Sem.le(y, 3n), S.Sem.le(x, 2n), (ll_c104 => ll_c104), (ll_c105 => ll_c105), LA.sound(Con{y, Con{x, Nil{}}}, LA.FAnd{LA.FLe{LA.TVar{0n}, LA.TLit{3n}}, LA.FLe{LA.TVar{1n}, LA.TLit{2n}}}, Con{LA.FImp{LA.FLt{LA.TVar{1n}, LA.TVar{0n}}, LA.FAnd{LA.FLe{LA.TVar{0n}, LA.TLit{3n}}, LA.FLe{LA.TVar{1n}, LA.TLit{2n}}}}, Con{LA.FLt{LA.TVar{1n}, LA.TVar{0n}}, Nil{}}}, 15n, LA.Fork{LA.Fork{LA.Leaf{Con{1n, Con{1n, Nil{}}}}, LA.Leaf{Con{0n, Con{0n, Con{1n, Con{1n, Nil{}}}}}}}, LA.Fork{LA.Leaf{Con{1n, Con{1n, Nil{}}}}, LA.Leaf{Con{0n, Con{1n, Con{0n, Con{1n, Nil{}}}}}}}}, {==}, ((ll_c102 => (
+    +ll_c103 = {ll_h0(ll_c102) : L.Lean.Prod(S.Sem.le(y, 3n), S.Sem.le(x, 2n))}
+    (S.Sem.fst(S.Sem.le(y, 3n), S.Sem.le(x, 2n), ll_c103), S.Sem.snd(S.Sem.le(y, 3n), S.Sem.le(x, 2n), ll_c103))
   )), (ll_h1, Unit{}))))
 
 law assumed_pair:
@@ -789,7 +915,7 @@ law assumed_pair:
   S.Sem.le(L.Lean.Nat.add(x, y), 3n)
 
 def assumed_pair(x, y, ll_h0, ll_h1, ll_h2):
-  LA.sound(Con{x, Con{y, Nil{}}}, LA.FLe{LA.TAdd{LA.TVar{0n}, LA.TVar{1n}}, LA.TLit{3n}}, Con{LA.FImp{LA.FAnd{LA.FLe{LA.TVar{0n}, LA.TLit{1n}}, LA.FLe{LA.TVar{1n}, LA.TLit{1n}}}, LA.FLe{LA.TAdd{LA.TVar{0n}, LA.TVar{1n}}, LA.TLit{2n}}}, Con{LA.FLe{LA.TVar{0n}, LA.TLit{1n}}, Con{LA.FLe{LA.TVar{1n}, LA.TLit{1n}}, Nil{}}}}, 13n, LA.Fork{LA.Fork{LA.Leaf{Con{0n, Con{1n, Con{1n, Nil{}}}}}, LA.Leaf{Con{1n, Con{0n, Con{1n, Nil{}}}}}}, LA.Leaf{Con{0n, Con{0n, Con{1n, Con{1n, Nil{}}}}}}}, {==}, ((ll_c76 => ll_h0(S.Sem.and_prod(S.Sem.le(x, 1n), S.Sem.le(y, 1n), S.Sem.le(x, 1n), S.Sem.le(y, 1n), (ll_c77 => ll_c77), (ll_c78 => ll_c78), ll_c76))), (ll_h1, (ll_h2, Unit{}))))
+  LA.sound(Con{x, Con{y, Nil{}}}, LA.FLe{LA.TAdd{LA.TVar{0n}, LA.TVar{1n}}, LA.TLit{3n}}, Con{LA.FImp{LA.FAnd{LA.FLe{LA.TVar{0n}, LA.TLit{1n}}, LA.FLe{LA.TVar{1n}, LA.TLit{1n}}}, LA.FLe{LA.TAdd{LA.TVar{0n}, LA.TVar{1n}}, LA.TLit{2n}}}, Con{LA.FLe{LA.TVar{0n}, LA.TLit{1n}}, Con{LA.FLe{LA.TVar{1n}, LA.TLit{1n}}, Nil{}}}}, 13n, LA.Fork{LA.Fork{LA.Leaf{Con{0n, Con{1n, Con{1n, Nil{}}}}}, LA.Leaf{Con{1n, Con{0n, Con{1n, Nil{}}}}}}, LA.Leaf{Con{0n, Con{0n, Con{1n, Con{1n, Nil{}}}}}}}, {==}, ((ll_c106 => ll_h0(S.Sem.and_prod(S.Sem.le(x, 1n), S.Sem.le(y, 1n), S.Sem.le(x, 1n), S.Sem.le(y, 1n), (ll_c107 => ll_c107), (ll_c108 => ll_c108), ll_c106))), (ll_h1, (ll_h2, Unit{}))))
 
 law some_bounded:
   for +x: Nat

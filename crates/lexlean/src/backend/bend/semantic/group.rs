@@ -16,9 +16,9 @@
 //! or mutual family (`family.rs`) when the members recurse over its
 //! different index types; the selector is then indexed too, and a
 //! selected member whose index the carrier's constructor contradicts is a
-//! branch refuted from the two equations. The encoding is exploratory: it
-//! is checked by the pinned Bend and its kernel, and its coverage of the
-//! semantic surface is still being confirmed.
+//! branch refuted from the two equations. Each member's Lean defining
+//! equations follow the group as laws proved by reflexivity
+//! (`equation_laws`), so Bend refuses a lowering that breaks one.
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -574,7 +574,8 @@ impl Lower<'_, '_> {
         };
         let saved_group = self.group.replace(context.clone());
         let saved_goal = self.goal.take();
-        let outcome = self.go_cases(members, &group, &carrier, &selector, &goals);
+        let mut fields_of = BTreeMap::new();
+        let outcome = self.go_cases(members, &group, &carrier, &selector, &goals, &mut fields_of);
         self.group = saved_group;
         self.goal = saved_goal;
         let cases = outcome?;
@@ -635,7 +636,148 @@ impl Lower<'_, '_> {
                 source: here(),
             });
         }
+        items.append(&mut self.equation_laws(
+            members,
+            &context,
+            &goals,
+            &fields_of,
+            &type_parameters,
+        )?);
         self.type_parameters.clear();
+        Ok(items)
+    }
+
+    /// Each member's Lean defining equation, one law per constructor of its
+    /// recursive parameter's Lean type, proved by reflexivity (§18.11.3).
+    /// The constructor is the Lean value (a list field enters a family
+    /// through its conversion) and the left side calls the member by its
+    /// name, so a law states that the merged definition computes Lean's
+    /// function on every value Lean has. The right side is the member's
+    /// body lowered as an ordinary term, under the group so that its lifted
+    /// matches take the same shape as in `go`; the pinned Bend refuses a
+    /// lowering that breaks an equation.
+    fn equation_laws(
+        &mut self,
+        members: &[&SemanticDeclaration],
+        context: &GroupContext,
+        goals: &BTreeMap<String, Goal>,
+        fields_of: &BTreeMap<(usize, String), Vec<String>>,
+        type_parameters: &[String],
+    ) -> Result<Vec<Item>, Diagnostic> {
+        let type_arguments: Vec<SemanticType> = type_parameters
+            .iter()
+            .map(|name| SemanticType::Parameter { name: name.clone() })
+            .collect();
+        let cases = self.carrier_cases(&context.carrier)?;
+        let mut items = Vec::new();
+        for declaration in members {
+            let member = &context.members[declaration.name()];
+            let SemanticDeclaration::Definition {
+                name,
+                parameters,
+                body,
+                ..
+            } = declaration
+            else {
+                return Err(fail("a mutual group holds a non-definition"));
+            };
+            // An equation between propositions is no Bend equality.
+            let Goal::Value(result) = goals[declaration.name()].clone() else {
+                continue;
+            };
+            for case in cases.iter().filter(|case| case.at == member.index) {
+                let fresh = fields_of
+                    .get(&(case.at, case.short.clone()))
+                    .cloned()
+                    .ok_or_else(|| fail("a carrier case named no fields"))?;
+                let value = SemanticTerm::Constructor {
+                    constructor: case.constructor.clone(),
+                    type_arguments: case.type_arguments.clone(),
+                    arguments: fresh
+                        .iter()
+                        .map(|name| SemanticTerm::Var { name: name.clone() })
+                        .collect(),
+                };
+                let arguments = parameters
+                    .iter()
+                    .enumerate()
+                    .map(|(position, parameter)| {
+                        if position == member.recursive {
+                            value.clone()
+                        } else {
+                            SemanticTerm::Var {
+                                name: parameter.name.clone(),
+                            }
+                        }
+                    })
+                    .collect();
+                let left = SemanticTerm::Call {
+                    function: MemberRef {
+                        module: Some(self.module.clone()),
+                        name: name.clone(),
+                    },
+                    type_arguments: type_arguments.clone(),
+                    arguments,
+                };
+                let right = resolve(
+                    body,
+                    &parameters[member.recursive].name,
+                    &case.short,
+                    &fresh,
+                    &value,
+                );
+                let mut params = self.type_params(type_parameters)?;
+                let mut scope = Scope::default();
+                for position in &member.rest {
+                    let parameter = &parameters[*position];
+                    let ty = member.types[*position].clone();
+                    params.push(self.param(&names::local(&parameter.name)?, &ty)?);
+                    scope = scope.with(&parameter.name, ty)?;
+                }
+                for (field, ty) in fresh.iter().zip(&case.fields) {
+                    let spelled = names::local(field)?;
+                    params.push(self.param(&spelled, ty)?);
+                    scope = scope.with_generated(&spelled, ty.clone());
+                }
+                let claim_left = self.term(&left, &scope)?;
+                let saved_group = self.group.replace(context.clone());
+                let saved_goal = self.goal.replace(Goal::Value(result.clone()));
+                // A skipped case leaves no auxiliary behind, emitted or
+                // remembered for reuse.
+                let (emitted, remembered, codes) =
+                    (self.aux.len(), self.lifted_aux.clone(), self.codes.clone());
+                let lowered = self
+                    .tail_body(&right, &scope)
+                    .and_then(|lowered| Ok((lowered, self.term(&right, &scope)?)));
+                self.group = saved_group;
+                self.goal = saved_goal;
+                // Only a right side `go` computes without splitting a local
+                // is stated: a split is one Bend statement per case, and no
+                // claim term states it (a lifted match is stuck until its
+                // scrutinee is a constructor, and the lifted helper in the
+                // claim and the statement in `go` agree only there).
+                let (lowered, claim_right) = lowered?;
+                if !matches!(lowered.tail, Tail::Term(..)) {
+                    self.aux.truncate(emitted);
+                    self.lifted_aux = remembered;
+                    self.codes = codes;
+                    continue;
+                }
+                items.append(&mut self.aux);
+                items.push(Item::Law {
+                    name: synthetic(names::global(&format!("{name}.ll_eq_{}", case.short))?),
+                    params,
+                    claim: BTerm::Equal(
+                        Box::new(claim_left),
+                        Box::new(claim_right),
+                        Box::new(result.clone()),
+                    ),
+                    claim_source: here(),
+                    proof: Body::term(BTerm::Refl, here()),
+                    source: here(),
+                });
+            }
+        }
         Ok(items)
     }
 
@@ -648,6 +790,7 @@ impl Lower<'_, '_> {
         carrier: &Carrier,
         selector: &str,
         goals: &BTreeMap<String, Goal>,
+        fields_of: &mut BTreeMap<(usize, String), Vec<String>>,
     ) -> Result<Vec<(Pattern, Body)>, Diagnostic> {
         let family = match carrier {
             Carrier::Family { family, .. } => Some(family.clone()),
@@ -657,6 +800,7 @@ impl Lower<'_, '_> {
         for case in self.carrier_cases(carrier)? {
             let spelled: Vec<String> = case.fields.iter().map(|_| self.fresh("f")).collect();
             let fresh: Vec<String> = spelled.iter().map(|name| generated(name)).collect();
+            fields_of.insert((case.at, case.short.clone()), fresh.clone());
             let binders: Vec<Name> = spelled.iter().map(synthetic).collect();
             let pattern = match &case.head {
                 Head::Zero => Pattern::Zero,
