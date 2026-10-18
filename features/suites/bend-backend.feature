@@ -126,10 +126,11 @@ Feature: bend-backend
     And each module checks under the pinned Bend
 
   @BN-17 @build
-  Scenario: A language-2.2 reasoning declaration is a hard error naming the theorem it generates.
+  Scenario: Each theorem a language-2.2 reasoning declaration generates lowers to one Bend law that instantiates the generic laws of the shipped Reasoning.bend, and the generated Bend of the reasoning example checks under the pinned Bend while a planted false claim is refused.
     Given the language-1.2 reasoning example moved to language 2.2
-    When it is built
-    Then the build fails with LLB6008 naming `Tick.apply_sound` as the theorem whose proof has no Bend lowering
+    When it is built and each generated module is checked by the pinned Bend
+    Then every module emits one law for each theorem its Lean module states, and each prints exactly `ALL PROOFS CHECK`
+    And `Screen.frontier_bounded` with its bound lowered from 3 to 2 prints `SOME PROOFS FAIL`
 
   @BN-18 @build
   Scenario: The generated Bend of every language-2.2 example module checks and exports under the pinned Bend with every proof accepted.

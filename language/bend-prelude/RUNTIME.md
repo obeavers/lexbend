@@ -180,6 +180,10 @@ theorems that instantiate them:
   lambda template is refused ("no known head type").
 - Templates are closed. The checker allows a template to capture a
   run-time local; the kernel refuses it.
+- A fold or loop invariant reads the captured environment `k` and the
+  step's own environment `e`. The hypothesis is proved for every `e`, so an
+  invariant that read a parameter only through `k` would state a value the
+  step, which reads `e`, need not use.
 
 ## Lean semantics to watch
 

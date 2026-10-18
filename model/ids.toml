@@ -1080,7 +1080,7 @@ statement = "The language-2.2 support modules import only Base, the prelude, and
 id = "BN-17"
 level = "build"
 suite = "bend-backend"
-statement = "A language-2.2 reasoning declaration is a hard error naming the theorem it generates."
+statement = "Each theorem a language-2.2 reasoning declaration generates lowers to one Bend law that instantiates the generic laws of the shipped Reasoning.bend, and the generated Bend of the reasoning example checks under the pinned Bend while a planted false claim is refused."
 
 [[id]]
 id = "BN-18"

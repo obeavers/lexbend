@@ -7163,13 +7163,33 @@ and that every level of nesting has its declared length. It is proved by
 helper the runtime does not carry, or whose theorem takes a function, is
 `LLB6008`.
 
-#### 18.11.8 Refusals
+#### 18.11.8 Reasoning declarations
 
-Under language 2.2 a reasoning declaration (§17.12, *Reasoning machines*) is
-`LLB6008`. The theorems it generates are proved by fixed Lean tactic scripts
-over `LexLeanReasoning`, which have no Bend proof, and lowering the
-declaration without them would drop the guarantees it states. A refusal names
-the declaration and carries its source span.
+Under language 2.2 a reasoning declaration (§17.12, *Reasoning machines*)
+lowers as its elaboration does: each elaborated definition by §18.11.2
+through §18.11.4, and then each theorem it generates as one law, after the
+definitions its proof unfolds, stating the theorem's statement over the
+predicates of `Reasoning.bend`. A theorem whose statement is an ordinary
+proposition is cited by a source proof as a declared theorem is.
+
+The law's proof is the Bend counterpart of the fixed Lean template that
+proves the theorem (§17.12, rule 11): it unfolds the same definitions,
+splits on the same matches, rewrites with the same equations, and cites the
+same theorems. Where the template applies a generic `LexLeanReasoning`
+lemma, the proof instantiates the law of the same name in `Reasoning.bend`,
+each template argument a closed definition the build emits below the
+theorem. The generic laws, the fold and loop invariants, the closure's
+preservation, and the frontier's caps and bounds, are each proved once in
+`Reasoning.bend`, for every instantiation; a generated theorem only
+instantiates them. The invariant a fold or loop law takes reads the
+theorem's parameters as one captured environment and the step's own
+environment, so an invariant over a parameter the step also reads states the
+same value the step uses.
+
+An elaboration whose shape a template does not meet, such as a successor
+list that is not one fired node or a frontier measure that is not a length,
+is `LLB6008` naming the generated theorem, with the declaration's source
+span.
 
 ---
 
@@ -7489,6 +7509,7 @@ Each language's compiler-semantics ID is the §11.5 tree digest of a fixed,
 nested partition of the embedded tree. The language-2.2 ID covers the whole
 tree. The language-2.0 ID excludes the files introduced solely for 2.2:
 `language/semantics-2.2.toml`, `language/bend-prelude/LinArith.bend`,
+`language/bend-prelude/Reasoning.bend`,
 `language/bend-prelude/Runtime.bend`, `language/bend-prelude/RUNTIME.md`,
 `language/bend-prelude/runtime-registry.toml`,
 `language/bend-prelude/Semantic.bend`, `schemas/attestation-v4.schema.json`,
@@ -9681,7 +9702,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `BN-14` | `bend-backend` | Language-2.2 proofs lower to explicit Bend terms, including linear arithmetic, decide by splitting every Boolean it quantifies, simplification that matches a successor in any of its forms, congruence, and boolean reflection, and the pinned Bend refuses a reflection whose induction steps the wrong successor. | §18.11.5 |
 | `BN-15` | `bend-backend` | Every language-2.2 model cross-check restates its obligation against the Bend runtime's LexLeanModels and is proved by its discharging theorem or by evaluation, and a restatement that drifts is refused by the pinned Bend. | §18.11.7 |
 | `BN-16` | `bend-backend` | The language-2.2 support modules import only Base, the prelude, and the support modules before them and check under the pinned Bend, and every runtime registry row names a function, law, type, or constructor the runtime defines. | §18.11.6 |
-| `BN-17` | `bend-backend` | A language-2.2 reasoning declaration is a hard error naming the theorem it generates. | §18.11.8 |
+| `BN-17` | `bend-backend` | Each theorem a language-2.2 reasoning declaration generates lowers to one Bend law that instantiates the generic laws of the shipped Reasoning.bend, and the generated Bend of the reasoning example checks under the pinned Bend while a planted false claim is refused. | §18.11.8 |
 | `BN-18` | `bend-backend` | The generated Bend of every language-2.2 example module checks and exports under the pinned Bend with every proof accepted. | §18.11 |
 | `BN-19` | `bend-backend` | A language-2.0 or 2.2 numeral above 4294967295 lowers to its base-65536 Horner form over the prelude's Lean.Nat.add and Lean.Nat.mul, and the pinned Bend accepts a proof that uses it without reducing it. | §18.10.6, §18.11.6 |
 | `BN-20` | `bend-backend` | Language-2.2 equality of two orderings lowers to the Bend runtime's LexLeanRuntime.equal.Ordering, which is true exactly when both are the same ordering, as Lean's derived equality is. | §18.11.6 |

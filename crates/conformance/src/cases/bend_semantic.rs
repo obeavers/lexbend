@@ -49,6 +49,16 @@ const MOVED: [(&str, &[&str]); 3] = [
     ),
 ];
 
+/// The reasoning example's modules, which a language-2.2 build lowers with
+/// every theorem its reasoning declarations generate.
+const REASONING: [&str; 5] = [
+    "Reasoning/Budget",
+    "Reasoning/Clinic",
+    "Reasoning/Main",
+    "Reasoning/Planner",
+    "Reasoning/Screening",
+];
+
 fn example_build(name: &str) -> lexlean::api::RenderedBuild {
     support::rendered(&P::copy_example(name))
 }
@@ -570,12 +580,48 @@ pub(crate) fn run(id: &str) {
                 }
             }
         }
-        // §18.11.8: reasoning declarations are refused.
+        // §18.11.8: each generated theorem lowers to a law the pinned Bend
+        // accepts, and a false one is refused.
         "BN-17" => {
-            refused(
-                &moved("reasoning"),
-                "the reasoning declaration generates `Tick.apply_sound`, whose proof has no Bend lowering",
-            );
+            let build = support::rendered(&moved("reasoning"));
+            let starts = |text: &str, heads: &[&str]| {
+                text.lines()
+                    .filter(|line| heads.iter().any(|head| line.starts_with(head)))
+                    .count()
+            };
+            for module in REASONING {
+                let bend = module_bend(&build, module);
+                let lean = support::bend_file(&build, &format!("modules/{module}.lean"))
+                    .unwrap_or_else(|| panic!("`{module}` has a generated Lean file"));
+                let theorems = starts(&lean, &["theorem ", "public theorem "]);
+                assert!(theorems > 0, "{module} states theorems");
+                assert_eq!(
+                    starts(&bend, &["law "]),
+                    theorems,
+                    "{module}: one law for each theorem"
+                );
+            }
+            let screening = module_bend(&build, "Reasoning/Screening");
+            let claim = "law Screen.frontier_bounded:\n  for +w: Nat\n  S.Sem.le(Screen.Ledger.frontier(Screen.Search.ledger(S.Sem.fst(Screen.Search, Bool, Screen.run(w)))), 3n)\n";
+            assert!(screening.contains(claim), "the frontier bound is stated");
+            if support::bend_backed(id) {
+                let (dir, generated) = generated_modules(&build);
+                assert_eq!(generated.len(), REASONING.len(), "every module");
+                for path in &generated {
+                    let (accepted, text) = support::bend_check(&dir.path().join(path));
+                    assert!(accepted, "{path}: {text}");
+                    assert!(text.starts_with("ALL PROOFS CHECK"), "{path}: {text}");
+                }
+                let file = dir.path().join("modules/Reasoning/Screening.bend");
+                std::fs::write(
+                    &file,
+                    screening.replace(claim, &claim.replace("3n)", "2n)")),
+                )
+                .expect("planted module");
+                let (accepted, text) = support::bend_check(&file);
+                assert!(!accepted, "a false frontier bound is refused by Bend");
+                assert!(text.starts_with("SOME PROOFS FAIL"), "{text}");
+            }
         }
         // §18.11: every language-2.2 example module checks and exports.
         "BN-18" => {

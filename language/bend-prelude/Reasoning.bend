@@ -36,6 +36,18 @@ def Found(-N: Data, -A: Data, ok: N -> Type, accept: N -> Maybe<&2, A>, found: M
 def SearchOk(-N: Data, -A: Data, ok: N -> Type, accept: N -> Maybe<&2, A>, frontier: List<&2, N>, found: Maybe<&2, L.Lean.Prod(A, N)>) -> Type:
   R.LexLeanReasoning.All(N, ok, frontier) & Found(N, A, ok, accept, found)
 
+# The halves of a conjunction of propositions, which `Sem.fst` and
+# `Sem.snd` project only at kind `Data`.
+def andLeft(-A: Type, -B: Type, p: A & B) -> A:
+  match p:
+    case (a, b):
+      a
+
+def andRight(-A: Type, -B: Type, p: A & B) -> B:
+  match p:
+    case (a, b):
+      b
+
 def searchStart(-N: Data, -A: Data, -ok: N -> Type, -accept: N -> Maybe<&2, A>, -frontier: List<&2, N>, h: R.LexLeanReasoning.All(N, ok, frontier)) -> SearchOk(N, A, ok, accept, frontier, None{}):
   (h, Unit{})
 
@@ -133,6 +145,41 @@ def notDone.empty(-E: Data, -A: Data, +m: Result<&2, &2, E, A>, -v: A, e: {m == 
 
 def notDone(-E: Data, -A: Data, -B: Type, +m: Result<&2, &2, E, A>, -v: A, e: {m == Done{v} : Result<&2, &2, E, A>}, h: failDisc(E, A, m)) -> B:
   L.Lean.Empty.elim(B, notDone.empty(E, A, m, v, e, h))
+
+def notFail.empty(-E: Data, -A: Data, +m: Result<&2, &2, E, A>, -x: E, e: {m == Fail{x} : Result<&2, &2, E, A>}, h: doneDisc(E, A, m)) -> Empty:
+  %e : doneDisc(E, A, _)
+  h
+
+def notFail(-E: Data, -A: Data, -B: Type, +m: Result<&2, &2, E, A>, -x: E, e: {m == Fail{x} : Result<&2, &2, E, A>}, h: doneDisc(E, A, m)) -> B:
+  L.Lean.Empty.elim(B, notFail.empty(E, A, m, x, e, h))
+
+def trueDisc(b: Bool) -> Type:
+  match b:
+    case True{}:
+      Empty
+    case False{}:
+      Unit
+
+def falseDisc(b: Bool) -> Type:
+  match b:
+    case True{}:
+      Unit
+    case False{}:
+      Empty
+
+def notTrue.empty(+m: Bool, e: {m == True{} : Bool}, h: trueDisc(m)) -> Empty:
+  %e : trueDisc(_)
+  h
+
+def notTrue(-B: Type, +m: Bool, e: {m == True{} : Bool}, h: trueDisc(m)) -> B:
+  L.Lean.Empty.elim(B, notTrue.empty(m, e, h))
+
+def notFalse.empty(+m: Bool, e: {m == False{} : Bool}, h: falseDisc(m)) -> Empty:
+  %e : falseDisc(_)
+  h
+
+def notFalse(-B: Type, +m: Bool, e: {m == False{} : Bool}, h: falseDisc(m)) -> B:
+  L.Lean.Empty.elim(B, notFalse.empty(m, e, h))
 
 def someInj(-A: Data, +a: A, -b: A, e: {Some{a} == Some{b} : Maybe<&2, A>}) -> {a == b : A}:
   R.LexLeanReasoning.someInj(A, a, b, e)
@@ -303,7 +350,7 @@ def stopsFinish(stopped: Bool, +n: Nat, +m: Nat, h: Halted(n, stopped), hl: S.Se
 
 # One step of a terminating loop: the invariant holds after it, and the
 # measure, below the fuel left before, is below the fuel left after.
-def stopsStep(-PA: Data, -PB: Data, +mb: Nat, +ma: Nat, +n: Nat, hp: L.Lean.Prod(PA, S.Sem.lt(ma, 1n+n)), h: PA -> L.Lean.Prod(PB, S.Sem.lt(mb, ma))) -> L.Lean.Prod(PB, S.Sem.lt(mb, n)):
+def stopsStep(-PA: Data, -PB: Data, +mb: Nat, +ma: Nat, +n: Nat, hp: L.Lean.Prod(PA, S.Sem.lt(ma, 1n+n)), h: @+p: PA -> L.Lean.Prod(PB, S.Sem.lt(mb, ma))) -> L.Lean.Prod(PB, S.Sem.lt(mb, n)):
   match hp:
     case (pa, la):
       stopsStep.go(PB, mb, ma, n, la, h(pa))
@@ -319,17 +366,34 @@ def peakBound(b: Bool, -p: Nat, -len: Nat, -k: Nat, hp: S.Sem.le(p, k), hl: S.Se
 # The generic laws.
 # ---------------------------------------------------------------------------
 
-# A predicate a relation preserves holds along its closure.
-def starPreserves(~A: Data, ~r: A -> A -> Type, ~j: A -> Type, ~hp: @-s: A -> @-t: A -> j(s) -> r(s, t) -> j(t), -a: A, -c: A, h: R.LexLeanReasoning.Star<A, r, a, c>, ha: j(a)) -> j(c):
+# A predicate a relation preserves holds along its closure. The relation
+# and the predicate are named over an environment `k`, as `foldInvariant`'s
+# are, and the closure's endpoints are values: the preservation law a logic
+# proves takes its states as values, so the walk back along the closure
+# hands it the states the closure holds. The walk keeps the endpoint as an
+# erased index ahead of the closure, which shrinks, and as the value `d`
+# after it.
+def starPreserves.cast(~A: Data, ~K: Data, ~R: @+k: K -> @+s: A -> @+t: A -> Type, +k: K, +s: A, -c: A, -d: A, e: {c == d : A}, r: R(k, s, c)) -> R(k, s, d):
+  %e : R(k, s, _)
+  r
+
+def starPreserves.go(~A: Data, ~K: Data, ~R: @+k: K -> @+s: A -> @+t: A -> Type, ~J: @+k: K -> @+s: A -> Type, ~hp: @+k: K -> @+s: A -> @+t: A -> J(k, s) -> R(k, s, t) -> J(k, t), +k: K, +a: A, -c: A, h: R.LexLeanReasoning.Star<A, (+s => +t => R(k, s, t)), a, c>, +d: A, e: {c == d : A}, ha: J(k, a)) -> J(k, d):
   match h:
-    case R.LexLeanReasoning.Star.refl.mk{e}:
-      %e : j(_)
+    case R.LexLeanReasoning.Star.refl.mk{q}:
+      %e : J(k, _)
+      %q : J(k, _)
       ha
     case R.LexLeanReasoning.Star.tail.mk{b, rest, step}:
-      hp(b, c, starPreserves(~A, ~r, ~j, ~hp, a, b, rest, ha), step)
+      +held = b
+      hp(k, held, d, starPreserves.go(~A, ~K, ~R, ~J, ~hp, k, a, held, rest, held, {==}, ha), starPreserves.cast(~A, ~K, ~R, k, held, c, d, e, step))
 
-# A fold keeps any invariant its step keeps.
-def foldInvariant(~A: Data, ~St: Data, ~E: Data, ~step: @+e: E -> @+s: St -> @+a: A -> St, ~K: Data, ~P: @+k: K -> @+s: St -> Type, ~h: @+e: E -> @+k: K -> @+s: St -> @+a: A -> P(k, s) -> P(k, step(e, s, a)), +e: E, +k: K, +values: List<&2, A>, +initial: St, hi: P(k, initial)) -> P(k, S.Sem.listFold(~A, ~St, ~E, ~step, e, values, initial)):
+def starPreserves(~A: Data, ~K: Data, ~R: @+k: K -> @+s: A -> @+t: A -> Type, ~J: @+k: K -> @+s: A -> Type, ~hp: @+k: K -> @+s: A -> @+t: A -> J(k, s) -> R(k, s, t) -> J(k, t), +k: K, +a: A, +c: A, h: R.LexLeanReasoning.Star<A, (+s => +t => R(k, s, t)), a, c>, ha: J(k, a)) -> J(k, c):
+  starPreserves.go(~A, ~K, ~R, ~J, ~hp, k, a, c, h, c, {==}, ha)
+
+# A fold keeps any invariant its step keeps. The invariant reads the
+# captured environment `k` and the step's own environment `e`, which a step
+# that needs a fact about its environment takes as the invariant's premise.
+def foldInvariant(~A: Data, ~St: Data, ~E: Data, ~step: @+e: E -> @+s: St -> @+a: A -> St, ~K: Data, ~P: @+k: K -> @+e: E -> @+s: St -> Type, ~h: @+e: E -> @+k: K -> @+s: St -> @+a: A -> P(k, e, s) -> P(k, e, step(e, s, a)), +e: E, +k: K, +values: List<&2, A>, +initial: St, hi: P(k, e, initial)) -> P(k, e, S.Sem.listFold(~A, ~St, ~E, ~step, e, values, initial)):
   match values:
     case Nil{}:
       hi
@@ -355,8 +419,9 @@ def foldSnoc(~A: Data, ~St: Data, ~E: Data, ~step: @+e: E -> @+s: St -> @+a: A -
     case Con{head, tail}:
       foldSnoc(~A, ~St, ~E, ~step, e, tail, last, step(e, initial, head))
 
-# A bounded loop keeps any invariant its step keeps.
-def iterateUntilInvariant.go(~A: Data, ~E: Data, ~step: @+e: E -> @+s: A -> Maybe<&2, A>, ~K: Data, ~P: @+k: K -> @+s: A -> Type, ~h: @+e: E -> @+k: K -> @+a: A -> @+b: A -> {step(e, a) == Some{b} : Maybe<&2, A>} -> P(k, a) -> P(k, b), +e: E, +k: K, +fuel: Nat, +next: Maybe<&2, A>, +state: A, en: {step(e, state) == next : Maybe<&2, A>}, hs: P(k, state)) -> P(k, S.Sem.fst(A, Bool, S.Sem.iterateUntil.go(~A, ~E, ~step, e, fuel, next, state))):
+# A bounded loop keeps any invariant its step keeps. As for a fold, the
+# invariant reads the captured environment `k` and the step's own `e`.
+def iterateUntilInvariant.go(~A: Data, ~E: Data, ~step: @+e: E -> @+s: A -> Maybe<&2, A>, ~K: Data, ~P: @+k: K -> @+e: E -> @+s: A -> Type, ~h: @+e: E -> @+k: K -> @+a: A -> @+b: A -> {step(e, a) == Some{b} : Maybe<&2, A>} -> P(k, e, a) -> P(k, e, b), +e: E, +k: K, +fuel: Nat, +next: Maybe<&2, A>, +state: A, en: {step(e, state) == next : Maybe<&2, A>}, hs: P(k, e, state)) -> P(k, e, S.Sem.fst(A, Bool, S.Sem.iterateUntil.go(~A, ~E, ~step, e, fuel, next, state))):
   match fuel:
     case 0n:
       hs
@@ -367,13 +432,13 @@ def iterateUntilInvariant.go(~A: Data, ~E: Data, ~step: @+e: E -> @+s: A -> Mayb
         case Some{after}:
           iterateUntilInvariant.go(~A, ~E, ~step, ~K, ~P, ~h, e, k, rest, step(e, after), after, {==}, h(e, k, state, after, en, hs))
 
-def iterateUntilInvariant(~A: Data, ~E: Data, ~step: @+e: E -> @+s: A -> Maybe<&2, A>, ~K: Data, ~P: @+k: K -> @+s: A -> Type, ~h: @+e: E -> @+k: K -> @+a: A -> @+b: A -> {step(e, a) == Some{b} : Maybe<&2, A>} -> P(k, a) -> P(k, b), +e: E, +k: K, +fuel: Nat, +initial: A, hi: P(k, initial)) -> P(k, S.Sem.fst(A, Bool, S.Sem.iterateUntil(~A, ~E, ~step, e, fuel, initial))):
+def iterateUntilInvariant(~A: Data, ~E: Data, ~step: @+e: E -> @+s: A -> Maybe<&2, A>, ~K: Data, ~P: @+k: K -> @+e: E -> @+s: A -> Type, ~h: @+e: E -> @+k: K -> @+a: A -> @+b: A -> {step(e, a) == Some{b} : Maybe<&2, A>} -> P(k, e, a) -> P(k, e, b), +e: E, +k: K, +fuel: Nat, +initial: A, hi: P(k, e, initial)) -> P(k, e, S.Sem.fst(A, Bool, S.Sem.iterateUntil(~A, ~E, ~step, e, fuel, initial))):
   iterateUntilInvariant.go(~A, ~E, ~step, ~K, ~P, ~h, e, k, fuel, step(e, initial), initial, {==}, hi)
 
 # A bounded loop keeps an invariant indexed by the fuel left; the fuel left at
 # the end is zero unless the step stopped it. The counter, growth and
 # termination theorems are this law with an arithmetic invariant.
-def iterateUntilFuel.go(~A: Data, ~E: Data, ~step: @+e: E -> @+s: A -> Maybe<&2, A>, ~K: Data, ~P: @+k: K -> @+n: Nat -> @+s: A -> Type, ~h: @+e: E -> @+k: K -> @+n: Nat -> @+a: A -> @+b: A -> {step(e, a) == Some{b} : Maybe<&2, A>} -> P(k, 1n+n, a) -> P(k, n, b), +e: E, +k: K, +fuel: Nat, +next: Maybe<&2, A>, +state: A, en: {step(e, state) == next : Maybe<&2, A>}, hs: P(k, fuel, state)) -> &n: Nat -> P(k, n, S.Sem.fst(A, Bool, S.Sem.iterateUntil.go(~A, ~E, ~step, e, fuel, next, state))) & Halted(n, S.Sem.snd(A, Bool, S.Sem.iterateUntil.go(~A, ~E, ~step, e, fuel, next, state))):
+def iterateUntilFuel.go(~A: Data, ~E: Data, ~step: @+e: E -> @+s: A -> Maybe<&2, A>, ~K: Data, ~P: @+k: K -> @+e: E -> @+n: Nat -> @+s: A -> Type, ~h: @+e: E -> @+k: K -> @+n: Nat -> @+a: A -> @+b: A -> {step(e, a) == Some{b} : Maybe<&2, A>} -> P(k, e, 1n+n, a) -> P(k, e, n, b), +e: E, +k: K, +fuel: Nat, +next: Maybe<&2, A>, +state: A, en: {step(e, state) == next : Maybe<&2, A>}, hs: P(k, e, fuel, state)) -> &n: Nat -> P(k, e, n, S.Sem.fst(A, Bool, S.Sem.iterateUntil.go(~A, ~E, ~step, e, fuel, next, state))) & Halted(n, S.Sem.snd(A, Bool, S.Sem.iterateUntil.go(~A, ~E, ~step, e, fuel, next, state))):
   match fuel:
     case 0n:
       (0n, (hs, {==}))
@@ -384,7 +449,7 @@ def iterateUntilFuel.go(~A: Data, ~E: Data, ~step: @+e: E -> @+s: A -> Maybe<&2,
         case Some{after}:
           iterateUntilFuel.go(~A, ~E, ~step, ~K, ~P, ~h, e, k, rest, step(e, after), after, {==}, h(e, k, rest, state, after, en, hs))
 
-def iterateUntilFuel(~A: Data, ~E: Data, ~step: @+e: E -> @+s: A -> Maybe<&2, A>, ~K: Data, ~P: @+k: K -> @+n: Nat -> @+s: A -> Type, ~h: @+e: E -> @+k: K -> @+n: Nat -> @+a: A -> @+b: A -> {step(e, a) == Some{b} : Maybe<&2, A>} -> P(k, 1n+n, a) -> P(k, n, b), +e: E, +k: K, +fuel: Nat, +initial: A, hi: P(k, fuel, initial)) -> &n: Nat -> P(k, n, S.Sem.fst(A, Bool, S.Sem.iterateUntil(~A, ~E, ~step, e, fuel, initial))) & Halted(n, S.Sem.snd(A, Bool, S.Sem.iterateUntil(~A, ~E, ~step, e, fuel, initial))):
+def iterateUntilFuel(~A: Data, ~E: Data, ~step: @+e: E -> @+s: A -> Maybe<&2, A>, ~K: Data, ~P: @+k: K -> @+e: E -> @+n: Nat -> @+s: A -> Type, ~h: @+e: E -> @+k: K -> @+n: Nat -> @+a: A -> @+b: A -> {step(e, a) == Some{b} : Maybe<&2, A>} -> P(k, e, 1n+n, a) -> P(k, e, n, b), +e: E, +k: K, +fuel: Nat, +initial: A, hi: P(k, e, fuel, initial)) -> &n: Nat -> P(k, e, n, S.Sem.fst(A, Bool, S.Sem.iterateUntil(~A, ~E, ~step, e, fuel, initial))) & Halted(n, S.Sem.snd(A, Bool, S.Sem.iterateUntil(~A, ~E, ~step, e, fuel, initial))):
   iterateUntilFuel.go(~A, ~E, ~step, ~K, ~P, ~h, e, k, fuel, step(e, initial), initial, {==}, hi)
 
 # Two steps in lockstep: both stop, or both move to related states.

@@ -40,8 +40,10 @@
 //!   linear-arithmetic checker. A build publishes those its modules import.
 //! - **Proofs.** Every proof is an explicit term (`proof.rs`), checked by
 //!   Bend; a goal the lowering cannot discharge is refused with `LLB6008`
-//!   rather than emitted with a guess, and a reasoning declaration, whose
-//!   proofs are tactic scripts over the runtime, is refused whole.
+//!   rather than emitted with a guess. The theorems a reasoning declaration
+//!   generates are proved by instantiating the generic laws of the shipped
+//!   reasoning module and by case analysis over the definitions it
+//!   elaborated to (`reasoning`).
 
 pub mod check;
 pub mod closure;
@@ -53,6 +55,7 @@ pub mod mutual;
 pub mod names;
 pub mod normal;
 pub mod proof;
+pub mod reasoning;
 pub mod runtime;
 pub mod support;
 pub mod wellfounded;
@@ -96,6 +99,16 @@ struct Unit<'a> {
     declarations: BTreeMap<String, &'a SemanticDeclaration>,
     /// The declarations in source order.
     order: Vec<&'a SemanticDeclaration>,
+    /// The generated theorems that state an ordinary proposition, which a
+    /// source proof may cite as it cites a declared theorem.
+    theorems: BTreeMap<String, &'a crate::ir::semantic::reasoning::GeneratedTheorem>,
+}
+
+/// What a citation of a theorem needs: its parameters and statement,
+/// whether it is declared or generated.
+pub(super) struct TheoremSignature<'a> {
+    pub parameters: &'a [SemanticParameter],
+    pub statement: &'a SemanticTerm,
 }
 
 impl<'a> SemanticProject<'a> {
@@ -112,12 +125,20 @@ impl<'a> SemanticProject<'a> {
                 .iter()
                 .map(|declaration| (declaration.name().to_owned(), *declaration))
                 .collect();
+            let theorems = semantic
+                .elaboration
+                .all_theorems()
+                .into_iter()
+                .filter(|theorem| theorem.ordinary_statement().is_some())
+                .map(|theorem| (theorem.name.clone(), theorem))
+                .collect();
             units.insert(
                 name.clone(),
                 Unit {
                     generated: checked.document.lean_module.clone(),
                     declarations,
                     order,
+                    theorems,
                 },
             );
         }
@@ -302,6 +323,10 @@ pub struct Lower<'p, 'a> {
     /// The code definition each function reference passed as an argument
     /// lowers to, by `module::name` (see `closure`).
     codes: BTreeMap<String, String>,
+    /// Every definition, law, and type the module has emitted so far, by
+    /// Bend name: what a generated theorem's proof unfolds and splits
+    /// (see `reasoning`).
+    emitted: BTreeMap<String, Item>,
 }
 
 fn synthetic(text: impl Into<String>) -> Name {
@@ -421,6 +446,7 @@ impl<'p, 'a> Lower<'p, 'a> {
             structural: None,
             lifted: false,
             codes: BTreeMap::new(),
+            emitted: BTreeMap::new(),
         }
     }
 
@@ -437,6 +463,17 @@ impl<'p, 'a> Lower<'p, 'a> {
     fn fresh(&mut self, stem: &str) -> String {
         self.fresh += 1;
         format!("ll_{stem}{}", self.fresh)
+    }
+
+    /// Record an emitted item, with its names' origins made synthetic so
+    /// the terms a generated proof builds compare with it by text.
+    fn know(&mut self, item: &Item) {
+        let name = match item {
+            Item::Def { name, .. } | Item::Law { name, .. } | Item::Type { name, .. } => {
+                name.text.clone()
+            }
+        };
+        self.emitted.insert(name, reasoning::plain_item(item));
     }
 
     /// The source module a member lives in.
@@ -456,6 +493,39 @@ impl<'p, 'a> Lower<'p, 'a> {
             .get(&member.name)
             .copied()
             .ok_or_else(|| fail(format!("`{}` is not declared in `{home}`", member.name)))
+    }
+
+    /// The signature of the theorem a member names: a declared theorem's,
+    /// or a generated theorem's that states an ordinary proposition.
+    fn theorem_signature(&self, member: &MemberRef) -> Result<TheoremSignature<'a>, Diagnostic> {
+        if let Ok(declaration) = self.declaration(member) {
+            let SemanticDeclaration::Theorem {
+                parameters,
+                statement,
+                ..
+            } = declaration
+            else {
+                return Err(fail(format!("`{}` is not a theorem", member.name)));
+            };
+            return Ok(TheoremSignature {
+                parameters,
+                statement,
+            });
+        }
+        let home = self.home(member);
+        let theorem = self
+            .project
+            .units
+            .get(&home)
+            .and_then(|unit| unit.theorems.get(&member.name))
+            .ok_or_else(|| fail(format!("`{}` is not declared in `{home}`", member.name)))?;
+        let statement = theorem
+            .ordinary_statement()
+            .ok_or_else(|| fail(format!("`{}` states no ordinary proposition", member.name)))?;
+        Ok(TheoremSignature {
+            parameters: &theorem.parameters,
+            statement,
+        })
     }
 
     /// The Bend spelling of the module-level name `name` of `home`.
@@ -1312,8 +1382,12 @@ impl<'p, 'a> Lower<'p, 'a> {
         type_arguments: &[SemanticType],
         arguments: Vec<BTerm>,
     ) -> Result<BTerm, Diagnostic> {
-        let declaration = self.declaration(function)?;
-        let order = bend_order(declaration);
+        // A generated theorem takes its parameters in order, as a declared
+        // one does.
+        let order = match self.declaration(function) {
+            Ok(declaration) => bend_order(declaration),
+            Err(_) => (0..self.theorem_signature(function)?.parameters.len()).collect(),
+        };
         // Type parameters are templates (see `type_params`), so each type
         // argument is passed as one.
         let mut out = type_arguments
@@ -1337,11 +1411,11 @@ impl<'p, 'a> Lower<'p, 'a> {
 
     /// The Bend name a call of `function` uses.
     fn callee(&mut self, function: &MemberRef) -> Result<String, Diagnostic> {
-        match self.declaration(function)? {
-            SemanticDeclaration::Definition {
+        match self.declaration(function) {
+            Ok(SemanticDeclaration::Definition {
                 termination: Some(_),
                 ..
-            } => {
+            }) => {
                 let home = self.home(function);
                 self.spell(&home, &function.name)
             }
@@ -2604,26 +2678,21 @@ pub fn render_module(
                 None => diagnostic,
             }
         };
-        // The theorems a reasoning declaration generates are proved by fixed
-        // Lean tactic scripts over `LexLeanReasoning`, which has no Bend
-        // proof; lowering the declaration without them would drop the very
-        // guarantees it promises, so it is refused whole.
-        if let Some(theorem) = module.elaboration.theorems(index).first() {
-            return Err(locate(
-                fail(format!(
-                    "the reasoning declaration generates `{}`, whose proof has no Bend lowering; language 2.2 lowers no reasoning declaration",
-                    theorem.name
-                )),
-                source.name(),
-            ));
-        }
         let mut items = Vec::new();
         for declaration in declarations {
             let lowered = lower
                 .declaration_items(declaration)
                 .map_err(|diagnostic| locate(diagnostic, declaration.name()))?;
+            for item in &lowered {
+                lower.know(item);
+            }
             items.extend(lowered);
         }
+        // A generated theorem's proof unfolds the definitions above it, so
+        // it follows them.
+        let generated = reasoning::theorems(&mut lower, module.elaboration.theorems(index))
+            .map_err(|diagnostic| locate(diagnostic, source.name()))?;
+        items.extend(generated);
         for check in module.elaboration.checks(index) {
             let item = lower
                 .cross_check(check)

@@ -596,7 +596,11 @@ impl Lower<'_, '_> {
 
     /// The statements rebinding each captured local from the environment
     /// `env`, the tuple `tuple` builds.
-    fn rebinding(&mut self, captured: &[(String, BTerm, BTerm)], env: &BTerm) -> Vec<Stmt> {
+    pub(super) fn rebinding(
+        &mut self,
+        captured: &[(String, BTerm, BTerm)],
+        env: &BTerm,
+    ) -> Vec<Stmt> {
         let mut stmts = Vec::new();
         let mut rest = env.clone();
         for (index, (name, ty, _)) in captured.iter().enumerate() {
@@ -622,7 +626,7 @@ impl Lower<'_, '_> {
 
     /// The environment tuple of `captured`: its type and its value, nested
     /// to the right; `Unit` when nothing is captured.
-    fn tuple(&mut self, captured: &[(String, BTerm, BTerm)]) -> (BTerm, BTerm) {
+    pub(super) fn tuple(&mut self, captured: &[(String, BTerm, BTerm)]) -> (BTerm, BTerm) {
         match captured {
             [] => (unit_type(), unit_value()),
             [(_, ty, value)] => (ty.clone(), value.clone()),
