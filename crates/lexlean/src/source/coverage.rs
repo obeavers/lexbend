@@ -133,8 +133,9 @@ pub struct Coverage {
     pub source: Vec<SourceRow>,
     /// Canonical LaTeX rows sorted by `byte_start`.
     pub latex: Vec<OutputRow>,
-    /// Generated Lean rows sorted by `byte_start`.
-    pub lean: Vec<OutputRow>,
+    /// Generated Lean rows sorted by `byte_start`, for a project that
+    /// carries Lean (§10.5).
+    pub lean: Option<Vec<OutputRow>>,
     /// Generated Bend rows sorted by `byte_start`, for a module that lowers
     /// to Bend (§18.10).
     pub bend: Option<Vec<OutputRow>>,
@@ -170,7 +171,10 @@ impl Coverage {
                     .collect(),
             ),
         );
-        let mut outputs = vec![("latex", &self.latex), ("lean", &self.lean)];
+        let mut outputs = vec![("latex", &self.latex)];
+        if let Some(lean) = &self.lean {
+            outputs.push(("lean", lean));
+        }
         if let Some(bend) = &self.bend {
             outputs.push(("bend", bend));
         }

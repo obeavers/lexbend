@@ -1789,7 +1789,7 @@ fn elaborate(project: &P, text: &str) -> (i32, String) {
 
 /// The generated Lean of a project copy's one module.
 fn lean_of(project: &P) -> String {
-    rendered(project).modules[0].lean_text.clone()
+    rendered(project).modules[0].lean_text().to_owned()
 }
 
 /// The pinned Lean elaborates the project's generated module without a
@@ -1828,7 +1828,7 @@ fn tl_10() {
         let mut value = data(&project);
         let build = rendered(&project);
         let module = &build.modules[0];
-        let lean = &module.lean_text;
+        let lean = module.lean_text();
         let declarations = declarations(&mut value).clone();
         let count = |kind: &str| declarations.iter().filter(|d| d["kind"] == kind).count();
 
@@ -1883,11 +1883,11 @@ fn tl_10() {
 
         // Output coverage is complete (§19.6, §20.5) and every non-blank byte
         // of both artifacts maps back to the source.
-        lexlean::backend::check_output_closure(lean, &module.coverage.lean)
+        lexlean::backend::check_output_closure(lean, module.lean_coverage())
             .unwrap_or_else(|failure| panic!("{fixture}: Lean coverage: {failure:?}"));
         lexlean::backend::check_output_closure(&module.tex_text, &module.coverage.latex)
             .unwrap_or_else(|failure| panic!("{fixture}: LaTeX coverage: {failure:?}"));
-        for (artifact, text) in [(0usize, lean.as_str()), (1, module.tex_text.as_str())] {
+        for (artifact, text) in [(0usize, lean), (1, module.tex_text.as_str())] {
             for (index, byte) in text.bytes().enumerate() {
                 assert!(
                     byte.is_ascii_whitespace() || module.map.remap(artifact, index).is_some(),

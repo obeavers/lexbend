@@ -2803,7 +2803,7 @@ pub fn run(id: &str) {
                 // capture those names: every such namespace of the corpora's
                 // modules is one a module name is refused for.
                 for module in &support::rendered(&project).modules {
-                    for namespace in referenced_namespaces(&module.lean_text, &users) {
+                    for namespace in referenced_namespaces(module.lean_text(), &users) {
                         if namespace.starts_with(|c: char| c.is_ascii_uppercase())
                             && !lexlean::ir::semantic::is_reserved_module_name(&namespace)
                         {

@@ -25,6 +25,14 @@ versions, and the entries below say what each tag does and does not claim.
   `leanchecker` process runs, no Lean toolchain need be installed, and the
   attestation is `lexlean/attestation/3`. A language-2.2 project with a
   production root keeps the Lean stages, whose certificates are Lean proofs.
+  A language-2.0 or 2.2 project may carry no Lean at all (SPEC.md §10.5):
+  its configuration omits `lean_workspace` and `lean_toolchain` together,
+  its lock pins neither, its build publishes no `.lean`, Lean coverage, Lean
+  source-map artifact, or manifest `lean_toolchain`, and a production root
+  in it is `LLC0101`. `lexlean init --language 2.0|2.2` creates such a
+  project, and every committed Bend example without a production root is
+  one; `bend-models`, whose roots are certified in Lean, keeps its Lake
+  workspace.
   Language 2.2 lowers type
   parameters to templates, closure-converts function parameters, inlines
   mutual groups, runs well-founded definitions on proof-carrying fuel,
@@ -56,7 +64,7 @@ versions, and the entries below say what each tag does and does not claim.
   theorem of its Lean modules, and with the compiler project's five
   reasoning oracles checks under the pinned Bend and the kernel recheck.
   Language 2.2 refuses, with `LLB6008`, a well-founded definition in a
-  mutual group and a higher-order function passed as a value. New: `BN-01`..`BN-23`, `CF-19`, `CF-20`,
+  mutual group and a higher-order function passed as a value. New: `BN-01`..`BN-24`, `CF-19`, `CF-20`,
   `VR-24`..`VR-29`; schemas `project-v3`/`-v4`, `lock-v3`/`-v4`,
   `build-manifest-v3`/`-v4`, `attestation-v3`/`-v4`, `semantic-snapshot-v3`,
   `coverage-v2`, `source-map-v2`; `lexlean init --language 2.0|2.2`. The

@@ -58,6 +58,8 @@ pub struct BuildManifest {
     pub semantic_id: Sha256Digest,
     /// The build ID.
     pub build_id: Sha256Digest,
+    /// Whether the project carries Lean (§10.5).
+    pub carries_lean: bool,
     /// Selected module names, sorted.
     pub selection: Vec<String>,
     /// Module rows in sorted module order.
@@ -97,10 +99,12 @@ impl BuildManifest {
             Json::Str(self.semantic_id.to_hex()),
         );
         o.insert("build_id".to_owned(), Json::Str(self.build_id.to_hex()));
-        o.insert(
-            "lean_toolchain".to_owned(),
-            Json::Str(crate::LEAN_TOOLCHAIN.to_owned()),
-        );
+        if self.carries_lean {
+            o.insert(
+                "lean_toolchain".to_owned(),
+                Json::Str(crate::LEAN_TOOLCHAIN.to_owned()),
+            );
+        }
         o.insert(
             "selection".to_owned(),
             Json::Arr(self.selection.iter().cloned().map(Json::Str).collect()),

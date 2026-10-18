@@ -82,6 +82,7 @@ the error registry does not sanction (R5, `ERRORS.md`).
 | `BN-21` | `build` | A language-2.2 mutual group whose members recurse simultaneously over one type lowers to one Bend definition over that type and a generated selector of the member, every member keeping its name and signature, and the pinned Bend checks it. |
 | `BN-22` | `build` | A language-2.2 nested or mutual inductive that a simultaneous mutual group recurses over lowers to one Bend type indexed by its base and nested list types, each constructor carrying the equation of its index, and the pinned Bend checks the groups over it. |
 | `BN-23` | `build` | A language-2.2 match on a computed value, or on a local bound before a `let` or before one an enclosing match has opened, lowers to an auxiliary definition that receives each function parameter it uses as its code and environment, each recursive call in its branches passed in as a function over a piece of the decreasing argument, and the pinned Bend checks it. |
+| `BN-24` | `build` | A language-2.0 or 2.2 project whose configuration names no Lean workspace or toolchain carries no Lean: its lock pins no Lean file, its build emits no Lean module, it is verified by Bend alone, and a production root in it is refused. |
 
 ## calculus
 

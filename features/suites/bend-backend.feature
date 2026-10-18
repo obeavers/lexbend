@@ -169,3 +169,12 @@ Feature: bend-backend
     Then the match on the element is an auxiliary definition that takes the element as its parameter
     And `firstEven` passes its auxiliary the function `(+ll_unit => firstEven(rest))`, which the recursing branch applies
     And the module prints exactly `ALL PROOFS CHECK`, and a planted function recursing on the whole list is refused
+
+  @BN-24 @build
+  Scenario: A language-2.0 or 2.2 project whose configuration names no Lean workspace or toolchain carries no Lean: its lock pins no Lean file, its build emits no Lean module, it is verified by Bend alone, and a production root in it is refused.
+    Given the language-2.0 nat-add-zero and language-2.2 semantic examples with no Lean workspace, toolchain, or Lake file
+    When each is locked, built, and verified
+    Then the lock names no Lean toolchain or workspace file, the build publishes no `.lean` file, no Lean coverage, and no Lean toolchain in its manifest, and verification runs only Bend
+    And a configuration naming only one of `lean_workspace` and `lean_toolchain` is refused with LLC0101
+    And the semantic example with a production root is refused with LLC0101 naming the root
+    And every committed language-2.0 or 2.2 example without a production root is Lean-free

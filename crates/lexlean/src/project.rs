@@ -212,13 +212,27 @@ impl Project {
         project
             .confined(&lockfile, Expect::Creatable)
             .map_err(LexLeanError::from_diagnostic)?;
-        if project.config.lean_workspace != "." {
-            let workspace = project.config.lean_workspace.clone();
+        if let Some(workspace) = project
+            .config
+            .lean_workspace
+            .clone()
+            .filter(|workspace| workspace != ".")
+        {
             project
                 .confined(&workspace, Expect::Creatable)
                 .map_err(LexLeanError::from_diagnostic)?;
         }
         Ok(project)
+    }
+
+    /// The Lake workspace directory, or the project root for a project that
+    /// carries no Lean (§10.5).
+    #[must_use]
+    pub fn workspace_root(&self) -> Utf8PathBuf {
+        match self.config.lean_workspace.as_deref() {
+            None | Some(".") => self.root.clone(),
+            Some(workspace) => self.root.join(workspace),
+        }
     }
 
     /// An absolute path under the project root for a project-relative path.

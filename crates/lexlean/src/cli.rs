@@ -73,9 +73,9 @@ enum CommandKind {
         /// The Lean module prefix.
         #[arg(long)]
         module_prefix: String,
-        /// Fixed source-language version. Languages 1.1, 1.2, and 2.2
-        /// create a source-free Lake workspace; 1.0 and 2.0, which reads the
-        /// 1.0 surface, retain the historical host-module skeleton.
+        /// Fixed source-language version. Languages 1.1 and 1.2 create a
+        /// source-free Lake workspace and 1.0 the historical host-module
+        /// skeleton; 2.0 and 2.2 create a project with no Lean (§10.5).
         #[arg(long, default_value = "1.0", value_parser = ["1.0", "1.1", "1.2", "2.0", "2.2"])]
         language: String,
     },
@@ -781,7 +781,9 @@ fn init_project(
         entrypoints: vec!["src/Main.lex.tex".to_owned()],
         build_root: ".lexlean".to_owned(),
         lockfile: "lexlean.lock".to_owned(),
-        lean_workspace: ".".to_owned(),
+        // §10.5: a Bend project begins with no production root, so with no
+        // Lean.
+        lean_workspace: (!crate::lowers_to_bend(language)).then(|| ".".to_owned()),
         lexicon_sources: vec![LexiconSource::Builtin {
             package: "lexlean.std.nat".to_owned(),
         }],
@@ -807,24 +809,30 @@ fn init_project(
     let mut files: Vec<(String, Vec<u8>)> = vec![
         ("lexlean.toml".to_owned(), config.canonical_toml().into_bytes()),
         (
-            "lean-toolchain".to_owned(),
-            format!("{}\n", crate::LEAN_TOOLCHAIN).into_bytes(),
-        ),
-        ("lakefile.toml".to_owned(), lakefile.into_bytes()),
-        (
-            "lake-manifest.json".to_owned(),
-            lake_manifest_text(&lake_name).into_bytes(),
-        ),
-        (
             "src/Main.lex.tex".to_owned(),
             format!(
                 "\\begin{{lexlean}}{{Main}}\n\\useglossary{{lexlean.std.nat@{builtin_version}}}\n\\title{{addition}}\n\\end{{lexlean}}\n"
             )
             .into_bytes(),
         ),
-        (".gitignore".to_owned(), b"/.lexlean/\n/.lake/\n".to_vec()),
     ];
-    if surface == "1.0" {
+    if config.carries_lean() {
+        files.extend([
+            (
+                "lean-toolchain".to_owned(),
+                format!("{}\n", crate::LEAN_TOOLCHAIN).into_bytes(),
+            ),
+            ("lakefile.toml".to_owned(), lakefile.into_bytes()),
+            (
+                "lake-manifest.json".to_owned(),
+                lake_manifest_text(&lake_name).into_bytes(),
+            ),
+            (".gitignore".to_owned(), b"/.lexlean/\n/.lake/\n".to_vec()),
+        ]);
+    } else {
+        files.push((".gitignore".to_owned(), b"/.lexlean/\n".to_vec()));
+    }
+    if surface == "1.0" && config.carries_lean() {
         files.push((
             format!("{host_lib}.lean"),
             b"module\nimport Init\n".to_vec(),

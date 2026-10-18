@@ -341,8 +341,8 @@ fn generated() -> Vec<Source> {
                 .iter()
                 .find(|candidate| candidate.lean_module == *module)
                 .unwrap_or_else(|| panic!("the compiler renders {module}"))
-                .lean_text
-                .clone();
+                .lean_text()
+                .to_owned();
             Source {
                 module: (*module).to_owned(),
                 text,

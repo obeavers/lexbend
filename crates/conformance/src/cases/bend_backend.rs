@@ -89,8 +89,9 @@ fn check_build(build: &lexlean::api::RenderedBuild) -> Vec<(String, bool, String
 
 pub(crate) fn run(id: &str) {
     match id {
-        // §18.10.1: one deterministic `.bend` beside the `.lean` and `.tex`
-        // of each language-2.0 document module, and none for 1.x.
+        // §18.10.1: one deterministic `.bend` beside the `.tex` of each
+        // language-2.0 document module, and none for 1.x; the example
+        // carries no Lean, so no `.lean` (§10.5).
         "BN-01" => {
             let build = example_build("bend-nat-add-zero");
             assert_eq!(
@@ -99,7 +100,6 @@ pub(crate) fn run(id: &str) {
                 "§18.10 bytes"
             );
             for path in [
-                "modules/LexLeanExample/Main.lean",
                 "modules/LexLeanExample/Main.tex",
                 "modules/LexLeanPrelude.bend",
             ] {
@@ -108,6 +108,13 @@ pub(crate) fn run(id: &str) {
                     "the build holds `{path}`"
                 );
             }
+            assert!(
+                !build
+                    .files
+                    .iter()
+                    .any(|(candidate, _)| candidate.ends_with(".lean")),
+                "the Lean-free example renders no Lean"
+            );
             let again = example_build("bend-nat-add-zero");
             assert_eq!(build.files, again.files, "rendering is byte-deterministic");
             let legacy = support::rendered(&P::example());

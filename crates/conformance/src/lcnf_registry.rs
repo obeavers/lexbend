@@ -379,7 +379,7 @@ fn listing(rows: &[Json]) -> Result<Vec<(String, String)>, String> {
         .modules
         .first()
         .ok_or("the adapter project renders no module")?
-        .lean_text;
+        .lean_text();
     std::fs::write(temp.path().join("Tool.lean"), text).map_err(|error| error.to_string())?;
     let (code, output) = run_lean(temp.path(), &["Tool.lean".to_owned()])?;
     if code != 0 {
