@@ -45,6 +45,13 @@ from a host that has built it, and a host of the same platform that installs it
 as `~/.bend/bendtt/b9f3e0253abffb11/bendtt` needs no Lean at all. The
 attestation records the kernel's SHA-256 either way (SPEC.md §22.13).
 
+A project with a production root still runs the Lean stages: its
+certificates are Lean proofs. The pinned Bend's naturals are unary, and the
+target calculus bounds every result by `2^64`, which its checker cannot
+unfold; the same cause limits large numerals and proofs by evaluation.
+SPEC.md §22.13 states all three, and a Bend pin with native fixed-width
+numbers lifts them.
+
 From source, with the prerequisites below:
 
 ```text

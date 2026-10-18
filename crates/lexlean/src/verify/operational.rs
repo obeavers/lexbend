@@ -362,6 +362,16 @@ fn invalid_memory(text: &str) -> Diagnostic {
 mod tests {
     use super::{Hint, Operational, DEFAULT_WIDTH, HINTS_VARIABLE, MAX_WIDTH, MEMORY_VARIABLE};
 
+    /// Held by every test that sets one of the variables: each reads all of
+    /// them, so one test's malformed value would fail another's read.
+    static ENVIRONMENT: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+    fn environment() -> std::sync::MutexGuard<'static, ()> {
+        ENVIRONMENT
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+
     #[test]
     fn the_width_is_a_plain_decimal_integer_in_range() {
         assert_eq!(Operational::parse_width(None), Ok(DEFAULT_WIDTH));
@@ -434,6 +444,7 @@ mod tests {
 
     #[test]
     fn the_environment_is_read_as_bytes() {
+        let _environment = environment();
         let raw = not_unicode();
         std::env::set_var(super::WIDTH_VARIABLE, &raw);
         let refused = Operational::from_environment();
@@ -474,6 +485,7 @@ mod tests {
 
     #[test]
     fn a_hints_file_from_the_environment() {
+        let _environment = environment();
         let directory = tempfile::tempdir().expect("tempdir");
         let path = directory.path().join("hints.json");
         std::fs::write(&path, "{\"Mod.A\": {\"wall_ms\": 5}}").expect("write");

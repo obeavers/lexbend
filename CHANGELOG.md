@@ -24,7 +24,10 @@ versions, and the entries below say what each tag does and does not claim.
   project among them, is verified by Bend alone: no Lean, Lake, or
   `leanchecker` process runs, no Lean toolchain need be installed, and the
   attestation is `lexlean/attestation/3`. A language-2.2 project with a
-  production root keeps the Lean stages, whose certificates are Lean proofs.
+  production root keeps the Lean stages, whose certificates are Lean proofs:
+  the pinned Bend's naturals are unary, and its checker cannot unfold the
+  calculus's `2^64` bounds, so certificates A, B, and E have no Bend form
+  until a Bend pin computes with fixed-width numbers (SPEC.md §22.13).
   A language-2.0 or 2.2 project may carry no Lean at all (SPEC.md §10.5):
   its configuration omits `lean_workspace` and `lean_toolchain` together,
   its lock pins neither, its build publishes no `.lean`, Lean coverage, Lean

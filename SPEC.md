@@ -6895,8 +6895,9 @@ integer numeral above it, in language 2.0 or 2.2, lowers to its base-65536
 digits, most significant first, combined by Horner's rule with
 `Lean.Nat.mul` by `65536` and `Lean.Nat.add` of each nonzero digit; every
 digit and the radix are literals. The term denotes the numeral because those
-definitions reproduce Lean's, and Bend reduces it only as far as a proof
-demands.
+definitions reproduce Lean's. Bend's naturals are unary: the kernel refuses
+a proof that reduces it, and the checker one that normalizes a term holding
+it (§18.11.6, §22.13); a proof that only carries it is accepted.
 
 #### 18.10.7 Assumptions
 
@@ -8241,6 +8242,28 @@ A language-2.2 project with a production root, or with a module that does not
 lower to Bend, is verified twice over: the Lean stages above follow the Bend
 stages. A production root's certificates (§17.17) are Lean proofs, and a
 module Bend does not lower has no Bend proof.
+
+**Natural numbers in the pinned Bend.** The natural numbers of `bend 2.0.37`
+are unary (`Zero`, `Succ`) in its checker and its kernel alike, and it has
+no wider number its kernel computes with. Three limits of this section and
+of §18 have that one cause:
+
+- a numeral past `4294967295` is its Horner form (§18.10.6), which the kernel
+  accepts only in a proof that does not reduce it (`BN-19`);
+- a proof by evaluation can exhaust the kernel's step budget (above), since
+  every natural it computes with is a chain of successors;
+- a production root's certificates have no Bend form: the calculus bounds
+  every natural and integer result by `2^64` or `2^63` (§17.14), and the
+  checker expands that bound whenever it unfolds a definition that names it,
+  so even the step from a primitive to its range check cannot be stated
+  (a lemma that `natAdd` on two symbolic naturals reduces to its range-checked
+  result exhausts the checker's stack). Certificates A, B, and E therefore
+  stay Lean proofs, and a project with a production root runs the Lean
+  stages.
+
+A pinned Bend whose kernel computes with fixed-width or binary numbers
+lifts all three; adopting it is a new Bend pin, with its own `bend_toolchain`
+value (§10.1) and kernel key (above).
 
 Every Bend child runs under the §25.4 environment with
 `BEND_NO_TELEMETRY=1`, so the installed Bend never asks its website for a
