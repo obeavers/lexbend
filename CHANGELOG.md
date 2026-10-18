@@ -32,7 +32,10 @@ versions, and the entries below say what each tag does and does not claim.
   in it is `LLC0101`. `lexlean init --language 2.0|2.2` creates such a
   project, and every committed Bend example without a production root is
   one; `bend-models`, whose roots are certified in Lean, keeps its Lake
-  workspace.
+  workspace. An accepting kernel recheck records the SHA-256 of the BendTT
+  kernel that ran as the attestation's `bend.kernel_sha256`, and
+  `cargo xtask bendtt-kernel` exports the pinned Bend's compiled kernel, so a
+  host that installs it verifies a Lean-free project with no Lean installed.
   Language 2.2 lowers type
   parameters to templates, closure-converts function parameters, inlines
   mutual groups, runs well-founded definitions on proof-carrying fuel,
@@ -65,7 +68,7 @@ versions, and the entries below say what each tag does and does not claim.
   reasoning oracles checks under the pinned Bend and the kernel recheck.
   Language 2.2 refuses, with `LLB6008`, a well-founded definition in a
   mutual group and a higher-order function passed as a value. New: `BN-01`..`BN-24`, `CF-19`, `CF-20`,
-  `VR-24`..`VR-29`; schemas `project-v3`/`-v4`, `lock-v3`/`-v4`,
+  `VR-24`..`VR-30`; schemas `project-v3`/`-v4`, `lock-v3`/`-v4`,
   `build-manifest-v3`/`-v4`, `attestation-v3`/`-v4`, `semantic-snapshot-v3`,
   `coverage-v2`, `source-map-v2`; `lexlean init --language 2.0|2.2`. The
   identities of languages 1.0, 1.1, and 1.2 are unchanged.

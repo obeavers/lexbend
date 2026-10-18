@@ -165,6 +165,12 @@ pub const BEND_TOOLCHAIN: &str = "bend 2.0.37";
 /// The version line the pinned Bend executable prints for `bend version`.
 pub const BEND_VERSION_LINE: &str = "bend 2.0.37";
 
+/// The directory under `$HOME/.bend/bendtt` where the pinned Bend keeps its
+/// compiled BendTT kernel (§22.13): Bend names it by the first 16
+/// hexadecimal digits of the SHA-256 of `4.34.0`, a zero byte, and its
+/// `bendtt.lean`, so it is fixed by the Bend release.
+pub const BENDTT_KERNEL_KEY: &str = "b9f3e0253abffb11";
+
 /// Whether a project language is supported.
 #[must_use]
 pub fn supports_language(language: &str) -> bool {

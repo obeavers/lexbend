@@ -8190,6 +8190,17 @@ Bend files in a staging directory of their own under the verified root.
    the pinned Bend reports it cannot build (`BendTT infrastructure`) is
    `LLV7019`; anything else is `LLV7021`.
 
+The kernel the pinned Bend runs is its BendTT checker compiled from its
+`bendtt.lean` with Lean v4.34.0, which Bend builds on first use and keeps at
+`$HOME/.bend/bendtt/b9f3e0253abffb11/bendtt`; the directory name is the first
+16 hexadecimal digits of the SHA-256 of `4.34.0`, a zero byte, and the
+`bendtt.lean` of `bend 2.0.37`. A kernel built elsewhere for the host may be
+placed there instead, and then no Lean need be installed for the recheck.
+After an accepting recheck, verification reads that file and records its
+SHA-256 as the `kernel_sha256` of the attestation's `bend` object, so a
+verified attestation names the kernel that accepted the program; an accepting
+recheck with no kernel there is `LLV7019`.
+
 A project whose every module lowers to Bend and that declares no production
 root is verified by Bend alone, and every language-2.0 project is one. After
 the four stages come only its declaration rows, the staged verified set
@@ -9786,6 +9797,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `VR-27` | `verification` | A language-2.0 theorem's assumption premises must be admitted by its axiom policy, or verification fails with LLV7022 before any Lean process runs, and a verified attestation is schema v3 recording the Bend toolchain and each theorem's premises. | §22.13 |
 | `VR-28` | `verification` | Language-2.2 verification of a project with a production root or a module that does not lower to Bend runs the Bend stages before the language-1.2 Lean stages, and a verified attestation is schema v4 carrying the language-1.2 records, the Bend toolchain, and each theorem's premises. | §22.13 |
 | `VR-29` | `verification` | A language-2.0 or 2.2 project whose every module lowers to Bend and that declares no production root is verified by Bend alone, running no Lean, Lake, or leanchecker process and needing no Lean toolchain, and its attestation is schema v3, recording the Bend toolchain, only Bend and PDF processes, and on each declaration row its premises and, as observed, the axioms they stand for. | §22.13 |
+| `VR-30` | `verification` | A Bend kernel recheck that accepts records as the attestation's bend kernel_sha256 the SHA-256 of the BendTT kernel the pinned Bend ran, the one under the home's .bend/bendtt at the pinned kernel key, which a prebuilt kernel may occupy in place of one built with Lean, and an accepting recheck with no kernel there is LLV7019. | §22.13 |
 | `CL-01` | `cli-api` | Global options and upward project discovery obey the exact CLI contract. | §23.1, §23.2 |
 | `CL-02` | `cli-api` | Init creates the complete canonical skeleton only in an absent or empty destination and never overwrites. | §23.4 |
 | `CL-03` | `cli-api` | Lock check, local update, and explicit network acquisition obey their exact mutually exclusive behavior. | §23.4 |
@@ -9966,7 +9978,7 @@ Every row below is normative, has honesty level `build`, and MUST be copied byte
 | `RT-03` | `runtime` | A verification compiles every runtime module that a project's generated modules, or the calculus modules its certificates are checked against, import before the project's modules, replays it with `leanchecker`, and audits each of its declarations against the axioms its row pins; the committed verification of a project that uses the collections prints them, the runtime's own project verifies under the pinned Lean, and a row that pins another axiom set than its declaration observes fails with LLV7005. | §17.12, §22.3, §22.5, §22.6 |
 | `RT-04` | `runtime` | No Lean runtime text remains in the language-1.2 compiler: a generated language-1.2 module imports the runtime modules whose constants it names and declares nothing under a runtime namespace, and the only Lean runtime text in the compiler's source outside unit-test items, in one string literal or in several written together, is the decoder of core module 2, which loads native modules and so cannot be one; a runtime text planted in any of its shapes, raw or escaped, with or without a namespace line, split across literals, or after a test module, is found. | §17.12, §18.1 |
 
-**Total required capability IDs:** 419.
+**Total required capability IDs:** 420.
 
 No row may be downgraded to `some-true` or `open`. Upstream Lean facts are ledger/authority rows, not substitutions for these build behaviors.
 

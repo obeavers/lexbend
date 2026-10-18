@@ -38,6 +38,9 @@ pub struct Bend {
     pub sha256: Sha256Digest,
     /// The recorded version output.
     pub version_output: String,
+    /// SHA-256 of the BendTT kernel that accepted the program, once the
+    /// kernel recheck has.
+    pub kernel_sha256: Option<Sha256Digest>,
 }
 
 fn spec<'a>(
@@ -85,6 +88,7 @@ pub fn preflight(limits: &Limits) -> Result<Bend, Diagnostic> {
         bin,
         sha256: Sha256Digest::of(&bytes),
         version_output: String::new(),
+        kernel_sha256: None,
     };
     let cwd = bend.bin.clone();
     let record = run(
@@ -177,6 +181,34 @@ pub fn verdict(
         && record.stdout == VERDICT_SUCCESS
         && record.stderr.trim().is_empty();
     Ok((record, accepted))
+}
+
+/// The SHA-256 of the BendTT kernel the pinned Bend ran: the one it keeps,
+/// or a prebuilt one placed there, at the pinned key under the home the
+/// Bend children share (§22.13). The children never receive `$BENDTT`
+/// (§25.4), so this is the only kernel a recheck can have run.
+///
+/// # Errors
+///
+/// `LLV7019` when no kernel can be read there.
+pub fn kernel_digest() -> Result<Sha256Digest, Diagnostic> {
+    let home = std::env::var_os("HOME").unwrap_or_else(|| "/".into());
+    let path = std::path::Path::new(&home)
+        .join(".bend")
+        .join("bendtt")
+        .join(crate::BENDTT_KERNEL_KEY)
+        .join("bendtt");
+    std::fs::read(&path)
+        .map(|bytes| Sha256Digest::of(&bytes))
+        .map_err(|io_error| {
+            Diagnostic::new(
+                code!("LLV7019"),
+                format!(
+                    "the BendTT kernel recheck accepted, but no kernel is at `~/.bend/bendtt/{}/bendtt` to record: {io_error}",
+                    crate::BENDTT_KERNEL_KEY
+                ),
+            )
+        })
 }
 
 /// The generated line Bend's refusal points at: the `N>|` marker of its

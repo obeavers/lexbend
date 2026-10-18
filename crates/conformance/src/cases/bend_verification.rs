@@ -55,6 +55,23 @@ fn accepting_bend() -> tempfile::TempDir {
     )
 }
 
+/// A home whose `.bend` holds a stand-in BendTT kernel at the pinned key:
+/// what an accepting stand-in Bend's recheck is recorded as having run
+/// (§22.13).
+fn stand_in_home() -> tempfile::TempDir {
+    let home = tempfile::Builder::new()
+        .prefix("lexlean-kernel-home-")
+        .tempdir()
+        .expect("tempdir");
+    let kernel = home
+        .path()
+        .join(".bend/bendtt")
+        .join(lexlean::BENDTT_KERNEL_KEY);
+    std::fs::create_dir_all(&kernel).expect("kernel directory");
+    std::fs::write(kernel.join("bendtt"), b"a stand-in BendTT kernel\n").expect("kernel");
+    home
+}
+
 /// Verify a project with `PATH` set, returning the published attestation.
 fn verified_attestation(project: &P, path: &str) -> (serde_json::Value, camino::Utf8PathBuf) {
     verified_attestation_with(project, &[("PATH", Some(path))])
@@ -295,16 +312,20 @@ pub(crate) fn lean_free(id: &str) {
         );
         // The pinned Bend where it can recheck in its kernel, a stand-in
         // that accepts where it cannot: the routing is what is under test.
-        let stand_in;
-        let bend = match bend_dir().filter(|_| verdict_available(id)) {
-            Some(dir) => dir,
+        let (attestation, root) = match bend_dir().filter(|_| verdict_available(id)) {
+            Some(dir) => verified_attestation(&project, &path_with(&dir)),
             None if support::posix_shell_backed(id) => {
-                stand_in = accepting_bend();
-                stand_in.path().to_path_buf()
+                let stand_in = accepting_bend();
+                let home = stand_in_home();
+                let path = path_with(stand_in.path());
+                let home = home.path().display().to_string();
+                verified_attestation_with(
+                    &project,
+                    &[("PATH", Some(path.as_str())), ("HOME", Some(home.as_str()))],
+                )
             }
             None => continue,
         };
-        let (attestation, root) = verified_attestation(&project, &path_with(&bend));
         assert_bend_only(&attestation, &root, example);
     }
     // Half a Lean configuration names a workspace with no toolchain, or the
@@ -723,9 +744,12 @@ pub(crate) fn run(id: &str) {
                     .tempdir()
                     .expect("tempdir");
                 let no_elan = no_elan.path().display().to_string();
+                let home = stand_in_home();
+                let home = home.path().display().to_string();
                 let without_lean = [
                     ("PATH", Some(bend_first.as_str())),
                     ("ELAN_HOME", Some(no_elan.as_str())),
+                    ("HOME", Some(home.as_str())),
                 ];
                 let peano = P::copy_example("bend-peano-arithmetic");
                 let (attestation, root) = verified_attestation_with(&peano, &without_lean);
@@ -777,6 +801,87 @@ pub(crate) fn run(id: &str) {
                 let peano = P::copy_example("bend-peano-arithmetic");
                 let (attestation, root) = verified_attestation(&peano, &path);
                 assert_bend_only(&attestation, &root, "the live language-2.0 verification");
+            }
+        }
+        // §22.13: an accepting recheck names the kernel that accepted.
+        "VR-30" => {
+            let kernel_in = |home: &std::path::Path| {
+                home.join(".bend/bendtt")
+                    .join(lexlean::BENDTT_KERNEL_KEY)
+                    .join("bendtt")
+            };
+            if support::posix_shell_backed(id) {
+                let accepting = accepting_bend();
+                let bend_first = path_with(accepting.path());
+                let home = stand_in_home();
+                let bytes = std::fs::read(kernel_in(home.path())).expect("the stand-in kernel");
+                let home_text = home.path().display().to_string();
+                let semantic = P::copy_example("bend-semantic");
+                let (attestation, _) = verified_attestation_with(
+                    &semantic,
+                    &[
+                        ("PATH", Some(bend_first.as_str())),
+                        ("HOME", Some(home_text.as_str())),
+                    ],
+                );
+                assert_eq!(
+                    attestation["bend"]["kernel_sha256"],
+                    lexlean::artifact::content_id::Sha256Digest::of(&bytes).to_hex(),
+                    "the attestation names the kernel at the pinned key"
+                );
+                let empty = tempfile::Builder::new()
+                    .prefix("lexlean-kernel-empty-")
+                    .tempdir()
+                    .expect("tempdir");
+                let empty_text = empty.path().display().to_string();
+                let error = support::with_env(
+                    &[
+                        ("PATH", Some(bend_first.as_str())),
+                        ("HOME", Some(empty_text.as_str())),
+                    ],
+                    || {
+                        semantic
+                            .engine()
+                            .verify(VerifyRequest {
+                                selection: Selection::Entrypoints,
+                            })
+                            .err()
+                            .expect("verification fails")
+                    },
+                );
+                support::expect_code(&error, "LLV7019");
+                assert!(
+                    error.to_string().contains(lexlean::BENDTT_KERNEL_KEY),
+                    "the refusal names where the kernel belongs: {error}"
+                );
+            }
+            if support::bend_backed(id) && verdict_available(id) {
+                let home = std::path::PathBuf::from(std::env::var_os("HOME").expect("HOME"));
+                // The key Bend derives from its own kernel source, read from
+                // `../bend2` beside its resolved executable.
+                let bend = std::fs::canonicalize(bend_dir().expect("the pinned Bend").join("bend"))
+                    .expect("the pinned Bend resolves");
+                let source = std::fs::read(
+                    bend.parent()
+                        .expect("its directory")
+                        .join("../bend2/bendtt.lean"),
+                )
+                .expect("the pinned Bend's kernel source");
+                let keyed = [b"4.34.0\0".as_slice(), &source].concat();
+                assert_eq!(
+                    &lexlean::artifact::content_id::Sha256Digest::of(&keyed).to_hex()[..16],
+                    lexlean::BENDTT_KERNEL_KEY,
+                    "the pinned key is the one the pinned Bend derives"
+                );
+                let path = path_with(&bend_dir().expect("the pinned Bend"));
+                let semantic = P::copy_example("bend-semantic");
+                let (attestation, _) = verified_attestation(&semantic, &path);
+                let kernel = std::fs::read(kernel_in(&home)).expect("the installed kernel");
+                assert_eq!(
+                    attestation["bend"]["kernel_sha256"],
+                    lexlean::artifact::content_id::Sha256Digest::of(&kernel).to_hex(),
+                    "the live attestation names the installed kernel"
+                );
             }
         }
         other => panic!("no Bend verification case is wired for {other}"),

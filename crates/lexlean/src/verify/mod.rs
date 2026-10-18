@@ -319,7 +319,7 @@ fn verify_bend(
         }
     }
     stages.enter("bend-preflight");
-    let tool = bend::preflight(limits).map_err(fail)?;
+    let mut tool = bend::preflight(limits).map_err(fail)?;
     stages.enter("bend-check");
     let verified_root = project
         .root
@@ -393,6 +393,7 @@ fn verify_bend(
             ),
         )));
     }
+    tool.kernel_sha256 = Some(bend::kernel_digest().map_err(fail)?);
     Ok((tool, records))
 }
 
@@ -565,10 +566,14 @@ fn declaration_row(
 
 /// The pinned Bend's attestation record (§22.13).
 fn bend_json(tool: &bend::Bend) -> Json {
-    Json::object(vec![
+    let mut fields = vec![
         ("version_output", Json::Str(tool.version_output.clone())),
         ("executable_sha256", Json::Str(tool.sha256.to_hex())),
-    ])
+    ];
+    if let Some(kernel) = tool.kernel_sha256 {
+        fields.push(("kernel_sha256", Json::Str(kernel.to_hex())));
+    }
+    Json::object(fields)
 }
 
 /// The attestation fields every verification records (§22.9): what was
