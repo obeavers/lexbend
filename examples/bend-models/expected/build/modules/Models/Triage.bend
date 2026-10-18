@@ -189,43 +189,50 @@ def ll_match7(+ll_v8: List<&2, L.Lean.Int>, +__sum: L.Lean.Prod(L.Lean.Int, List
     case Con{__value, __rest}:
       (L.Lean.Int.sub(S.Sem.fst(L.Lean.Int, List<&2, L.Lean.Int>, __sum), L.Lean.Int.neg(L.Lean.Int.mul(__weight, __value))), __rest)
 
+def ll_code9(+ll_e: Unit, +__sum: L.Lean.Prod(L.Lean.Int, List<&2, L.Lean.Int>), +__weight: L.Lean.Int) -> L.Lean.Prod(L.Lean.Int, List<&2, L.Lean.Int>):
+  ll_match7(S.Sem.snd(L.Lean.Int, List<&2, L.Lean.Int>, __sum), __sum, __weight)
+
 def ll_match5(+ll_v6: List<&2, L.Lean.Int>, +__acc: L.Lean.Prod(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>), +__row: List<&2, L.Lean.Int>, +__values: List<&2, L.Lean.Int>) -> L.Lean.Prod(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>):
   match ll_v6:
     case Nil{}:
       __acc
     case Con{__bias, __biases}:
-      (R.LexLeanRuntime.append.List(L.Lean.Int, S.Sem.fst(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>, __acc), Con{L.Lean.Int.sub(__bias, L.Lean.Int.neg(S.Sem.fst(L.Lean.Int, List<&2, L.Lean.Int>, S.Sem.listFold(~L.Lean.Int, ~L.Lean.Prod(L.Lean.Int, List<&2, L.Lean.Int>), ~Unit, ~(+ll_e => +__sum => +__weight => ll_match7(S.Sem.snd(L.Lean.Int, List<&2, L.Lean.Int>, __sum), __sum, __weight)), Unit{}, __row, (L.ofNat{0n}, __values))))), Nil{}}), __biases)
+      (R.LexLeanRuntime.append.List(L.Lean.Int, S.Sem.fst(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>, __acc), Con{L.Lean.Int.sub(__bias, L.Lean.Int.neg(S.Sem.fst(L.Lean.Int, List<&2, L.Lean.Int>, S.Sem.listFold(~L.Lean.Int, ~L.Lean.Prod(L.Lean.Int, List<&2, L.Lean.Int>), ~Unit, ~ll_code9, Unit{}, __row, (L.ofNat{0n}, __values))))), Nil{}}), __biases)
+
+def ll_code10(+ll_e: List<&2, L.Lean.Int>, +__acc: L.Lean.Prod(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>), +__row: List<&2, L.Lean.Int>) -> L.Lean.Prod(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>):
+  +__values = ll_e
+  ll_match5(S.Sem.snd(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>, __acc), __acc, __row, __values)
 
 def TriageScore.scores(+presentation: Presentation) -> List<&2, L.Lean.Int>:
   +__values = TriageScore.features(presentation)
-  S.Sem.fst(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>, S.Sem.listFold(~List<&2, L.Lean.Int>, ~L.Lean.Prod(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>), ~List<&2, L.Lean.Int>, ~(+ll_e => +__acc => +__row => (
-    +__values = ll_e
-    ll_match5(S.Sem.snd(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>, __acc), __acc, __row, __values)
-  )), __values, triageWeights(), (Nil{}, triageBias())))
+  S.Sem.fst(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>, S.Sem.listFold(~List<&2, L.Lean.Int>, ~L.Lean.Prod(List<&2, L.Lean.Int>, List<&2, L.Lean.Int>), ~List<&2, L.Lean.Int>, ~ll_code10, __values, triageWeights(), (Nil{}, triageBias())))
 
-def ll_match9(+ll_v10: Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>) -> Level:
-  match ll_v10:
+def ll_match11(+ll_v12: Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>) -> Level:
+  match ll_v12:
     case None{}:
       Level.routine{}
     case Some{__winner}:
       S.Sem.fst(Level, L.Lean.Int, __winner)
 
-def ll_match13(+ll_v14: Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, +__label: Level, +__score: L.Lean.Int) -> Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>:
-  match ll_v14:
+def ll_match15(+ll_v16: Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, +__label: Level, +__score: L.Lean.Int) -> Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>:
+  match ll_v16:
     case None{}:
       Some{(__label, __score)}
     case Some{__leader}:
       S.Sem.ite(Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, R.LexLeanCollections.lessThan.Int(S.Sem.snd(Level, L.Lean.Int, __leader), __score), Some{(__label, __score)}, Some{__leader})
 
-def ll_match11(+ll_v12: List<&2, Level>, +__best: L.Lean.Prod(Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, List<&2, Level>), +__score: L.Lean.Int) -> L.Lean.Prod(Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, List<&2, Level>):
-  match ll_v12:
+def ll_match13(+ll_v14: List<&2, Level>, +__best: L.Lean.Prod(Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, List<&2, Level>), +__score: L.Lean.Int) -> L.Lean.Prod(Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, List<&2, Level>):
+  match ll_v14:
     case Nil{}:
       __best
     case Con{__label, __labels}:
-      (ll_match13(S.Sem.fst(Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, List<&2, Level>, __best), __label, __score), __labels)
+      (ll_match15(S.Sem.fst(Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, List<&2, Level>, __best), __label, __score), __labels)
+
+def ll_code17(+ll_e: Unit, +__best: L.Lean.Prod(Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, List<&2, Level>), +__score: L.Lean.Int) -> L.Lean.Prod(Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, List<&2, Level>):
+  ll_match13(S.Sem.snd(Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, List<&2, Level>, __best), __best, __score)
 
 def TriageScore(+presentation: Presentation) -> Level:
-  ll_match9(S.Sem.fst(Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, List<&2, Level>, S.Sem.listFold(~L.Lean.Int, ~L.Lean.Prod(Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, List<&2, Level>), ~Unit, ~(+ll_e => +__best => +__score => ll_match11(S.Sem.snd(Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, List<&2, Level>, __best), __best, __score)), Unit{}, TriageScore.scores(presentation), (None{}, Con{Level.routine{}, Con{Level.urgent{}, Con{Level.emergency{}, Nil{}}}}))))
+  ll_match11(S.Sem.fst(Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, List<&2, Level>, S.Sem.listFold(~L.Lean.Int, ~L.Lean.Prod(Maybe<&2, L.Lean.Prod(Level, L.Lean.Int)>, List<&2, Level>), ~Unit, ~ll_code17, Unit{}, TriageScore.scores(presentation), (None{}, Con{Level.routine{}, Con{Level.urgent{}, Con{Level.emergency{}, Nil{}}}}))))
 
 law triage_safe:
   for +presentation: Presentation
@@ -237,25 +244,25 @@ def triage_safe(presentation, ll_h0):
     case Presentation.p0{}:
       S.Sem.false_ne_true(Safe(Presentation.p0{}, TriageScore(Presentation.p0{})), ll_h0)
     case Presentation.p1{}:
-      ll_h15 => S.Sem.false_ne_true({isEmergency(TriageScore(Presentation.p1{})) == True{} : Bool}, ll_h15)
+      ll_h18 => S.Sem.false_ne_true({isEmergency(TriageScore(Presentation.p1{})) == True{} : Bool}, ll_h18)
     case Presentation.p2{}:
-      ll_h16 => S.Sem.false_ne_true({isEmergency(TriageScore(Presentation.p2{})) == True{} : Bool}, ll_h16)
+      ll_h19 => S.Sem.false_ne_true({isEmergency(TriageScore(Presentation.p2{})) == True{} : Bool}, ll_h19)
     case Presentation.p3{}:
-      ll_h17 => S.Sem.false_ne_true({isEmergency(TriageScore(Presentation.p3{})) == True{} : Bool}, ll_h17)
+      ll_h20 => S.Sem.false_ne_true({isEmergency(TriageScore(Presentation.p3{})) == True{} : Bool}, ll_h20)
     case Presentation.p4{}:
-      ll_h18 => {==}
-    case Presentation.p5{}:
-      ll_h19 => {==}
-    case Presentation.p6{}:
-      ll_h20 => {==}
-    case Presentation.p7{}:
       ll_h21 => {==}
+    case Presentation.p5{}:
+      ll_h22 => {==}
+    case Presentation.p6{}:
+      ll_h23 => {==}
+    case Presentation.p7{}:
+      ll_h24 => {==}
 
 law TriageEvidence.triage_safe:
-  R.LexLeanModels.Satisfies(Presentation, Level, (+ll_x22 => Symptomatic(ll_x22)), (+ll_x23 => +ll_x24 => Safe(ll_x23, ll_x24)), (+ll_x25 => TriageScore(ll_x25)))
+  R.LexLeanModels.Satisfies(Presentation, Level, (+ll_x25 => Symptomatic(ll_x25)), (+ll_x26 => +ll_x27 => Safe(ll_x26, ll_x27)), (+ll_x28 => TriageScore(ll_x28)))
 
 def TriageEvidence.triage_safe():
-  ll_a26 => ll_a27 => triage_safe(ll_a26, ll_a27)
+  ll_a29 => ll_a30 => triage_safe(ll_a29, ll_a30)
 
 def TriageModel(+__input: Presentation) -> Level:
   TriageScore(__input)

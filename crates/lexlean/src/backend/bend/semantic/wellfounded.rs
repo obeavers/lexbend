@@ -62,6 +62,12 @@ pub(super) struct Recursion {
     bound: String,
 }
 
+impl Recursion {
+    pub(super) fn name(&self) -> &str {
+        &self.name
+    }
+}
+
 /// Whether `term` calls the definition `name` of `module`.
 fn calls(term: &SemanticTerm, name: &str, module: &str) -> bool {
     if let SemanticTerm::Call { function, .. } | SemanticTerm::FunctionRef { function, .. } = term {

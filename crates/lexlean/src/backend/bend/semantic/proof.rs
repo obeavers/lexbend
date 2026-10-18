@@ -1041,15 +1041,10 @@ impl Prover<'_, '_, '_> {
         type_arguments: &[SemanticType],
         arguments: &[SemanticTerm],
     ) -> Result<BTerm, Diagnostic> {
-        let SemanticDeclaration::Theorem {
-            type_parameters,
+        let super::TheoremSignature {
             parameters,
             statement,
-            ..
-        } = self.lower.declaration(theorem)?
-        else {
-            return Err(fail(format!("`{}` is not a theorem", theorem.name)));
-        };
+        } = self.lower.theorem_signature(theorem)?;
         let home = self.lower.home(theorem);
         let peeled = peel(&normal::qualify_term(statement, &home));
         let lowered = arguments
@@ -1064,12 +1059,28 @@ impl Prover<'_, '_, '_> {
         else {
             return Err(fail("a law call did not lower to a call"));
         };
+        // A goal that states the cited binders and premises itself, through
+        // a definition it unfolds to, takes the citation abstracted over
+        // them.
+        let bound = parameters.len() + peeled.binders.len();
+        if arguments.len() < bound {
+            let mut names = Vec::new();
+            for _ in arguments.len()..bound + peeled.premises.len() {
+                let name = self.lower.fresh("a");
+                args.push(var(name.clone()));
+                names.push(name);
+            }
+            let mut out = BTerm::Call(head, args);
+            for name in names.into_iter().rev() {
+                out = BTerm::Lam(synthetic(name), Box::new(out));
+            }
+            return Ok(out);
+        }
         // The cited premises, instantiated, must each be a premise here.
         let mut map = BTreeMap::new();
         for (parameter, argument) in parameters.iter().chain(&peeled.binders).zip(arguments) {
             map.insert(parameter.name.clone(), argument.clone());
         }
-        let _ = type_parameters;
         for premise in &peeled.premises {
             let wanted =
                 Normalizer::new(self.lower).normalize(&normal::substitute_all(premise, &map));

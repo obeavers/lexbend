@@ -23,7 +23,7 @@
 //! argument must be closed where it is passed.
 
 use crate::backend::bend::engine::fail;
-use crate::backend::bend::syntax::{BTerm, Body, Param, Quantity, Stmt, Tail};
+use crate::backend::bend::syntax::{BTerm, Body, Item, Param, Quantity, Stmt, Tail};
 use crate::diagnostic::Diagnostic;
 use crate::ir::semantic::{MemberRef, SemanticParameter, SemanticTerm, SemanticType};
 
@@ -65,6 +65,16 @@ fn unit_type() -> BTerm {
 
 fn unit_value() -> BTerm {
     BTerm::Constructor(synthetic("Unit"), Vec::new())
+}
+
+/// A code definition as a template argument: its name, applied to the
+/// templates it takes, if any.
+fn applied(name: String, arguments: Vec<BTerm>) -> BTerm {
+    if arguments.is_empty() {
+        var(name)
+    } else {
+        BTerm::Call(synthetic(name), arguments)
+    }
 }
 
 impl Lower<'_, '_> {
@@ -298,18 +308,26 @@ impl Lower<'_, '_> {
                     env: var(closure.env.clone()),
                 })
             }
-            SemanticTerm::FunctionRef { function, .. } => {
-                let (_, parameters, _) = self.signature(function)?;
+            SemanticTerm::FunctionRef {
+                function,
+                type_arguments,
+            } => {
+                let (type_parameters, parameters, result) = self.signature(function)?;
                 if !self.function_slots(&parameters).is_empty() {
                     return Err(fail(format!(
                         "the higher-order function `{}` is passed as a value; Bend shares functions only as closed templates, so language 2.2 lowers no such argument",
                         function.name
                     )));
                 }
-                let eta = self.term(argument, scope)?;
+                let name = self.function_code(function, &type_parameters, &parameters, &result)?;
+                let mut arguments = Vec::new();
+                for argument in type_arguments {
+                    let canonical = self.canonical(argument);
+                    arguments.push(BTerm::Template(Box::new(self.ty(&canonical)?)));
+                }
                 Ok(Converted {
                     env_type: unit_type(),
-                    code: BTerm::Lam(synthetic("+ll_e"), Box::new(eta)),
+                    code: applied(name, arguments),
                     env: unit_value(),
                 })
             }
@@ -320,8 +338,10 @@ impl Lower<'_, '_> {
                     .collect();
                 let mut free = std::collections::BTreeSet::new();
                 normal::free_vars(body, &mut bound, &mut free);
-                // What the lambda captures, as (Bend name, Bend type, value).
+                // What the lambda captures, as (Bend name, Bend type, value),
+                // and the converted function parameters among them.
                 let mut captured: Vec<(String, BTerm, BTerm)> = Vec::new();
+                let mut closures: Vec<(Closure, SemanticType)> = Vec::new();
                 for name in &free {
                     if let Some(closure) = scope.closures.get(name) {
                         captured.push((
@@ -329,6 +349,9 @@ impl Lower<'_, '_> {
                             closure.env_type.clone(),
                             var(closure.env.clone()),
                         ));
+                        if let Some((_, ty)) = scope.locals.get(name) {
+                            closures.push((closure.clone(), ty.clone()));
+                        }
                     } else if let Some((spelled, ty)) = scope.locals.get(name) {
                         if !self.is_data(ty) {
                             return Err(fail(format!(
@@ -338,12 +361,23 @@ impl Lower<'_, '_> {
                         captured.push((spelled.clone(), self.ty(ty)?, var(spelled.clone())));
                     }
                 }
-                let lambda = self.term(argument, scope)?;
                 let (env_type, env) = self.tuple(&captured);
-                let code = BTerm::Lam(
-                    synthetic("+ll_e"),
-                    Box::new(self.rebind(lambda, &captured, &var("ll_e"))?),
-                );
+                // A lambda that makes a recursive call stays in the
+                // definition it recurses in: a code definition would lie
+                // above it, and Bend has no forward reference.
+                if self.calls_recursively(body) {
+                    let lambda = self.term(argument, scope)?;
+                    let code = BTerm::Lam(
+                        synthetic("+ll_e"),
+                        Box::new(self.rebind(lambda, &captured, &var("ll_e"))?),
+                    );
+                    return Ok(Converted {
+                        env_type,
+                        code,
+                        env,
+                    });
+                }
+                let code = self.lambda_code(parameters, body, &captured, &closures, &env_type, scope)?;
                 Ok(Converted {
                     env_type,
                     code,
@@ -356,9 +390,243 @@ impl Lower<'_, '_> {
         }
     }
 
+    /// The code definition a function reference passed as an argument
+    /// lowers to: its eta-expansion over the empty environment, generic in
+    /// the function's own type parameters, declared once per module. A
+    /// template argument is a named definition rather than a lambda, since
+    /// Bend's kernel types a template's type only through named heads, and
+    /// a generated theorem names the same code the definition used.
+    fn function_code(
+        &mut self,
+        function: &MemberRef,
+        type_parameters: &[String],
+        parameters: &[SemanticParameter],
+        result: &SemanticType,
+    ) -> Result<String, Diagnostic> {
+        let home = self.home(function);
+        let key = format!("{home}::{}", function.name);
+        if let Some(name) = self.codes.get(&key) {
+            return Ok(name.clone());
+        }
+        let name = if home == self.module {
+            format!("{}.ll_code", super::names::global(&function.name)?)
+        } else {
+            self.fresh("code")
+        };
+        let saved = std::mem::replace(
+            &mut self.type_parameters,
+            type_parameters.iter().cloned().collect(),
+        );
+        let built = self.function_code_item(&name, function, type_parameters, parameters, result);
+        self.type_parameters = saved;
+        self.aux.push(built?);
+        self.codes.insert(key, name.clone());
+        Ok(name)
+    }
+
+    fn function_code_item(
+        &mut self,
+        name: &str,
+        function: &MemberRef,
+        type_parameters: &[String],
+        parameters: &[SemanticParameter],
+        result: &SemanticType,
+    ) -> Result<Item, Diagnostic> {
+        let mut params = Vec::new();
+        for type_parameter in type_parameters {
+            params.push(Param {
+                quantity: Quantity::Template,
+                name: synthetic(super::names::local(type_parameter)?),
+                ty: BTerm::Kind("Data"),
+                source: here(),
+            });
+        }
+        params.push(Param {
+            quantity: Quantity::Reusable,
+            name: synthetic("ll_e"),
+            ty: unit_type(),
+            source: here(),
+        });
+        let mut values = Vec::new();
+        for (index, parameter) in parameters.iter().enumerate() {
+            let spelled = format!("ll_x{index}");
+            let ty = self.canonical(&parameter.r#type);
+            params.push(self.param(&spelled, &ty)?);
+            values.push(var(spelled));
+        }
+        let type_arguments: Vec<SemanticType> = type_parameters
+            .iter()
+            .map(|name| SemanticType::Parameter { name: name.clone() })
+            .collect();
+        let body = self.call_of(function, &type_arguments, values)?;
+        let result = self.canonical(result);
+        Ok(Item::Def {
+            name: synthetic(name),
+            params,
+            result: self.ty(&result)?,
+            result_source: here(),
+            body: Body::term(body, here()),
+            source: here(),
+        })
+    }
+
+    /// The code definition a lambda passed as an argument lowers to: its
+    /// parameters after the environment, with the captured locals rebound
+    /// from the environment, generic in the type parameters in scope and in
+    /// the code and environment type of each converted parameter it
+    /// captures. Returns the template argument naming it.
+    fn lambda_code(
+        &mut self,
+        parameters: &[SemanticParameter],
+        body: &SemanticTerm,
+        captured: &[(String, BTerm, BTerm)],
+        closures: &[(Closure, SemanticType)],
+        env_type: &BTerm,
+        scope: &Scope,
+    ) -> Result<BTerm, Diagnostic> {
+        let mut params = Vec::new();
+        let mut arguments = Vec::new();
+        for type_parameter in self.type_parameters.clone() {
+            let spelled = super::names::local(&type_parameter)?;
+            params.push(Param {
+                quantity: Quantity::Template,
+                name: synthetic(spelled.clone()),
+                ty: BTerm::Kind("Data"),
+                source: here(),
+            });
+            arguments.push(BTerm::Template(Box::new(var(spelled))));
+        }
+        let mut codes = Vec::new();
+        let mut code_arguments = Vec::new();
+        for (closure, ty) in closures {
+            let SemanticType::Function {
+                parameters: domain,
+                result,
+            } = ty
+            else {
+                return Err(fail("a converted function parameter lost its type"));
+            };
+            let function = self.function_type(domain, result)?;
+            params.push(Param {
+                quantity: Quantity::Template,
+                name: synthetic(closure.env_type_name()?),
+                ty: BTerm::Kind("Data"),
+                source: here(),
+            });
+            arguments.push(BTerm::Template(Box::new(closure.env_type.clone())));
+            codes.push(Param {
+                quantity: Quantity::Template,
+                name: synthetic(closure.code.clone()),
+                ty: BTerm::Pi {
+                    name: Some(synthetic("+ll_e")),
+                    erased: false,
+                    domain: Box::new(closure.env_type.clone()),
+                    codomain: Box::new(function),
+                },
+                source: here(),
+            });
+            code_arguments.push(BTerm::Template(Box::new(var(closure.code.clone()))));
+        }
+        params.append(&mut codes);
+        arguments.append(&mut code_arguments);
+        params.push(Param {
+            quantity: Quantity::Reusable,
+            name: synthetic("ll_e"),
+            ty: env_type.clone(),
+            source: here(),
+        });
+        let mut inner = scope.clone();
+        for parameter in parameters {
+            let ty = self.canonical(&parameter.r#type);
+            inner = inner.with(&parameter.name, ty.clone())?;
+            let spelled = inner.get(&parameter.name)?.0.clone();
+            params.push(self.param(&spelled, &ty)?);
+        }
+        let result = self.infer(body, &inner)?;
+        let result = self.ty(&result)?;
+        let tail = self.term(body, &inner)?;
+        let stmts = self.rebinding(captured, &var("ll_e"));
+        let body = Body {
+            stmts,
+            tail: Tail::Term(tail, here()),
+        };
+        // Equal lambdas share one code definition, so a theorem about a fold
+        // names the step its definition folds with, wherever it was spelled.
+        let key = format!("{params:?}{result:?}{body:?}");
+        if let Some(name) = self.codes.get(&key) {
+            return Ok(applied(name.clone(), arguments));
+        }
+        let name = self.fresh("code");
+        self.codes.insert(key, name.clone());
+        self.aux.push(Item::Def {
+            name: synthetic(name.clone()),
+            params,
+            result,
+            result_source: here(),
+            body,
+            source: here(),
+        });
+        Ok(applied(name, arguments))
+    }
+
+    /// Whether `term` calls the recursive definition, or a member of the
+    /// simultaneous group, being lowered.
+    fn calls_recursively(&self, term: &SemanticTerm) -> bool {
+        if let SemanticTerm::Call { function, .. } | SemanticTerm::FunctionRef { function, .. } =
+            term
+        {
+            let local = function
+                .module
+                .as_deref()
+                .is_none_or(|home| home == self.module);
+            let wellfounded = self
+                .recursion
+                .as_ref()
+                .is_some_and(|recursion| local && recursion.name() == function.name);
+            if self.recursive_position(function).is_some() || wellfounded {
+                return true;
+            }
+        }
+        let mut found = false;
+        normal::for_each_child(term, &mut |child| {
+            found = found || self.calls_recursively(child);
+        });
+        found
+    }
+
+    /// The statements rebinding each captured local from the environment
+    /// `env`, the tuple `tuple` builds.
+    pub(super) fn rebinding(
+        &mut self,
+        captured: &[(String, BTerm, BTerm)],
+        env: &BTerm,
+    ) -> Vec<Stmt> {
+        let mut stmts = Vec::new();
+        let mut rest = env.clone();
+        for (index, (name, ty, _)) in captured.iter().enumerate() {
+            let value = if index + 1 == captured.len() {
+                rest.clone()
+            } else {
+                let (rest_type, _) = self.tuple(&captured[index + 1..]);
+                let head = call(
+                    self.support("fst"),
+                    vec![ty.clone(), rest_type.clone(), rest.clone()],
+                );
+                rest = call(self.support("snd"), vec![ty.clone(), rest_type, rest]);
+                head
+            };
+            stmts.push(Stmt::Share {
+                name: synthetic(name.clone()),
+                value,
+                source: here(),
+            });
+        }
+        stmts
+    }
+
     /// The environment tuple of `captured`: its type and its value, nested
     /// to the right; `Unit` when nothing is captured.
-    fn tuple(&mut self, captured: &[(String, BTerm, BTerm)]) -> (BTerm, BTerm) {
+    pub(super) fn tuple(&mut self, captured: &[(String, BTerm, BTerm)]) -> (BTerm, BTerm) {
         match captured {
             [] => (unit_type(), unit_value()),
             [(_, ty, value)] => (ty.clone(), value.clone()),
@@ -389,26 +657,7 @@ impl Lower<'_, '_> {
                 if captured.is_empty() {
                     return Ok(BTerm::Lam(binder, body));
                 }
-                let mut stmts = Vec::new();
-                let mut rest = env.clone();
-                for (index, (name, ty, _)) in captured.iter().enumerate() {
-                    let value = if index + 1 == captured.len() {
-                        rest.clone()
-                    } else {
-                        let (rest_type, _) = self.tuple(&captured[index + 1..]);
-                        let head = call(
-                            self.support("fst"),
-                            vec![ty.clone(), rest_type.clone(), rest.clone()],
-                        );
-                        rest = call(self.support("snd"), vec![ty.clone(), rest_type, rest]);
-                        head
-                    };
-                    stmts.push(Stmt::Share {
-                        name: synthetic(name.clone()),
-                        value,
-                        source: here(),
-                    });
-                }
+                let stmts = self.rebinding(captured, env);
                 Ok(BTerm::Lam(
                     binder,
                     Box::new(BTerm::Block(Box::new(Body {

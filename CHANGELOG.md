@@ -48,9 +48,15 @@ versions, and the entries below say what each tag does and does not claim.
   uses as its code and environment. `decide` matches every Boolean its
   statement quantifies, and `simplify` matches a rule's `n + 1` against
   `succ n` and positive numerals; with these the `compiler/` project's
-  Certification and GNAF modules lower and check. Language 2.2 refuses, with `LLB6008`, a well-founded
-  definition in a mutual group, a higher-order function passed as a value,
-  and reasoning declarations. New: `BN-01`..`BN-23`, `CF-19`, `CF-20`,
+  Certification and GNAF modules lower and check. A reasoning declaration lowers whole (SPEC.md §18.11.8):
+  each theorem it generates is one law whose proof follows its Lean
+  template and instantiates the generic laws of `Reasoning.bend`, the
+  fold, loop, closure, and frontier laws each proved once for every
+  instantiation. The reasoning example lowers to 397 laws, one for each
+  theorem of its Lean modules, and with the compiler project's five
+  reasoning oracles checks under the pinned Bend and the kernel recheck.
+  Language 2.2 refuses, with `LLB6008`, a well-founded definition in a
+  mutual group and a higher-order function passed as a value. New: `BN-01`..`BN-23`, `CF-19`, `CF-20`,
   `VR-24`..`VR-29`; schemas `project-v3`/`-v4`, `lock-v3`/`-v4`,
   `build-manifest-v3`/`-v4`, `attestation-v3`/`-v4`, `semantic-snapshot-v3`,
   `coverage-v2`, `source-map-v2`; `lexlean init --language 2.0|2.2`. The

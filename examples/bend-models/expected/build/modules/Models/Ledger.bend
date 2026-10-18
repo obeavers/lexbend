@@ -425,14 +425,17 @@ law same_nat_sound:
 def same_nat_sound(expected, observed, ll_h0):
   LA.sound(Con{expected, Con{observed, Nil{}}}, LA.FEq{LA.TVar{0n}, LA.TVar{1n}}, Con{LA.FIs{LA.BEq{LA.TVar{0n}, LA.TVar{1n}}, True{}}, Nil{}}, 9n, LA.Fork{LA.Leaf{Con{1n, Con{0n, Con{1n, Nil{}}}}}, LA.Leaf{Con{0n, Con{1n, Con{1n, Nil{}}}}}}, {==}, (ll_h0, Unit{}))
 
+def ll_code194(+ll_e: Unit, +count: Nat, +example: L.Lean.Prod(Nat, Nat)) -> Nat:
+  S.Sem.ite(Nat, sameNat(Guess(S.Sem.fst(Nat, Nat, example)), S.Sem.snd(Nat, Nat, example)), L.Lean.Nat.add(count, 1n), count)
+
 law guess_agreement:
-  L.Lean.Prod({R.LexLeanRuntime.length.List(L.Lean.Prod(Nat, Nat), guessSamples()) == 5n : Nat}, {S.Sem.listFold(~L.Lean.Prod(Nat, Nat), ~Nat, ~Unit, ~(+ll_e => +count => +example => S.Sem.ite(Nat, sameNat(Guess(S.Sem.fst(Nat, Nat, example)), S.Sem.snd(Nat, Nat, example)), L.Lean.Nat.add(count, 1n), count)), Unit{}, guessSamples(), 0n) == 4n : Nat})
+  L.Lean.Prod({R.LexLeanRuntime.length.List(L.Lean.Prod(Nat, Nat), guessSamples()) == 5n : Nat}, {S.Sem.listFold(~L.Lean.Prod(Nat, Nat), ~Nat, ~Unit, ~ll_code194, Unit{}, guessSamples(), 0n) == 4n : Nat})
 
 def guess_agreement():
   ({==}, {==})
 
 law GuessSample.guess_agreement:
-  R.LexLeanModels.Agreement(Nat, Nat, (+ll_x194 => Guess(ll_x194)), (+ll_x195 => +ll_x196 => sameNat(ll_x195, ll_x196)), guessSamples(), 5n, 4n)
+  R.LexLeanModels.Agreement(Nat, Nat, (+ll_x195 => Guess(ll_x195)), (+ll_x196 => +ll_x197 => sameNat(ll_x196, ll_x197)), guessSamples(), 5n, 4n)
 
 def GuessSample.guess_agreement():
   ({==}, {==})
@@ -441,10 +444,10 @@ def GuessModel(+__input: Nat) -> Nat:
   Guess(__input)
 
 law GuessEquivalence.guess_reference:
-  R.LexLeanModels.Equivalent(Nat, Nat, (+ll_x197 => Within(ll_x197)), (+ll_x198 => Guess(ll_x198)), (+ll_x199 => guessRef(ll_x199)))
+  R.LexLeanModels.Equivalent(Nat, Nat, (+ll_x198 => Within(ll_x198)), (+ll_x199 => Guess(ll_x199)), (+ll_x200 => guessRef(ll_x200)))
 
 def GuessEquivalence.guess_reference():
-  ll_a200 => ll_a201 => guess_reference(ll_a200, ll_a201)
+  ll_a201 => ll_a202 => guess_reference(ll_a201, ll_a202)
 
 def GuessExactModel(+__input: Nat) -> Nat:
   Guess(__input)

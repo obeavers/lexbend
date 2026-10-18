@@ -49,6 +49,16 @@ const MOVED: [(&str, &[&str]); 3] = [
     ),
 ];
 
+/// The reasoning example's modules, which a language-2.2 build lowers with
+/// every theorem its reasoning declarations generate.
+const REASONING: [&str; 5] = [
+    "Reasoning/Budget",
+    "Reasoning/Clinic",
+    "Reasoning/Main",
+    "Reasoning/Planner",
+    "Reasoning/Screening",
+];
+
 fn example_build(name: &str) -> lexlean::api::RenderedBuild {
     support::rendered(&P::copy_example(name))
 }
@@ -224,16 +234,28 @@ pub(crate) fn run(id: &str) {
             ), "type parameters are templates; the function parameter is a code template over its environment");
             let main = module_bend(&build, "HigherOrder/Main");
             assert!(main.contains(
-                "  HigherOrder_Combinators.mapList(~Nat, ~Nat, ~Nat, ~(+ll_e => +value => (\n    +offset = ll_e\n    L.Lean.Nat.add(value, offset)\n  )), values, offset)\n"
-            ), "a capturing lambda passes its captures as the environment");
+                "def ll_code1(+ll_e: Nat, +value: Nat) -> Nat:\n  +offset = ll_e\n  L.Lean.Nat.add(value, offset)\n"
+            ) && main.contains(
+                "  HigherOrder_Combinators.mapList(~Nat, ~Nat, ~Nat, ~ll_code1, values, offset)\n"
+            ), "a capturing lambda is a named code definition over its captures, passed as the environment");
             assert!(main.contains(
-                "HigherOrder_Combinators.mapList(~Nat, ~Nat, ~Unit, ~(+ll_e => +ll_x1 => HigherOrder_Combinators.increment(ll_x1)), values, Unit{})"
-            ), "a function reference is a closed template with the unit environment");
+                "def ll_code3(+ll_e: Unit, +ll_x0: Nat) -> Nat:\n  HigherOrder_Combinators.increment(ll_x0)\n"
+            ) && main.contains(
+                "HigherOrder_Combinators.mapList(~Nat, ~Nat, ~Unit, ~ll_code3, values, Unit{})"
+            ) && main.contains(
+                "HigherOrder_Combinators.compose(~Nat, ~Nat, ~Nat, ~Unit, ~Unit, ~ll_code4, ~ll_code3, Unit{}, Unit{})"
+            ), "a function reference is one closed code definition with the unit environment");
+            assert!(
+                main.contains("~ll_code5(~Input)"),
+                "a code definition is generic in the type parameters in scope"
+            );
             assert!(main.contains("def map_identity.ll_ind1(~Input: Data, "));
             let recursion = example_build("bend-recursion");
             let text = module_bend(&recursion, "Recursion/Main");
             assert!(text.contains(
-                "  applyTwice(~L.Lean.Prod(Nat, Nat), ~(+ll_e => +n => (\n    +high = S.Sem.fst(Nat, Nat, ll_e)\n    +low = S.Sem.snd(Nat, Nat, ll_e)\n    L.Lean.Nat.add(L.Lean.Nat.add(n, low), L.Lean.Nat.add(high, high))\n  )), (high, low), value)\n"
+                "def ll_code68(+ll_e: L.Lean.Prod(Nat, Nat), +n: Nat) -> Nat:\n  +high = S.Sem.fst(Nat, Nat, ll_e)\n  +low = S.Sem.snd(Nat, Nat, ll_e)\n  L.Lean.Nat.add(L.Lean.Nat.add(n, low), L.Lean.Nat.add(high, high))\n"
+            ) && text.contains(
+                "  applyTwice(~L.Lean.Prod(Nat, Nat), ~ll_code68, (high, low), value)\n"
             ), "a lambda capturing two locals rebinds them from the pair it is passed");
             if support::bend_backed(id) {
                 let (dir, modules) = generated_modules(&build);
@@ -244,8 +266,8 @@ pub(crate) fn run(id: &str) {
                 let (accepted, output) = check_planted(&recursion, "Recursion/Main", &|text| {
                     replace_one(
                         text,
-                        "  )), (high, low), value)\n",
-                        "  )), (low, high), value)\n",
+                        "~ll_code68, (high, low), value)\n",
+                        "~ll_code68, (low, high), value)\n",
                     )
                 });
                 assert!(
@@ -376,7 +398,7 @@ pub(crate) fn run(id: &str) {
             };
             let implied = proof_of("implied_pair");
             assert!(
-                implied.contains("{ll_h0(ll_c70) : L.Lean.Prod(S.Sem.le(y, 3n), S.Sem.le(x, 2n))}")
+                implied.contains("{ll_h0(ll_c72) : L.Lean.Prod(S.Sem.le(y, 3n), S.Sem.le(x, 2n))}")
                     && implied.matches("LA.sound(").count() == 1
                     && implied.starts_with("def implied_pair(x, y, ll_h0, ll_h1):\n  S.Sem.and_prod("),
                 "a premise implying a data conjunction is rebuilt as `holds` reads it, and a conjunction over it is one certificate"
@@ -461,7 +483,13 @@ pub(crate) fn run(id: &str) {
         "BN-16" => {
             use lexlean::backend::bend::semantic::support::Support;
             let root = support::repo_root();
-            let supports = [Support::Semantic, Support::Runtime, Support::LinArith];
+            // In publication order: a module is checked after those it imports.
+            let supports = [
+                Support::Semantic,
+                Support::Runtime,
+                Support::LinArith,
+                Support::Reasoning,
+            ];
             for module in supports {
                 let text = std::fs::read_to_string(root.join(module.source_path()).as_std_path())
                     .expect("the support module is committed");
@@ -469,10 +497,19 @@ pub(crate) fn run(id: &str) {
                     .lines()
                     .filter(|line| line.starts_with("import "))
                     .collect();
+                let expected: &[&str] = match module {
+                    Support::Reasoning => &[
+                        "import Base",
+                        "import ./LexLean.bend as L",
+                        "import ./Semantic.bend as S",
+                        "import ./Runtime.bend as R",
+                    ],
+                    _ => &["import Base", "import ./LexLean.bend as L"],
+                };
                 assert_eq!(
                     imports,
-                    ["import Base", "import ./LexLean.bend as L"],
-                    "{}: only Base and the prelude",
+                    expected,
+                    "{}: only Base, the prelude, and earlier support modules",
                     module.source_path()
                 );
             }
@@ -543,12 +580,48 @@ pub(crate) fn run(id: &str) {
                 }
             }
         }
-        // §18.11.8: reasoning declarations are refused.
+        // §18.11.8: each generated theorem lowers to a law the pinned Bend
+        // accepts, and a false one is refused.
         "BN-17" => {
-            refused(
-                &moved("reasoning"),
-                "the reasoning declaration generates `Tick.apply_sound`, whose proof has no Bend lowering",
-            );
+            let build = support::rendered(&moved("reasoning"));
+            let starts = |text: &str, heads: &[&str]| {
+                text.lines()
+                    .filter(|line| heads.iter().any(|head| line.starts_with(head)))
+                    .count()
+            };
+            for module in REASONING {
+                let bend = module_bend(&build, module);
+                let lean = support::bend_file(&build, &format!("modules/{module}.lean"))
+                    .unwrap_or_else(|| panic!("`{module}` has a generated Lean file"));
+                let theorems = starts(&lean, &["theorem ", "public theorem "]);
+                assert!(theorems > 0, "{module} states theorems");
+                assert_eq!(
+                    starts(&bend, &["law "]),
+                    theorems,
+                    "{module}: one law for each theorem"
+                );
+            }
+            let screening = module_bend(&build, "Reasoning/Screening");
+            let claim = "law Screen.frontier_bounded:\n  for +w: Nat\n  S.Sem.le(Screen.Ledger.frontier(Screen.Search.ledger(S.Sem.fst(Screen.Search, Bool, Screen.run(w)))), 3n)\n";
+            assert!(screening.contains(claim), "the frontier bound is stated");
+            if support::bend_backed(id) {
+                let (dir, generated) = generated_modules(&build);
+                assert_eq!(generated.len(), REASONING.len(), "every module");
+                for path in &generated {
+                    let (accepted, text) = support::bend_check(&dir.path().join(path));
+                    assert!(accepted, "{path}: {text}");
+                    assert!(text.starts_with("ALL PROOFS CHECK"), "{path}: {text}");
+                }
+                let file = dir.path().join("modules/Reasoning/Screening.bend");
+                std::fs::write(
+                    &file,
+                    screening.replace(claim, &claim.replace("3n)", "2n)")),
+                )
+                .expect("planted module");
+                let (accepted, text) = support::bend_check(&file);
+                assert!(!accepted, "a false frontier bound is refused by Bend");
+                assert!(text.starts_with("SOME PROOFS FAIL"), "{text}");
+            }
         }
         // §18.11: every language-2.2 example module checks and exports.
         "BN-18" => {
@@ -778,7 +851,7 @@ pub(crate) fn run(id: &str) {
             );
             assert!(
                 main.contains(
-                    "  +scale = L.Lean.Nat.add(factor, factor)\n  ll_match68(values, scale)\n"
+                    "  +scale = L.Lean.Nat.add(factor, factor)\n  ll_match70(values, scale)\n"
                 ),
                 "a match after a `let` on a local bound before it is lifted"
             );

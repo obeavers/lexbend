@@ -328,16 +328,19 @@ def ll_match37(+ll_v38: Result<&2, &2, S.Sem.ContractViolation, L.Lean.Prod(Mode
         Done{(S.Sem.fst(Models_Session.ll.Window, Nat, __step), R.LexLeanRuntime.append.List(Nat, S.Sem.snd(Models_Session.ll.Window, List<&2, Nat>, __state), Con{S.Sem.snd(Models_Session.ll.Window, Nat, __step), Nil{}}))}
       ), Fail{S.Sem.ContractViolation.precondition{}}), Fail{S.Sem.ContractViolation.input_invariant{}})
 
-def ll_match39(+ll_v40: Result<&2, &2, S.Sem.ContractViolation, L.Lean.Prod(Models_Session.ll.Window, List<&2, Nat>)>) -> Result<&2, &2, S.Sem.ContractViolation, List<&2, Nat>>:
-  match ll_v40:
+def ll_code39(+ll_e: Unit, +__acc: Result<&2, &2, S.Sem.ContractViolation, L.Lean.Prod(Models_Session.ll.Window, List<&2, Nat>)>, +__item: Nat) -> Result<&2, &2, S.Sem.ContractViolation, L.Lean.Prod(Models_Session.ll.Window, List<&2, Nat>)>:
+  ll_match37(__acc, __acc, __item)
+
+def ll_match40(+ll_v41: Result<&2, &2, S.Sem.ContractViolation, L.Lean.Prod(Models_Session.ll.Window, List<&2, Nat>)>) -> Result<&2, &2, S.Sem.ContractViolation, List<&2, Nat>>:
+  match ll_v41:
     case Fail{__violation}:
       Fail{__violation}
     case Done{__state}:
       Done{S.Sem.snd(Models_Session.ll.Window, List<&2, Nat>, __state)}
 
 def SessionStream(+costs: List<&2, Nat>) -> Result<&2, &2, S.Sem.ContractViolation, List<&2, Nat>>:
-  +__scanned = S.Sem.listFold(~Nat, ~Result<&2, &2, S.Sem.ContractViolation, L.Lean.Prod(Models_Session.ll.Window, List<&2, Nat>)>, ~Unit, ~(+ll_e => +__acc => +__item => ll_match37(__acc, __acc, __item)), Unit{}, costs, Done{(Models_Session.SessionModel.initial(), Nil{})})
-  ll_match39(__scanned)
+  +__scanned = S.Sem.listFold(~Nat, ~Result<&2, &2, S.Sem.ContractViolation, L.Lean.Prod(Models_Session.ll.Window, List<&2, Nat>)>, ~Unit, ~ll_code39, Unit{}, costs, Done{(Models_Session.SessionModel.initial(), Nil{})})
+  ll_match40(__scanned)
 
 def StreamModel(+__input: List<&2, Nat>) -> Result<&2, &2, S.Sem.ContractViolation, List<&2, Nat>>:
   SessionStream(__input)

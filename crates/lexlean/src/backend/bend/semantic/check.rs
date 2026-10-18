@@ -12,7 +12,7 @@ use crate::backend::bend::numeral;
 use crate::backend::bend::syntax::{BTerm, Body, Item, Name};
 use crate::diagnostic::Diagnostic;
 use crate::ir::semantic::model::{element_encoding, CheckProof, CheckStatement, CrossCheck};
-use crate::ir::semantic::{SemanticDeclaration, SemanticTerm, SemanticType};
+use crate::ir::semantic::{SemanticTerm, SemanticType};
 use crate::source::coverage::Origin;
 
 use super::support::Support;
@@ -178,14 +178,10 @@ impl Lower<'_, '_> {
         theorem: &crate::ir::semantic::MemberRef,
         type_arguments: &[SemanticType],
     ) -> Result<BTerm, Diagnostic> {
-        let SemanticDeclaration::Theorem {
+        let super::TheoremSignature {
             parameters,
             statement,
-            ..
-        } = self.declaration(theorem)?
-        else {
-            return Err(fail(format!("`{}` is not a theorem", theorem.name)));
-        };
+        } = self.theorem_signature(theorem)?;
         if self.converts(parameters) {
             return Err(fail(format!(
                 "the cross-check's theorem `{}` takes a function, which `LexLeanModels` cannot pass",

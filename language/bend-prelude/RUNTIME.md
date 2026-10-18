@@ -141,14 +141,14 @@ Checker limits that do not change any value:
   beyond 2^48 (for example `Lean.UInt64.toNat` of a large value) exceeds the
   runtime representation. The Word-based types are unaffected.
 
-## Not expressible
+## Not expressible here
 
 These declarations take or use a function argument more than once. A Bend
-function value is affine (`+f` requires Data, and functions are Type), and
-the only way to share one is a `~` template, which is outside the proved
-kernel. Every call site can still be compiled: the backend lambda-lifts the
-step function into a top-level def over its captured Data and emits a
-first-order fold or loop for that site.
+function value is affine (`+f` requires Data, and functions are Type), so
+the only way to share one is a `~` template, which this file does not use.
+Every call site still compiles: the backend lifts the step function to a
+named code definition over an environment of its captured Data and passes
+it as a template to Semantic.bend's folds and loops.
 
 | Lean | Bend error |
 | --- | --- |
@@ -161,6 +161,29 @@ first-order fold or loop for that site.
 With `+step`, the error is `expected : Data / observed : Type` ("`+step` can be
 used many times, so its type must be Data"). Wrapping the function in a Data
 constructor fails the same way.
+
+`Reasoning.bend` states and proves the laws of the last three rows with
+templates, once each, over Semantic.bend's forms. The kernel checks a
+template definition against a model that gives every template its default
+value, so each law is proved for every instantiation, not only the ones a
+build happens to make. That forces three rules on the laws and on the
+theorems that instantiate them:
+
+- A template hypothesis must hold in the default model, where a template
+  predicate is `Unit`. It may conclude a template predicate, never an
+  equation on Nat or a successor. The count, growth, and stopping laws are
+  therefore one fuel law plus first-order arithmetic glue, and the bound
+  law is the invariant law.
+- Every template argument at an instantiation is a named definition,
+  partially applied to template arguments. The kernel types a template's
+  type only through named heads, so a lambda whose type applies another
+  lambda template is refused ("no known head type").
+- Templates are closed. The checker allows a template to capture a
+  run-time local; the kernel refuses it.
+- A fold or loop invariant reads the captured environment `k` and the
+  step's own environment `e`. The hypothesis is proved for every `e`, so an
+  invariant that read a parameter only through `k` would state a value the
+  step, which reads `e`, need not use.
 
 ## Lean semantics to watch
 
