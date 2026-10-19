@@ -1198,10 +1198,9 @@ mod tests {
     // -----------------------------------------------------------------
 
     fn find_bend() -> Option<PathBuf> {
-        let path = std::env::var_os("PATH")?;
-        std::env::split_paths(&path)
-            .map(|dir| dir.join("bend"))
-            .find(|candidate| candidate.is_file())
+        crate::verify::child::resolve_on_path("bend")
+            .ok()
+            .map(camino::Utf8PathBuf::into_std_path_buf)
     }
 
     fn synthetic() -> EmitSource {

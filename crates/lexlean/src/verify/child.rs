@@ -336,6 +336,13 @@ pub struct ChildSpec<'a> {
     pub home: ChildHome<'a>,
 }
 
+/// The home the toolchain children share (§25.4): the ambient `HOME`, or `/`
+/// when none is set. Bend keeps its BendTT kernel under it (§22.13).
+#[must_use]
+pub fn ambient_home() -> std::ffi::OsString {
+    std::env::var_os("HOME").unwrap_or_else(|| "/".into())
+}
+
 /// Locate an executable by name on the current `PATH` (§25.2): the
 /// resolution is explicit and recorded, never left to the child.
 pub fn resolve_on_path(name: &str) -> Result<Utf8PathBuf, Diagnostic> {
@@ -429,10 +436,7 @@ pub fn run(
         ChildHome::Toolchain { toolchain_bin } => {
             let mut path = std::ffi::OsString::from(format!("{toolchain_bin}:"));
             path.push(&existing_path);
-            command.env("PATH", path).env(
-                "HOME",
-                std::env::var_os("HOME").unwrap_or_else(|| "/".into()),
-            );
+            command.env("PATH", path).env("HOME", ambient_home());
             if let Some(elan_home) = std::env::var_os("ELAN_HOME") {
                 command.env("ELAN_HOME", elan_home);
             }

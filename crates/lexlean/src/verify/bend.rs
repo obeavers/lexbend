@@ -192,7 +192,7 @@ pub fn verdict(
 ///
 /// `LLV7019` when no kernel can be read there.
 pub fn kernel_digest() -> Result<Sha256Digest, Diagnostic> {
-    let home = std::env::var_os("HOME").unwrap_or_else(|| "/".into());
+    let home = super::child::ambient_home();
     let path = std::path::Path::new(&home)
         .join(".bend")
         .join("bendtt")
