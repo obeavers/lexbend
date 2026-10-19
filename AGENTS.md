@@ -5,8 +5,10 @@ repository.
 
 ## What this repository is
 
-LexLean: a closed-lexicon LaTeX-to-Lean 4 compiler whose canonical document and
-prose-free Lean program are generated from one semantic representation.
+LexBend: LexLean, a closed-lexicon LaTeX-to-Lean 4 compiler whose canonical
+document and prose-free Lean program are generated from one semantic
+representation, with its Bend 2 backends (languages 2.0 and 2.2). The crate,
+command, and specification keep the name LexLean.
 `SPEC.md` is the complete implementation contract; nothing here is normative
 beyond what it authorizes. Read `README.md` for the shape of the repository,
 then `VERIFICATION.md` for which gate discharges what.
@@ -101,6 +103,27 @@ Two habits follow from that:
   tokens written out in full matches itself, and the alternative --- exempting
   the file --- puts a hole precisely where a deferral parked in a gate would
   sit.
+
+## The next Bend pin
+
+The pinned `bend 2.0.37` has unary naturals, and SPEC.md §22.13 (*Natural
+numbers in the pinned Bend*) states the three limits that follow: large
+numerals in Horner form, proofs by evaluation that exhaust the kernel's step
+budget, and production roots, whose certificates A, B, and E stay Lean proofs.
+A Bend release with native fixed-width numbers lifts all three. Adopting it is
+a new pin: `bend_toolchain` (§10.1), the BendTT kernel key, the dev container,
+and CI move together, and every 2.x example is relocked and its goldens and
+verification records rewritten through the write recipes.
+
+Before production work moves to Bend, two statements must pass both the
+checker and the kernel recheck against the compiler project's generated Bend
+`TargetSemantics`: `primitive(natAdd, [nat a, nat b]) == natResult(a + b)`,
+and `natResult(n)` equal to its body unfolded once. Under 2.0.37 both
+exhaust the checker's stack, because unfolding expands the closed `2^64`
+bound. The order after that is certificate A (the `Conv`/`FunRel`/`RunConv`
+vocabulary of §17.17 and its per-construct lemmas), then E, then B. The Lean
+preservation library is elaborated kernel data, so it is re-proved in Bend,
+not translated.
 
 ## Comments
 

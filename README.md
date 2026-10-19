@@ -1,6 +1,8 @@
-# LexLean
+# LexBend
 
-A closed-lexicon LaTeX-to-Lean 4 compiler whose canonical document and prose-free Lean program are generated from one semantic representation.
+A closed-lexicon LaTeX-to-Lean 4 compiler whose canonical document and prose-free Lean program are generated from one semantic representation, with Bend 2 backends that lower the same representation to Bend and verify it with the pinned `bend` and its BendTT kernel.
+
+LexBend is this repository: LexLean (whose crate, command, and specification keep that name) together with its Bend 2 port. Languages 1.0, 1.1, and 1.2 are LexLean's; languages 2.0 and 2.2 read the 1.0 and 1.2 surfaces and also lower to Bend (SPEC.md §18.10, §18.11, §22.13).
 
 The complete normative contract is [SPEC.md](SPEC.md) (`LEXLEAN-SPEC-1`). Every capability below is a claim in [`model/ids.toml`](model/ids.toml), carried at honesty level `build`: constructed here and validated against its oracle by the test named `conformance_<id>`. The generated register is [CONFORMANCE.md](CONFORMANCE.md); the closed diagnostic registry is [ERRORS.md](ERRORS.md); the falsifiability evidence is in [VERIFICATION.md](VERIFICATION.md).
 
@@ -157,7 +159,7 @@ Every directory under [examples/](examples/) is discovered by the example gate (
 
 ## Building and running the gate
 
-Prerequisites: Rust 1.97 (`rust-toolchain.toml` pins it), [just](https://github.com/casey/just), `cargo-deny`, and the pinned Lean toolchain `leanprover/lean4:v4.32.1` installed through `elan` (the dev container in [.devcontainer/](.devcontainer/) provides all of them).
+Prerequisites: Rust 1.97 (`rust-toolchain.toml` pins it), [just](https://github.com/casey/just), `cargo-deny`, the pinned Lean toolchain `leanprover/lean4:v4.32.1` installed through `elan`, and, for the Bend cases and examples, the pinned `bend 2.0.37` with its BendTT kernel (SPEC.md §22.13), which Bend builds with Lean v4.34.0 on first use.
 
 ```text
 just vv        # the complete normative acceptance gate (SPEC.md §9.2)
