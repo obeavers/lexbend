@@ -7,7 +7,7 @@ ENV RUSTUP_HOME=/usr/local/rustup \
 
 RUN apt-get update \
     && apt-get install --no-install-recommends --yes \
-        build-essential ca-certificates curl git libgmp10 \
+        build-essential ca-certificates curl git jq libgmp10 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl --proto '=https' --tlsv1.2 -sSfL \
