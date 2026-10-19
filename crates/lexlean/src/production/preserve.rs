@@ -128,6 +128,10 @@ pub struct StagedFile {
     pub path: String,
     pub module: String,
     pub text: String,
+    /// The record of a certificate held as kernel data: its authoring
+    /// notation, which the verify record holds in place of the Lean the
+    /// decoder compiles.
+    pub source: Option<String>,
 }
 
 /// The files a project's certificates compile in, and their order.
@@ -167,6 +171,11 @@ struct Native {
     texts: BTreeMap<String, String>,
     /// The declarations a Lean command can name, with their exact axioms.
     declarations: Vec<LibraryDeclaration>,
+    /// The native modules themselves, by name: the kernel data a certificate
+    /// built as data reads its lemma types from.
+    modules: BTreeMap<String, crate::ir::core::CoreModule>,
+    /// Every declaration row by name: its module and its position.
+    rows: BTreeMap<String, (String, usize)>,
 }
 
 /// The embedded module list, checked for its tag and toolchain.
@@ -215,11 +224,12 @@ pub struct CorrespondenceRules {
 pub fn correspondence_rules() -> Result<CorrespondenceRules, String> {
     const CORR: &str = "LexLeanPreservation.Rust.Corr";
     const SOUND: &str = "LexLeanPreservation.Rust.sound";
-    let load = |module: &str| -> Result<crate::ir::core::CoreModule, String> {
-        let path = native_source_path(module).ok_or_else(|| format!("no source for `{module}`"))?;
-        let source = embedded_text(&path).map_err(|diagnostic| diagnostic.message)?;
-        crate::ir::core::CoreModule::from_source(source, "1.2")
-            .map_err(|reason| format!("{path}: {reason}"))
+    let native = native().map_err(|diagnostic| diagnostic.message.clone())?;
+    let load = |module: &str| -> Result<&crate::ir::core::CoreModule, String> {
+        native
+            .modules
+            .get(module)
+            .ok_or_else(|| format!("the library has no module `{module}`"))
     };
     let corr = load("LexLeanPreservation.RustCorr")?;
     let constructors: Vec<String> = corr
@@ -298,6 +308,8 @@ fn build_native(
 ) -> Result<Native, String> {
     let mut texts = BTreeMap::new();
     let mut declarations = Vec::new();
+    let mut modules = BTreeMap::new();
+    let mut rows = BTreeMap::new();
     let mut seen_modules: BTreeSet<String> = BTreeSet::new();
     let mut names = BTreeSet::new();
     // The source that first declared each equation lemma, by name.
@@ -375,11 +387,17 @@ fn build_native(
         let text = crate::backend::core::lean_text(&core)
             .map_err(|diagnostic| format!("{path}: {}", diagnostic.message))?;
         texts.insert(module.clone(), text);
+        for (position, row) in core.declarations.iter().enumerate() {
+            rows.insert(row.name.clone(), (module.clone(), position));
+        }
+        modules.insert(module.clone(), core);
         seen_modules.insert(module.clone());
     }
     Ok(Native {
         texts,
         declarations,
+        modules,
+        rows,
     })
 }
 
@@ -422,6 +440,132 @@ fn native() -> Result<&'static Native, Diagnostic> {
     NATIVE.get_or_init(load_native).as_ref().map_err(internal)
 }
 
+/// A declaration of the native library by name, with the module that holds
+/// it: the kernel data a certificate built as data reads a lemma's type
+/// from (SPEC.md §17.17).
+///
+/// # Errors
+///
+/// A name no native module declares, or a library that does not load.
+pub(crate) fn native_declaration(
+    name: &str,
+) -> Result<
+    (
+        &'static crate::ir::core::CoreModule,
+        &'static crate::ir::core::CoreDeclaration,
+    ),
+    String,
+> {
+    let native = native().map_err(|diagnostic| diagnostic.message.clone())?;
+    let (module, position) = native
+        .rows
+        .get(name)
+        .ok_or_else(|| format!("the preservation library declares no `{name}`"))?;
+    let core = native
+        .modules
+        .get(module)
+        .ok_or_else(|| format!("the library has no module `{module}`"))?;
+    Ok((core, &core.declarations[*position]))
+}
+
+/// The exact axioms the registry records for a library declaration.
+///
+/// # Errors
+///
+/// A name no native module declares.
+pub(crate) fn library_axioms(name: &str) -> Result<Vec<String>, String> {
+    let (_, declaration) = native_declaration(name)?;
+    Ok(declaration.policy.axioms().to_vec())
+}
+
+/// Audit a certificate held as kernel data, row by row and node by node
+/// (SP-14): it imports only modules of the environment, declares only
+/// theorems, definitions, and abbreviations, every one of them safe, with its
+/// axioms pinned exactly, and names no forbidden constant in any spelling. A
+/// certificate as data has no text to scan: the schema admits no axiom and
+/// no tactic, and the kernel checks every term.
+///
+/// # Errors
+///
+/// The first rule the module breaks.
+pub fn audit_core(
+    module: &crate::ir::core::CoreModule,
+    environment: &BTreeSet<String>,
+) -> Result<(), String> {
+    use crate::ir::core::{CoreAxiomPolicy, CoreDeclKind, CoreNode};
+    for import in &module.imports {
+        if !environment.contains(import) {
+            return Err(format!("the import `{import}` is outside the environment"));
+        }
+    }
+    for row in &module.declarations {
+        if row.generated {
+            return Err(format!("the row `{}` is marked generated", row.name));
+        }
+        if !matches!(
+            row.kind,
+            CoreDeclKind::Theorem | CoreDeclKind::Definition | CoreDeclKind::Abbrev
+        ) {
+            return Err(format!(
+                "the row `{}` declares a {:?}, which a certificate does not",
+                row.name, row.kind
+            ));
+        }
+        // The only definitions that are not safe are the compiler's
+        // implementation records of a recursive definition of the module, which
+        // the differential evaluator runs: `f._unsafe_rec`, partial, beside the
+        // safe `f` the theorems are about. No safe declaration can name one, so
+        // no theorem depends on it.
+        let record = row.safety == Some(crate::ir::core::CoreSafety::Partial)
+            && matches!(row.kind, CoreDeclKind::Definition)
+            && row
+                .name
+                .strip_suffix("._unsafe_rec")
+                .is_some_and(|safe| module.declarations.iter().any(|other| other.name == safe));
+        if row.safety.is_some() && !record {
+            return Err(format!("the row `{}` is not a safe definition", row.name));
+        }
+        if !matches!(row.policy, CoreAxiomPolicy::Exact(_)) {
+            return Err(format!(
+                "the row `{}` does not pin its axioms exactly",
+                row.name
+            ));
+        }
+    }
+    for node in &module.nodes {
+        if let CoreNode::Const { n, .. } = node {
+            if n.split('.')
+                .any(|segment| FORBIDDEN_CONSTANTS.contains(&segment))
+            {
+                return Err(format!("the forbidden constant `{n}`"));
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Audit a certificate: as data when it is held as data, else token by token
+/// as text.
+fn audit_certificate(
+    certificate: &Certificate,
+    environment: &BTreeSet<String>,
+) -> Result<(), String> {
+    match &certificate.data {
+        Some(data) => audit_core(data, environment),
+        None => audit_tokens(&certificate.text, environment),
+    }
+}
+
+/// The bytes a verify record holds for a certificate: the notation of one
+/// held as data, else its Lean text.
+#[must_use]
+pub fn recorded_bytes(certificate: &Certificate) -> &[u8] {
+    match &certificate.source {
+        Some(source) => source.as_bytes(),
+        None => certificate.text.as_bytes(),
+    }
+}
+
 /// The library registry: the module list the project ships and every
 /// declaration of the native modules a Lean command can name, with its exact
 /// axioms.
@@ -450,6 +594,17 @@ pub fn module_text(module: &str) -> Result<&'static str, Diagnostic> {
         .get(module)
         .map(String::as_str)
         .ok_or_else(|| internal(format!("the library has no module `{module}`")))
+}
+
+/// The path of a certificate held as kernel data in a verify record: the
+/// module's path with the authoring notation's extension (SPEC.md §17.21.8).
+#[must_use]
+pub fn notation_path(module: &str) -> String {
+    let path = module_path(module);
+    match path.strip_suffix(".lean") {
+        Some(stem) => format!("{stem}.lex.tex"),
+        None => format!("{path}.lex.tex"),
+    }
 }
 
 /// The modules a Lean source imports.
@@ -508,27 +663,43 @@ fn ordered(user: &[(String, String)]) -> Result<Vec<(String, String)>, Diagnosti
 /// The text of the audit module: it prints the axioms of every library
 /// declaration and every certificate's root theorem.
 fn audit_text(library: &Library, certificates: &[Certificate]) -> String {
-    let mut text = String::new();
-    for module in &library.modules {
-        text.push_str(&format!("import {module}\n"));
-    }
+    use crate::backend::lean::{AuxiliaryCommand, AuxiliaryModule};
+    let mut imports: Vec<String> = library.modules.clone();
+    imports.extend(
+        certificates
+            .iter()
+            .map(|certificate| certificate.module.clone()),
+    );
+    let mut commands: Vec<AuxiliaryCommand> = library
+        .declaration
+        .iter()
+        .map(|declaration| AuxiliaryCommand::PrintAxioms(declaration.name.clone()))
+        .collect();
+    commands.extend(
+        certificates
+            .iter()
+            .map(|certificate| AuxiliaryCommand::PrintAxioms(certificate.theorem.clone())),
+    );
+    // A certificate held as data pins the axioms of every row: the audit
+    // prints them all, so a row whose policy lies is refused.
     for certificate in certificates {
-        text.push_str(&format!("import {}\n", certificate.module));
-    }
-    for declaration in &library.declaration {
-        text.push_str(&format!("#print axioms {}\n", declaration.name));
-    }
-    for certificate in certificates {
-        text.push_str(&format!("#print axioms {}\n", certificate.theorem));
-    }
-    text.push_str(&format!("#print \"{VOCABULARY_MARKER}\"\n"));
-    for (name, statement) in VOCABULARY {
-        match statement {
-            Statement::Print => text.push_str(&format!("#print {name}\n")),
-            Statement::Check => text.push_str(&format!("#check @{name}\n")),
+        if let Some(data) = &certificate.data {
+            commands.extend(
+                data.declarations
+                    .iter()
+                    .filter(|row| row.name != certificate.theorem)
+                    .map(|row| AuxiliaryCommand::PrintAxioms(row.name.clone())),
+            );
         }
     }
-    text
+    commands.push(AuxiliaryCommand::PrintMarker(VOCABULARY_MARKER.to_owned()));
+    commands.extend(VOCABULARY.iter().map(|(name, statement)| match statement {
+        Statement::Print => AuxiliaryCommand::PrintName((*name).to_owned()),
+        Statement::Check => AuxiliaryCommand::CheckName((*name).to_owned()),
+    }));
+    AuxiliaryModule { imports, commands }
+        .render_over_unheaded()
+        .0
 }
 
 /// Tokens no library module or certificate may contain: each either
@@ -1101,6 +1272,7 @@ fn runtime_files<'a>(
             path: module_path(&runtime.name),
             text: runtime.text.clone(),
             module: runtime.name.clone(),
+            source: None,
         })
         .collect())
 }
@@ -1131,6 +1303,7 @@ pub fn workspace(
             path: module_path(&runtime.name),
             text: runtime.text.clone(),
             module: runtime.name.clone(),
+            source: None,
         });
     }
     for module in TARGET_MODULES
@@ -1146,6 +1319,7 @@ pub fn workspace(
             path: module_path(&module),
             text: text.to_owned(),
             module,
+            source: None,
         });
     }
     for (module, text) in ordered(user)? {
@@ -1161,11 +1335,12 @@ pub fn workspace(
             path: module_path(&module),
             module,
             text,
+            source: None,
         });
     }
     environment.extend(user.iter().map(|(module, _)| module.clone()));
     for certificate in certificates {
-        audit_tokens(&certificate.text, &environment).map_err(|reason| {
+        audit_certificate(certificate, &environment).map_err(|reason| {
             internal(format!(
                 "the certificate `{}`: {reason}",
                 certificate.module
@@ -1182,6 +1357,7 @@ pub fn workspace(
             path: module_path(&certificate.module),
             module: certificate.module.clone(),
             text: certificate.text.clone(),
+            source: certificate.source.clone(),
         });
     }
     Ok(Workspace {
@@ -1194,6 +1370,7 @@ pub fn workspace(
             path: module_path(AUDIT_MODULE),
             module: AUDIT_MODULE.to_owned(),
             text: audit_text(&library, certificates),
+            source: None,
         },
     })
 }
@@ -1284,6 +1461,27 @@ pub fn audit(output: &str, certificates: &[Certificate]) -> Result<(), String> {
                 ));
             }
         }
+        if let Some(data) = &certificate.data {
+            for row in &data.declarations {
+                let mut pinned = row.policy.axioms().to_vec();
+                pinned.sort();
+                match printed.get(&row.name) {
+                    Some(axioms) if *axioms == pinned => {}
+                    Some(axioms) => {
+                        return Err(format!(
+                            "the certificate row `{}` depends on {axioms:?}, its policy pins {pinned:?}",
+                            row.name
+                        ));
+                    }
+                    None => {
+                        return Err(format!(
+                            "the audit printed no axioms for the certificate row `{}`",
+                            row.name
+                        ));
+                    }
+                }
+            }
+        }
     }
     Ok(())
 }
@@ -1340,12 +1538,13 @@ pub fn stage(modules: &[String], certificates: &[Certificate]) -> Result<Stage, 
             path: module_path(&module),
             text: text.to_owned(),
             module,
+            source: None,
         });
     }
     imports.extend(modules.iter().cloned());
     let mut staged = Vec::new();
     for certificate in certificates {
-        audit_tokens(&certificate.text, &imports).map_err(|reason| {
+        audit_certificate(certificate, &imports).map_err(|reason| {
             internal(format!(
                 "the certificate `{}`: {reason}",
                 certificate.module
@@ -1358,6 +1557,7 @@ pub fn stage(modules: &[String], certificates: &[Certificate]) -> Result<Stage, 
             path: module_path(&certificate.module),
             module: certificate.module.clone(),
             text: certificate.text.clone(),
+            source: certificate.source.clone(),
         });
     }
     Ok(Stage {
@@ -1367,6 +1567,7 @@ pub fn stage(modules: &[String], certificates: &[Certificate]) -> Result<Stage, 
             path: module_path(AUDIT_MODULE),
             module: AUDIT_MODULE.to_owned(),
             text: audit_text(&library, certificates),
+            source: None,
         },
     })
 }
@@ -1519,7 +1720,10 @@ pub fn record(roots: &[CertifiedRoot]) -> crate::artifact::canonical_json::Json 
                             ),
                             ("module", Json::Str(root.certificate.module.clone())),
                             ("theorem", Json::Str(root.certificate.theorem.clone())),
-                            ("byte_length", Json::from_usize(root.certificate.text.len())),
+                            (
+                                "byte_length",
+                                Json::from_usize(recorded_bytes(&root.certificate).len()),
+                            ),
                             (
                                 "program",
                                 Json::object(vec![
@@ -1533,7 +1737,7 @@ pub fn record(roots: &[CertifiedRoot]) -> crate::artifact::canonical_json::Json 
                             (
                                 "sha256",
                                 Json::Str(
-                                    Sha256Digest::of(root.certificate.text.as_bytes()).to_hex(),
+                                    Sha256Digest::of(recorded_bytes(&root.certificate)).to_hex(),
                                 ),
                             ),
                             (
@@ -1589,14 +1793,16 @@ pub fn record(roots: &[CertifiedRoot]) -> crate::artifact::canonical_json::Json 
                                                 ("theorem", Json::Str(certificate.theorem.clone())),
                                                 (
                                                     "byte_length",
-                                                    Json::from_usize(certificate.text.len()),
+                                                    Json::from_usize(
+                                                        recorded_bytes(certificate).len(),
+                                                    ),
                                                 ),
                                                 (
                                                     "sha256",
                                                     Json::Str(
-                                                        Sha256Digest::of(
-                                                            certificate.text.as_bytes(),
-                                                        )
+                                                        Sha256Digest::of(recorded_bytes(
+                                                            certificate,
+                                                        ))
                                                         .to_hex(),
                                                     ),
                                                 ),
@@ -1613,14 +1819,16 @@ pub fn record(roots: &[CertifiedRoot]) -> crate::artifact::canonical_json::Json 
                                                         ),
                                                         (
                                                             "byte_length",
-                                                            Json::from_usize(composed.text.len()),
+                                                            Json::from_usize(
+                                                                recorded_bytes(composed).len(),
+                                                            ),
                                                         ),
                                                         (
                                                             "sha256",
                                                             Json::Str(
-                                                                Sha256Digest::of(
-                                                                    composed.text.as_bytes(),
-                                                                )
+                                                                Sha256Digest::of(recorded_bytes(
+                                                                    composed,
+                                                                ))
                                                                 .to_hex(),
                                                             ),
                                                         ),
@@ -1644,6 +1852,15 @@ pub fn record(roots: &[CertifiedRoot]) -> crate::artifact::canonical_json::Json 
 /// rejection concerns.
 #[must_use]
 pub fn failing_declaration(text: &str, output: &str) -> Option<String> {
+    // A certificate held as data is added by the decoder, whose message
+    // names the declaration the kernel refused.
+    if let Some(named) = output.lines().find_map(|line| {
+        let (_, rest) = line.split_once("native core declaration '")?;
+        let (name, _) = rest.split_once('\'')?;
+        name.rsplit('.').next().map(str::to_owned)
+    }) {
+        return Some(named);
+    }
     let line: usize = output.lines().find_map(|line| {
         let (_, rest) = line.split_once(".lean:")?;
         let (number, rest) = rest.split_once(':')?;

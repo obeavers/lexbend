@@ -91,7 +91,7 @@ pub(crate) fn run(id: &str) {
     match id {
         // §18.10.1: one deterministic `.bend` beside the `.tex` of each
         // language-2.0 document module, and none for 1.x; the example
-        // carries no Lean, so no `.lean` (§10.5).
+        // carries no Lean, so no `.lean` (§10.6).
         "BN-01" => {
             let build = example_build("bend-nat-add-zero");
             assert_eq!(

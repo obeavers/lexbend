@@ -129,6 +129,277 @@ fn spec_table() -> Vec<(String, String, String)> {
     rows
 }
 
+/// What `.github/ci-plan.sh` decides for planted events (§9.4, RP-14): the
+/// script runs in a scratch repository with a stand-in for the `gh` command,
+/// so that each decision is shown, and each way of being wrong is refused.
+fn plan_decisions() {
+    use std::process::Command;
+    // The script is bash with `git`, `jq`, and a stand-in for `gh` on `PATH`,
+    // run where the gate runs (§8.3, §9.4: the normative host is Linux). The
+    // other hosts of the matrix run the case's reading of the files and skip
+    // this part: a Windows `PATH` is not a `:`-separated list, and no
+    // decision of the plan depends on the host.
+    if !cfg!(target_os = "linux") {
+        return;
+    }
+    let root = support::repo_root();
+    let script = root.join(".github/ci-plan.sh");
+    let rows_file = root.join(".github/vv-rows.json");
+    let workflow = root.join(".github/workflows/ci.yml");
+    let rows: Vec<serde_json::Value> =
+        serde_json::from_str(&root_file(".github/vv-rows.json")).expect("the legs");
+    let parts: Vec<String> = rows
+        .iter()
+        .map(|row| row["part"].as_str().expect("a part").to_owned())
+        .collect();
+    let ci = root_file(".github/workflows/ci.yml");
+    let hosts: Vec<String> = ci
+        .lines()
+        .filter(|line| line.starts_with("          - { os: "))
+        .map(|line| {
+            let target = line.split("target: ").nth(1).expect("a target");
+            format!(
+                "build and non-Lean tests ({})",
+                target.trim_end_matches(" }")
+            )
+        })
+        .collect();
+    assert_eq!(hosts.len(), 4, "§8.3: the four hosts of the matrix");
+    // The jobs of a run of the whole gate that passed: the plan, every leg,
+    // the Atlas join, and every host. The shards do not matter to the plan:
+    // the join needs them all.
+    let mut green: Vec<String> = vec!["plan\tsuccess".to_owned()];
+    green.extend(
+        parts
+            .iter()
+            .map(|part| format!("just vv ({part})\tsuccess")),
+    );
+    green.push("atlas (prefix)\tsuccess".to_owned());
+    green.push("atlas (join)\tsuccess".to_owned());
+    green.extend(hosts.iter().map(|host| format!("{host}\tsuccess")));
+
+    let scratch = tempfile::tempdir().expect("tempdir");
+    let dir = scratch.path();
+    let git = |args: &[&str]| -> String {
+        let output = Command::new("git")
+            .current_dir(dir)
+            .args([
+                "-c",
+                "user.name=t",
+                "-c",
+                "user.email=t@t",
+                "-c",
+                "commit.gpgsign=false",
+            ])
+            .args(args)
+            .output()
+            .expect("git runs");
+        assert!(
+            output.status.success(),
+            "git {args:?}: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
+        String::from_utf8(output.stdout)
+            .expect("utf8")
+            .trim()
+            .to_owned()
+    };
+    let write = |name: &str, text: &str| std::fs::write(dir.join(name), text).expect("write");
+    git(&["init", "-q", "-b", "main"]);
+    write("a", "a\n");
+    git(&["add", "."]);
+    git(&["commit", "-q", "-m", "base"]);
+    let base = git(&["rev-parse", "HEAD"]);
+    // A pull request head that contains main's tip, merged: the merge has the
+    // tree of the head.
+    git(&["checkout", "-q", "-b", "head-contains-main"]);
+    write("b", "b\n");
+    git(&["add", "."]);
+    git(&["commit", "-q", "-m", "change"]);
+    git(&["checkout", "-q", "main"]);
+    git(&[
+        "merge",
+        "-q",
+        "--no-ff",
+        "-m",
+        "merge",
+        "head-contains-main",
+    ]);
+    let merge_equal = git(&["rev-parse", "HEAD"]);
+    assert_eq!(
+        git(&["rev-parse", "HEAD^{tree}"]),
+        git(&["rev-parse", "HEAD^2^{tree}"]),
+        "the planted merge lands its head's tree"
+    );
+    // A pull request head that does not contain main's tip: main moved, so
+    // the merge has a tree no pull request run verified.
+    git(&["checkout", "-q", "-b", "head-behind-main", &base]);
+    write("c", "c\n");
+    git(&["add", "."]);
+    git(&["commit", "-q", "-m", "change"]);
+    git(&["checkout", "-q", "main"]);
+    write("d", "d\n");
+    git(&["add", "."]);
+    git(&["commit", "-q", "-m", "main moves"]);
+    git(&["merge", "-q", "--no-ff", "-m", "merge", "head-behind-main"]);
+    let merge_different = git(&["rev-parse", "HEAD"]);
+    assert_ne!(
+        git(&["rev-parse", "HEAD^{tree}"]),
+        git(&["rev-parse", "HEAD^2^{tree}"]),
+        "the planted merge changes the tree of its head"
+    );
+    // A push that is no merge.
+    write("e", "e\n");
+    git(&["add", "."]);
+    git(&["commit", "-q", "-m", "direct"]);
+    let direct = git(&["rev-parse", "HEAD"]);
+
+    // `gh`: the runs of the second parent, and the jobs of a run, as the
+    // environment names them; `STUB_FAIL` makes the call fail.
+    let bin = dir.join("bin");
+    std::fs::create_dir(&bin).expect("bin");
+    let stub = bin.join("gh");
+    std::fs::write(
+        &stub,
+        "#!/usr/bin/env bash\n\
+         [ -z \"${STUB_FAIL:-}\" ] || exit 1\n\
+         case \"$2\" in\n\
+           */workflows/ci.yml/runs\\?*) printf '%s\\n' \"${STUB_RUNS:-}\" ;;\n\
+           */runs/*/jobs\\?*) printf '%s\\n' \"${STUB_JOBS:-}\" ;;\n\
+           *) exit 2 ;;\n\
+         esac\n",
+    )
+    .expect("stub");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&stub, std::fs::Permissions::from_mode(0o755)).expect("chmod");
+    }
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").expect("PATH"));
+    // (full, rows' parts) for one planted event.
+    let decide =
+        |event: &str, draft: &str, commit: &str, runs: &str, jobs: &[String], fail: bool| {
+            git(&["checkout", "-q", "--detach", commit]);
+            let out = dir.join("out");
+            let _ = std::fs::remove_file(&out);
+            let mut command = Command::new("bash");
+            command
+                .current_dir(dir)
+                .arg(script.as_std_path())
+                .env("PATH", &path)
+                .env("EVENT", event)
+                .env("DRAFT", draft)
+                .env("REPO", "owner/repo")
+                .env("LEXLEAN_CI_ROWS", rows_file.as_std_path())
+                .env("LEXLEAN_CI_WORKFLOW", workflow.as_std_path())
+                .env("GITHUB_OUTPUT", &out)
+                .env("GITHUB_STEP_SUMMARY", dir.join("summary"))
+                .env("STUB_RUNS", runs)
+                .env("STUB_JOBS", jobs.join("\n"));
+            if fail {
+                command.env("STUB_FAIL", "1");
+            }
+            let output = command.output().expect("the plan script runs");
+            assert!(
+                output.status.success(),
+                "the plan script fails closed to the whole gate and never itself: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            let text = std::fs::read_to_string(&out).expect("outputs");
+            let value = |name: &str| -> String {
+                text.lines()
+                    .find_map(|line| line.strip_prefix(&format!("{name}=")))
+                    .unwrap_or_else(|| panic!("the plan writes `{name}`: {text}"))
+                    .to_owned()
+            };
+            let planned: Vec<serde_json::Value> =
+                serde_json::from_str(&value("rows")).expect("rows are JSON");
+            (
+                value("full"),
+                planned
+                    .iter()
+                    .map(|row| row["part"].as_str().expect("a part").to_owned())
+                    .collect::<Vec<_>>(),
+            )
+        };
+    let whole = ("true".to_owned(), parts.clone());
+    let draft = ("false".to_owned(), vec!["rest".to_owned()]);
+    let nothing = ("false".to_owned(), Vec::<String>::new());
+    // A draft pull request is the `rest` leg; a ready one, a request, and a
+    // push are the whole gate when no run is known.
+    assert_eq!(
+        decide("pull_request", "true", &direct, "", &[], false),
+        draft
+    );
+    assert_eq!(
+        decide("pull_request", "false", &direct, "", &[], false),
+        whole
+    );
+    assert_eq!(
+        decide("workflow_dispatch", "", &direct, "", &[], false),
+        whole
+    );
+    assert_eq!(decide("push", "", &direct, "", &[], false), whole);
+    // A merge of its head's tree whose whole gate passed runs nothing.
+    assert_eq!(
+        decide("push", "", &merge_equal, "4242", &green, false),
+        nothing
+    );
+    // Every way the evidence can fall short runs the whole gate: no run, a
+    // run that skipped or failed a job, a run without the Atlas join, one
+    // host or one leg missing, the gate unreadable, and a merge that changed
+    // the tree, however good the run of its head.
+    assert_eq!(decide("push", "", &merge_equal, "", &green, false), whole);
+    let without = |name: &str| -> Vec<String> {
+        green
+            .iter()
+            .filter(|job| !job.starts_with(name))
+            .cloned()
+            .collect()
+    };
+    let with = |job: &str| -> Vec<String> {
+        let mut jobs = green.clone();
+        jobs.push(job.to_owned());
+        jobs
+    };
+    for (what, jobs) in [
+        ("a skipped job", with("atlas (closure)\tskipped")),
+        ("a failed job", with("atlas (closure)\tfailure")),
+        ("no Atlas join", without("atlas (join)")),
+        ("no host", without(&hosts[0])),
+        ("no leg", without("just vv (rest)")),
+        (
+            "a draft run",
+            vec![
+                "plan\tsuccess".to_owned(),
+                "just vv (rest)\tsuccess".to_owned(),
+            ],
+        ),
+    ] {
+        assert_eq!(
+            decide("push", "", &merge_equal, "4242", &jobs, false),
+            whole,
+            "§9.4: {what} is not the whole gate passing"
+        );
+    }
+    assert_eq!(
+        decide("push", "", &merge_equal, "4242", &green, true),
+        whole
+    );
+    assert_eq!(
+        decide("push", "", &merge_different, "4242", &green, false),
+        whole
+    );
+    assert_eq!(decide("push", "", &direct, "4242", &green, false), whole);
+    // A run of another repository's pull request is not one of this one's.
+    let script_text = root_file(".github/ci-plan.sh");
+    assert!(
+        script_text.contains(".head_repository.full_name == \\\"$repo\\\"")
+            && script_text.contains("event=pull_request&status=success"),
+        "§9.4: only a passed pull request run of this repository counts"
+    );
+}
+
 pub(crate) fn run(id: &str) {
     let root = support::repo_root();
     match id {
@@ -261,6 +532,80 @@ pub(crate) fn run(id: &str) {
                     "{fixture}: the committed fixture project carries a build root; fixtures run from a temporary copy — remove it"
                 );
             }
+            // No tracked file is named `CACHEDIR.TAG` or sits under a path
+            // component the repository walkers skip (`target`, `.git`,
+            // `.lexlean`, `.lake`, `node_modules`, or `expected` outside the
+            // sanctioned `expected/` oracle directories), so no tracked subtree
+            // can hide from the walkers.
+            let is_sanctioned_expected = |parts: &[&str], index: usize| -> bool {
+                (index == 1 && matches!(parts[0], "bootstrap" | "compiler" | "stdlib"))
+                    || (index == 2 && parts[0] == "examples")
+                    || (index == 3
+                        && parts[0] == "tests"
+                        && matches!(parts[1], "negative" | "tooling"))
+                    || (index == 4 && parts[0] == "tests" && parts[1] == "fixtures")
+            };
+            let walker_skip_defect = |tracked: &str| -> Option<String> {
+                let parts: Vec<&str> = tracked.split('/').collect();
+                for (index, component) in parts.iter().copied().enumerate() {
+                    if component == "CACHEDIR.TAG" {
+                        return Some(format!(
+                            "{tracked}: tracked `CACHEDIR.TAG` would cause repository walkers to skip `{}`",
+                            parts[..index].join("/")
+                        ));
+                    }
+                    if matches!(
+                        component,
+                        "target" | ".git" | ".lexlean" | ".lake" | "node_modules"
+                    ) {
+                        return Some(format!(
+                            "{tracked}: tracked path has walker-skipped component `{component}`"
+                        ));
+                    }
+                    if component == "expected" && !is_sanctioned_expected(&parts, index) {
+                        return Some(format!(
+                            "{tracked}: tracked path has `expected` component outside sanctioned oracle directories"
+                        ));
+                    }
+                }
+                None
+            };
+            let ls_files = std::process::Command::new("git")
+                .args(["ls-files", "-z"])
+                .current_dir(root.as_std_path())
+                .output()
+                .expect("git ls-files runs in the repository");
+            assert!(ls_files.status.success(), "git ls-files succeeded");
+            let tracked: Vec<String> = ls_files
+                .stdout
+                .split(|byte| *byte == 0)
+                .filter(|entry| !entry.is_empty())
+                .map(|entry| String::from_utf8_lossy(entry).replace('\\', "/"))
+                .collect();
+            assert!(
+                tracked.len() > 1000,
+                "git ls-files returned {} tracked files",
+                tracked.len()
+            );
+            let defects: Vec<String> = tracked
+                .iter()
+                .filter_map(|path| walker_skip_defect(path))
+                .collect();
+            assert_eq!(
+                defects,
+                Vec::<String>::new(),
+                "§7 (RP-03): the tracked tree holds nothing the repository walkers skip"
+            );
+            for planted in [
+                "examples/collections/CACHEDIR.TAG",
+                "crates/lexlean/.lexlean/planted.lean",
+                "crates/lexlean/src/expected/planted.rs",
+            ] {
+                assert!(
+                    walker_skip_defect(planted).is_some(),
+                    "planted tracked path `{planted}` is refused by RP-03"
+                );
+            }
         }
         // §7, §8.4: shipped crates derive from `publish = false`, and the
         // shipped crate depends on no repository-only tooling.
@@ -311,7 +656,7 @@ pub(crate) fn run(id: &str) {
                     "features",
                     "cargo check --workspace --all-features --all-targets",
                 ),
-                ("bdd", "cargo test -p repo-conformance --all-features"),
+                ("bdd", "cargo xtask bdd"),
                 ("inventory", "cargo xtask check-test-inventory"),
                 ("examples", "cargo xtask verify-examples"),
                 ("golden", "cargo xtask check-golden"),
@@ -411,7 +756,7 @@ pub(crate) fn run(id: &str) {
             let model = repo_model::Model::load(&root.join("model").into_std_path_buf())
                 .expect("the model loads");
             let table = spec_table();
-            assert_eq!(table.len(), 421, "§31 has 421 rows");
+            assert_eq!(table.len(), 448, "§31 has 448 rows");
             assert_eq!(model.ids.id.len(), table.len(), "register row count");
             for ((spec_id, spec_suite, spec_statement), row) in
                 table.iter().zip(model.ids.id.iter())
@@ -812,11 +1157,13 @@ pub(crate) fn run(id: &str) {
             );
         }
         // §9.2: the ordinary test phase excludes repo-conformance, `bdd` alone
-        // owns its complete suite, and the inventory proves the partition. The
-        // inventory itself lists tests with `cargo test -- --list`; it is a
-        // recipe of `vv`, one line of the log that runs once after both
-        // phases, and this case holds the rest: the recipe lines, the
-        // comparison it applies, and that the documents say what runs.
+        // owns its complete suite, and the inventory proves the partition, of
+        // the workspace into the two phases and of `bdd` into the parts of its
+        // committed plan (§9.4). The inventory itself lists tests with `cargo
+        // test -- --list`; it is a recipe of `vv`, one line of the log that
+        // runs once after both phases, and this case holds the rest: the
+        // recipe lines, the comparisons it applies, and that the documents say
+        // what runs.
         "RP-13" => {
             let justfile = root_file("Justfile");
             let recipes = just_recipes(&justfile);
@@ -832,12 +1179,16 @@ pub(crate) fn run(id: &str) {
                 test,
                 "cargo test --workspace --exclude repo-conformance --all-features"
             );
-            assert_eq!(bdd, "cargo test -p repo-conformance --all-features");
+            assert_eq!(bdd, "cargo xtask bdd");
             assert_eq!(inventory, "cargo xtask check-test-inventory");
+            // The recipe runs one `cargo test`, the one the phase always was,
+            // whose arguments the task and the inventory read from one place.
+            let bdd_command = format!("cargo test {}", crate::bdd_parts::CARGO_ARGUMENTS.join(" "));
+            assert_eq!(bdd_command, "cargo test -p repo-conformance --all-features");
             let test_arguments =
                 crate::inventory::recipe_arguments(&test).expect("test is cargo test");
             let bdd_arguments =
-                crate::inventory::recipe_arguments(&bdd).expect("bdd is cargo test");
+                crate::inventory::recipe_arguments(&bdd_command).expect("bdd is cargo test");
             assert!(
                 test_arguments
                     .windows(2)
@@ -913,12 +1264,74 @@ pub(crate) fn run(id: &str) {
                 .expect_err("tests lost");
             assert!(lost.contains("neither phase"), "{lost}");
 
+            // The parts of `bdd` (§9.4): the committed plan reads, every ID it
+            // names has its test, and the comparison the inventory applies to
+            // the parts' lists refuses a test two parts run and one no part
+            // runs.
+            let plan = crate::bdd_parts::Plan::read(support::repo_root().as_std_path())
+                .expect("§9.4: the committed bdd plan reads");
+            let tests = root_file("crates/conformance/tests/conformance.rs");
+            for name in plan.named_tests() {
+                assert!(
+                    tests.contains(&format!("fn {name}()")),
+                    "§9.4: the bdd plan names `{name}`, which is no conformance test"
+                );
+            }
+            let plants = crate::bdd_parts::Plan::parse(
+                r#"{ "remainder": "rest", "parts": { "first": ["RP-01"] } }"#,
+            )
+            .expect("a plan");
+            let first = list(&[(
+                "tests/conformance.rs",
+                "conformance-0123456789abcdef",
+                &["conformance_rp_01"][..],
+            )]);
+            let remainder = list(&[
+                (
+                    "tests/conformance.rs",
+                    "conformance-0123456789abcdef",
+                    &["conformance_rp_02"][..],
+                ),
+                bdd_target,
+            ]);
+            let parts = |first: &crate::inventory::Parsed, rest: &crate::inventory::Parsed| {
+                vec![
+                    ("first".to_owned(), first.clone()),
+                    ("rest".to_owned(), rest.clone()),
+                ]
+            };
+            crate::inventory::compare_parts(&owned, &parts(&first, &remainder), &plants)
+                .expect("parts that partition bdd are accepted");
+            let twice = crate::inventory::compare_parts(&owned, &parts(&first, &owned), &plants)
+                .expect_err("a test two parts run");
+            assert!(twice.contains("parts `first` and `rest`"), "{twice}");
+            let lost = crate::inventory::compare_parts(
+                &owned,
+                &parts(&first, &list(&[bdd_target])),
+                &plants,
+            )
+            .expect_err("a test no part runs");
+            assert!(lost.contains("run in no part"), "{lost}");
+            // The task runs the part the variable names through the plan's
+            // filters, after the arguments of the whole phase, and the
+            // inventory lists with the same filters.
+            let task = root_file("xtask/src/ci.rs");
+            assert!(
+                task.contains(".args(CARGO_ARGUMENTS)")
+                    && task.contains("std::env::var(PART_VARIABLE)")
+                    && task.contains("plan.harness_filters(part)")
+                    && task.contains("plan.harness_filters(&name)")
+                    && task.contains("inventory::compare_parts("),
+                "the bdd task and the inventory select a part through the plan's filters"
+            );
+
             // The documents say what runs.
             let xtask = root_file("xtask/src/main.rs");
             assert!(xtask.contains("\"check-test-inventory\" =>"));
+            assert!(xtask.contains("\"bdd\" => ci::bdd(&root)"));
             let spec = root_file("SPEC.md");
             let verification = root_file("VERIFICATION.md");
-            for recipe_command in [&test, &bdd, &inventory] {
+            for recipe_command in [&test, &bdd, &bdd_command, &inventory] {
                 assert!(
                     verification.contains(&format!("`{recipe_command}`")),
                     "VERIFICATION.md names the command `{recipe_command}`"
@@ -982,9 +1395,12 @@ pub(crate) fn run(id: &str) {
                     body.contains("\n    runs-on: ubuntu-24.04\n"),
                     "§9.4: the job `{key}` runs on the standard runner"
                 );
+                // The plan decides what the run is and runs no recipe: it has
+                // ten minutes, not the six hours of the proof jobs.
+                let limit = if key == "plan" { 10 } else { 360 };
                 assert!(
-                    body.contains("\n    timeout-minutes: 360\n"),
-                    "§9.4: the job `{key}` has the six-hour limit"
+                    body.contains(&format!("\n    timeout-minutes: {limit}\n")),
+                    "§9.4: the job `{key}` has its limit of {limit} minutes"
                 );
             }
             // The resource profile (§22.11) is chosen by the leg's matrix row
@@ -1005,6 +1421,10 @@ pub(crate) fn run(id: &str) {
                 (
                     "LEXLEAN_EXAMPLES_PART",
                     "      LEXLEAN_EXAMPLES_PART: ${{ matrix.examples_part }}\n",
+                ),
+                (
+                    crate::bdd_parts::PART_VARIABLE,
+                    "      LEXLEAN_BDD_PART: ${{ matrix.bdd_part }}\n",
                 ),
             ] {
                 assert_eq!(vv.matches(variable).count(), 1, "§9.4: `{variable}` is set once on the gate job");
@@ -1027,8 +1447,9 @@ pub(crate) fn run(id: &str) {
                 );
             }
             // The gate is one matrix job whose legs run the recipes of `vv`
-            // (§9.4): every recipe exactly once, in the order of `vv` within a
-            // leg, each leg through the one gate command.
+            // (§9.4): every recipe exactly once, but `bdd`, which runs once per
+            // part of its committed plan, in the order of `vv` within a leg,
+            // each leg through the one gate command.
             let recipes_of_vv: Vec<String> = just_recipes(&root_file("Justfile"))
                 .get("vv")
                 .expect("§9.2: the Justfile defines vv")
@@ -1036,16 +1457,43 @@ pub(crate) fn run(id: &str) {
                 .split_whitespace()
                 .map(str::to_owned)
                 .collect();
-            // A matrix row: `- { part: <name>, recipes: "...", examples_part:
-            // "...", width: "...", memory_kib: "...", hints: "..." }`.
-            let field = |row: &str, name: &str| -> Option<String> {
-                let start = row.find(&format!(" {name}: \""))? + name.len() + 4;
-                Some(row[start..start + row[start..].find('"')?].to_owned())
+            // A leg, a row of `.github/vv-rows.json`, which the plan job turns
+            // into the matrix: `{ part, recipes, examples_part, bdd_part,
+            // width, memory_kib, hints }`, every value a string. A draft pull
+            // request runs the row whose part is `rest` and no other.
+            let field = |row: &serde_json::Value, name: &str| -> Option<String> {
+                row.get(name)?.as_str().map(str::to_owned)
             };
-            let rows: Vec<&str> = vv
-                .lines()
-                .filter(|line| line.trim().starts_with("- { part: "))
-                .collect();
+            let rows: Vec<serde_json::Value> =
+                serde_json::from_str(&root_file(".github/vv-rows.json"))
+                    .expect("§9.4: the legs file is a JSON array");
+            for row in &rows {
+                assert_eq!(
+                    row.as_object()
+                        .map(|keys| keys.keys().cloned().collect::<Vec<_>>()),
+                    Some(
+                        [
+                            "bdd_part",
+                            "examples_part",
+                            "hints",
+                            "memory_kib",
+                            "part",
+                            "recipes",
+                            "width"
+                        ]
+                        .map(str::to_owned)
+                        .to_vec()
+                    ),
+                    "§9.4: a leg names exactly its part, recipes, and profile: {row}"
+                );
+            }
+            assert_eq!(
+                rows.iter()
+                    .filter(|row| field(row, "part").as_deref() == Some("rest"))
+                    .count(),
+                1,
+                "§9.4: the leg a draft pull request runs is the one named `rest`"
+            );
             let legs: Vec<Vec<String>> = rows
                 .iter()
                 .filter_map(|row| {
@@ -1092,7 +1540,7 @@ pub(crate) fn run(id: &str) {
                     ))
                     .expect("the committed hints are a hints file the verifier reads");
                     assert!(
-                        hints.contains_key("LexLeanExample.CensusCert4"),
+                        hints.contains_key("LexLeanExample.Census"),
                         "the hints cover the Atlas module that dominates the verification"
                     );
                 } else {
@@ -1103,7 +1551,54 @@ pub(crate) fn run(id: &str) {
                     );
                 }
             }
-            let mut ran: Vec<&String> = legs.iter().flatten().collect();
+            // `bdd` runs as the parts of its committed plan (§9.4): a row runs
+            // the recipe exactly when it names a part, every part of the plan,
+            // the remainder included, is named by exactly one row, and a row
+            // that runs `bdd` alone is named after its part.
+            let bdd_plan = crate::bdd_parts::Plan::read(support::repo_root().as_std_path())
+                .expect("§9.4: the committed bdd plan reads");
+            let mut bdd_rows: std::collections::BTreeMap<String, String> =
+                std::collections::BTreeMap::new();
+            for (row, leg) in rows.iter().zip(&legs) {
+                let part = field(row, "bdd_part")
+                    .unwrap_or_else(|| panic!("§9.4: the row {row} names `bdd_part`"));
+                let runs_bdd = leg.iter().any(|recipe| recipe == "bdd");
+                assert_eq!(
+                    runs_bdd,
+                    !part.is_empty(),
+                    "§9.4: a row names a part of bdd exactly when it runs bdd: {row}"
+                );
+                if !runs_bdd {
+                    continue;
+                }
+                assert!(
+                    bdd_plan.names().contains(&part),
+                    "§9.4: the row {row} runs `{part}`, which is no part of {}",
+                    crate::bdd_parts::PLAN_FILE
+                );
+                if leg.len() == 1 {
+                    assert_eq!(
+                        field(row, "part").as_deref(),
+                        Some(format!("bdd-{part}").as_str()),
+                        "§9.4: a row that runs bdd alone is named `bdd-{part}`: {row}"
+                    );
+                }
+                assert!(
+                    bdd_rows.insert(part.clone(), row.to_string()).is_none(),
+                    "§9.4: the part `{part}` of bdd is run by two rows"
+                );
+            }
+            for part in bdd_plan.names() {
+                assert!(
+                    bdd_rows.contains_key(&part),
+                    "§9.4: the part `{part}` of bdd is run by no row"
+                );
+            }
+            let mut ran: Vec<&String> = legs
+                .iter()
+                .flatten()
+                .filter(|recipe| *recipe != "bdd")
+                .collect();
             for leg in &legs {
                 let positions: Vec<usize> = leg
                     .iter()
@@ -1119,11 +1614,22 @@ pub(crate) fn run(id: &str) {
                 );
             }
             ran.sort();
-            let mut all: Vec<&String> = recipes_of_vv.iter().collect();
+            let mut all: Vec<&String> = recipes_of_vv
+                .iter()
+                .filter(|recipe| *recipe != "bdd")
+                .collect();
             all.sort();
             assert_eq!(
                 ran, all,
-                "§9.4: the legs run every recipe of vv exactly once"
+                "§9.4: the legs run every recipe of vv but bdd exactly once"
+            );
+            assert_eq!(
+                legs.iter()
+                    .flatten()
+                    .filter(|recipe| *recipe == "bdd")
+                    .count(),
+                bdd_plan.names().len(),
+                "§9.4: the legs run bdd once per part of its plan"
             );
             assert_eq!(
                 ci.matches(
@@ -1228,10 +1734,11 @@ pub(crate) fn run(id: &str) {
                     );
                 }
                 assert!(
-                    body.contains(
-                        "    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}\n"
-                    ),
-                    "§9.4: `{key}` waits only for a pull request to leave draft"
+                    body.contains("    if: ${{ needs.plan.outputs.full == 'true' }}\n")
+                        && needs
+                            .get(key)
+                            .is_some_and(|list| list.iter().any(|need| need == "plan")),
+                    "§9.4: `{key}` runs only when the plan says the run is the whole gate"
                 );
                 assert!(
                     body.contains("name: acceptance-gate-evidence-atlas-")
@@ -1334,12 +1841,12 @@ pub(crate) fn run(id: &str) {
             let join_job = job(&runs[crate::shards::JOIN]);
             assert!(
                 join_job.contains("grep -F \"verify-examples: uor-atlas verified (attestation \" ci-evidence/vv.txt")
-                    && join_job.contains("grep -F \"verify-examples: uor-atlas: 267 normalized verification records equal expected/verify (§29.5)\" ci-evidence/vv.txt"),
+                    && join_job.contains("grep -F \"verify-examples: uor-atlas: 347 normalized verification records equal expected/verify (§29.5)\" ci-evidence/vv.txt"),
                 "the join asserts that Atlas verified"
             );
             assert!(
                 ci.contains("  pull_request:\n    types: [opened, synchronize, reopened, ready_for_review]\n"),
-                "§9.4: a pull request marked ready runs the jobs that waited for it"
+                "§9.4: a pull request marked ready runs the jobs the draft did not"
             );
             for forbidden in [
                 "actions/cache",
@@ -1351,23 +1858,26 @@ pub(crate) fn run(id: &str) {
             ] {
                 assert!(!ci.contains(forbidden), "ci.yml has no `{forbidden}`");
             }
-            // A condition appears in two forms and nowhere else: a step's
+            // A condition appears in three forms and nowhere else: a step's
             // `if: ${{ !cancelled() }}` on the summary and evidence steps, so
-            // that a failed run still reports, and a job's draft condition on
-            // the Atlas jobs. Never on the gate step, and never one narrower
-            // than those (a gate skipped on pull requests is the weaker
-            // PR-only gate).
+            // that a failed run still reports; a job's `full` condition on the
+            // Atlas jobs and the host matrix, which run only when the plan says
+            // the run is the whole gate; and the legs' condition on `vv`, which
+            // runs when the plan names a leg. Never on the gate step, and never
+            // a condition on the event or the pull request itself: what a run
+            // is, is decided once, by the plan (a gate skipped by a condition
+            // written elsewhere is the weaker PR-only gate).
             let mut step_conditions = 0;
-            let mut draft_conditions = 0;
+            let mut full_conditions = 0;
+            let mut rows_conditions = 0;
             for (index, line) in ci.lines().enumerate() {
                 if line.trim_start().starts_with("if:") {
                     match line {
                         "        if: ${{ !cancelled() }}" => step_conditions += 1,
-                        "    if: ${{ github.event_name != 'pull_request' || !github.event.pull_request.draft }}" => {
-                            draft_conditions += 1;
-                        }
+                        "    if: ${{ needs.plan.outputs.full == 'true' }}" => full_conditions += 1,
+                        "    if: ${{ needs.plan.outputs.rows != '[]' }}" => rows_conditions += 1,
                         other => panic!(
-                            "ci.yml:{}: a condition other than a step's `!cancelled()` or an Atlas job's draft condition: {other}",
+                            "ci.yml:{}: a condition other than a step's `!cancelled()` or a job's condition on the plan: {other}",
                             index + 1
                         ),
                     }
@@ -1379,10 +1889,50 @@ pub(crate) fn run(id: &str) {
                 "the summary step and the evidence upload of every gate job carry it"
             );
             assert_eq!(
-                draft_conditions,
-                atlas_jobs.len(),
-                "every Atlas job and no other waits for a pull request to leave draft"
+                full_conditions,
+                atlas_jobs.len() + 1,
+                "every Atlas job and the host matrix, and no other job, wait for the plan to name the whole gate"
             );
+            assert_eq!(rows_conditions, 1, "the legs run when the plan names a leg");
+            assert!(
+                job("host-matrix").contains("    needs: [plan]\n")
+                    && job("host-matrix")
+                        .contains("    if: ${{ needs.plan.outputs.full == 'true' }}\n"),
+                "§8.3: the hosts are checked when the plan says the run is the whole gate"
+            );
+            assert!(
+                vv.contains("    needs: [plan]\n")
+                    && vv.contains("        include: ${{ fromJSON(needs.plan.outputs.rows) }}\n"),
+                "§9.4: the legs of vv are the rows the plan names"
+            );
+            // The plan: one job, no recipe, ten minutes, reading the event and
+            // the repository and nothing else, through the one script whose
+            // decisions are run here against planted events.
+            let plan_job = job("plan");
+            assert!(
+                plan_job.contains("      actions: read\n")
+                    && plan_job.contains("          fetch-depth: 2\n")
+                    && plan_job.contains("        run: .github/ci-plan.sh\n")
+                    && plan_job.contains("          DRAFT: ${{ github.event.pull_request.draft }}\n")
+                    && plan_job.contains("          EVENT: ${{ github.event_name }}\n"),
+                "§9.4: the plan runs the script on the event and may read the runs of the repository"
+            );
+            // The workflow runs the file as a command: a mode that is not
+            // executable fails the plan, and with it every job that needs it.
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::PermissionsExt;
+                let mode = std::fs::metadata(
+                    support::repo_root()
+                        .join(".github/ci-plan.sh")
+                        .as_std_path(),
+                )
+                .expect("the plan script")
+                .permissions()
+                .mode();
+                assert!(mode & 0o111 != 0, "§9.4: .github/ci-plan.sh is executable");
+            }
+            plan_decisions();
             let gate_step = &ci[ci
                 .find("      - name: Run the normative acceptance gate")
                 .expect("the gate step")..];

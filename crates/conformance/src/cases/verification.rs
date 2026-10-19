@@ -791,9 +791,33 @@ pub(crate) fn run(id: &str) {
                     Box::new(|f: &str| f == "production/compiler-input.json"),
                 ),
                 (
-                    "preserve/LexLeanPreserve/*/*.lean",
+                    // Certificate A, held as kernel data (§17.17): one record
+                    // per root beside the directory of its renderings.
+                    "preserve/LexLeanPreserve/*/R<i>.lex.tex",
                     Box::new(|f: &str| {
-                        f.starts_with("preserve/LexLeanPreserve/") && f.ends_with(".lean")
+                        f.starts_with("preserve/LexLeanPreserve/")
+                            && f.ends_with(".lex.tex")
+                            && f.matches('/').count() == 3
+                    }),
+                ),
+                (
+                    // Certificate B, held as kernel data (§17.17): one record
+                    // per rendering of the root.
+                    "preserve/LexLeanPreserve/*/R<i>/<Target>.lex.tex",
+                    Box::new(|f: &str| {
+                        f.starts_with("preserve/LexLeanPreserve/")
+                            && f.ends_with(".lex.tex")
+                            && !f.contains("/Compose/")
+                            && f.matches('/').count() == 4
+                    }),
+                ),
+                (
+                    // Certificate E, held as kernel data (§17.17).
+                    "preserve/LexLeanPreserve/*/*/Compose/*.lex.tex",
+                    Box::new(|f: &str| {
+                        f.starts_with("preserve/LexLeanPreserve/")
+                            && f.contains("/Compose/")
+                            && f.ends_with(".lex.tex")
                     }),
                 ),
                 (

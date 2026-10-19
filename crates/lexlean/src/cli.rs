@@ -75,7 +75,7 @@ enum CommandKind {
         module_prefix: String,
         /// Fixed source-language version. Languages 1.1 and 1.2 create a
         /// source-free Lake workspace and 1.0 the historical host-module
-        /// skeleton; 2.0 and 2.2 create a project with no Lean (§10.5).
+        /// skeleton; 2.0 and 2.2 create a project with no Lean (§10.6).
         #[arg(long, default_value = "1.0", value_parser = ["1.0", "1.1", "1.2", "2.0", "2.2"])]
         language: String,
     },
@@ -781,13 +781,14 @@ fn init_project(
         entrypoints: vec!["src/Main.lex.tex".to_owned()],
         build_root: ".lexlean".to_owned(),
         lockfile: "lexlean.lock".to_owned(),
-        // §10.5: a Bend project begins with no production root, so with no
+        // §10.6: a Bend project begins with no production root, so with no
         // Lean.
         lean_workspace: (!crate::lowers_to_bend(language)).then(|| ".".to_owned()),
         lexicon_sources: vec![LexiconSource::Builtin {
             package: "lexlean.std.nat".to_owned(),
         }],
         artifact_sources: Vec::new(),
+        source_packages: Vec::new(),
         limits: INIT_LIMITS,
         pdf: None,
     };

@@ -227,6 +227,12 @@ impl Prover<'_, '_, '_> {
         }
         match proof {
             SemanticProof::Reflexivity => Ok(Self::term_body(BTerm::Refl)),
+            // The fold laws are the native runtime module `LexLeanRuntime.Laws`,
+            // which has no Bend port; a module proving by one is verified by
+            // the Lean stages (§18.11, §22.13).
+            SemanticProof::Law { name, .. } => Err(fail(format!(
+                "the proof applies the registered fold law `{name}`, whose library has no Bend form, so language 2.2 does not lower it"
+            ))),
             SemanticProof::Decide => self.decide_split(ctx, goal),
             SemanticProof::Simplify { definitions } => self.simplify(ctx, goal, definitions),
             SemanticProof::Constructor { branches } => {

@@ -285,6 +285,11 @@ impl Lower<'_, '_> {
             Ok::<BTerm, Diagnostic>(call(head, args))
         };
         match operation {
+            // Linking elaborates a widening conversion to the ordinary term it
+            // means, so the backend reads that term (§17.12).
+            P::ToInt | P::ToNat => Err(fail(format!(
+                "`{operation:?}` is lowered only through its elaboration"
+            ))),
             P::Subtract | P::Multiply | P::Negate | P::Quotient | P::Remainder => {
                 let base = match operation {
                     P::Subtract => "subtract",

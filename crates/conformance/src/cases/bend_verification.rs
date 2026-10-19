@@ -99,7 +99,7 @@ fn verified_attestation_with(
 }
 
 /// Give a Lean-free project the Lean workspace a production root needs
-/// (§10.4, §10.5): the configuration fields and the Lake files `init` writes.
+/// (§10.4, §10.6): the configuration fields and the Lake files `init` writes.
 fn carry_lean(project: &P) {
     let config = project.read_raw("lexlean.toml").replacen(
         "bend_toolchain = ",
@@ -271,7 +271,7 @@ fn declares_production_root(example: &camino::Utf8Path) -> bool {
         })
 }
 
-/// BN-24 (§10.5): a Bend project with no Lean configuration carries no Lean.
+/// BN-24 (§10.6): a Bend project with no Lean configuration carries no Lean.
 pub(crate) fn lean_free(id: &str) {
     for (example, module) in [
         ("bend-nat-add-zero", "LexLeanExample/Main"),

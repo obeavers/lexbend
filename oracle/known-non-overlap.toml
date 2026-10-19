@@ -12,7 +12,7 @@
 # version disagree.
 
 spec = "lexlean/oracle-overlap/1"
-version = 2
+version = 4
 
 [[construct]]
 key = "type.type"
@@ -147,6 +147,22 @@ probe = "OracleProbe.ProbeConvert.convertRoot"
 refusal = "codegen-PolymorphicType"
 scope = "construct"
 reason = "Checked conversions between widths go through LexLeanRuntime.Fixed, a type-class dictionary structure parameterized by the scalar type, which the oracle refuses as a polymorphic type."
+
+[[construct]]
+key = "primitive.to_int"
+kind = "oracle-refuses"
+probe = "Coverage.Prims.widenings"
+refusal = "unresolved-external-call"
+scope = "closure"
+reason = "A widening conversion (`to_int`) elaborates in linking to bit tests over the source width and a balanced sum over `Int` (§17.12), which reaches the oracle's exporter as an unresolved mathematical-integer call (`Int.neg`); LexLean lowers `to_int` directly from the Semantic IR to one `Prim.conv` instruction (§17.14)."
+
+[[construct]]
+key = "primitive.to_nat"
+kind = "oracle-refuses"
+probe = "Coverage.Prims.widenings"
+refusal = "unresolved-external-call"
+scope = "closure"
+reason = "Realized in the corpus by the combined widening root `Coverage.Prims.widenings`, whose closure also widens signed fixed-width integers over `Int` and is refused by the oracle's exporter for its mathematical-integer call (`Int.neg`); LexLean lowers `to_nat` directly from the Semantic IR to one `Prim.conv` instruction (§17.14)."
 
 [[construct]]
 key = "primitive.map_insert"
@@ -393,3 +409,27 @@ probe = "Reasoning.Main.gradeLevel"
 refusal = "unresolved-external-call"
 scope = "closure"
 reason = "Reasoner closures iterate with definitions of the runtime module a generated module imports (§17.12), which the oracle's exporter does not follow, so the oracle refuses them as unresolved external calls; the probe is the smallest reasoner root of examples/reasoning, whose closure holds it among others."
+
+[[construct]]
+key = "declaration.tokenizer"
+kind = "not-runtime"
+disposition = "formal-only"
+reason = "Formal only: LexLean refuses a root whose closure reaches it (registry disposition formal-only: its elaborated definitions apply the embedded text-laws library, which no production target realizes), and the oracle has no counterpart of a declaration elaborated in linking, so neither compiler realizes it."
+
+[[construct]]
+key = "declaration.context_window"
+kind = "not-runtime"
+disposition = "formal-only"
+reason = "Formal only: LexLean does not elaborate it in this release (registry disposition formal-only: refused by linking before any closure is formed), so no root of either compiler realizes it."
+
+[[construct]]
+key = "declaration.text_generator"
+kind = "not-runtime"
+disposition = "formal-only"
+reason = "Formal only: LexLean does not elaborate it in this release (registry disposition formal-only: refused by linking before any closure is formed), so no root of either compiler realizes it."
+
+[[construct]]
+key = "declaration.text_classifier"
+kind = "not-runtime"
+disposition = "formal-only"
+reason = "Formal only: LexLean does not elaborate it in this release (registry disposition formal-only: refused by linking before any closure is formed), so no root of either compiler realizes it."

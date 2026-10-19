@@ -101,6 +101,86 @@
 'LexLeanCollections.topological._f' does not depend on any axioms
 'LexLeanCollections.topological._sunfold' does not depend on any axioms
 'LexLeanCollections.topological._unsafe_rec' does not depend on any axioms
+'LexLeanCollections.lessThan._sparseCasesOn_1.else_eq' depends on axioms: [propext]
+'LexLeanCollections.lessThan.eq_1' depends on axioms: [propext]
+'LexLeanCollections.listFold.eq_1' does not depend on any axioms
+'LexLeanLaws.append_list' does not depend on any axioms
+'LexLeanLaws.length_list' does not depend on any axioms
+'LexLeanLaws.lessThan_int' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.lessThan_int16' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.lessThan_int32' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.lessThan_int64' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.lessThan_int8' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.lessThan_nat' depends on axioms: [propext]
+'LexLeanLaws.lessThan_uint16' depends on axioms: [propext]
+'LexLeanLaws.lessThan_uint32' depends on axioms: [propext]
+'LexLeanLaws.lessThan_uint64' depends on axioms: [propext]
+'LexLeanLaws.lessThan_uint8' depends on axioms: [propext]
+'LexLeanLaws.listFold_add_int' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.listFold_add_int_self' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.listFold_add_nat' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.listFold_add_nat_self' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.listFold_append' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.listFold_cons' does not depend on any axioms
+'LexLeanLaws.listFold_extend' depends on axioms: [propext]
+'LexLeanLaws.listFold_fusion' does not depend on any axioms
+'LexLeanLaws.listFold_nil' does not depend on any axioms
+'LexLeanLaws.listFold_pair' does not depend on any axioms
+'LexLeanLaws.listFold_prepend' depends on axioms: [propext]
+'LexLeanLaws.listFold_sub_int' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.listFold_sub_int_self' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.mapEntries_self' does not depend on any axioms
+'LexLeanLaws.mapFold_listFold' does not depend on any axioms
+'LexLeanLaws.mapSize_length' does not depend on any axioms
+'LexLeanLaws.quotient_int' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.quotient_nat' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.remainder_int' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.remainder_nat' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.setElements_self' does not depend on any axioms
+'LexLeanLaws.setFold_listFold' does not depend on any axioms
+'LexLeanLaws.setSize_length' does not depend on any axioms
+'LexLeanLaws.sumInt' does not depend on any axioms
+'LexLeanLaws.sumInt._f' does not depend on any axioms
+'LexLeanLaws.sumInt._sunfold' does not depend on any axioms
+'LexLeanLaws.sumInt._unsafe_rec' does not depend on any axioms
+'LexLeanLaws.sumInt.eq_1' does not depend on any axioms
+'LexLeanLaws.sumInt.eq_2' does not depend on any axioms
+'LexLeanLaws.sumInt.eq_def' does not depend on any axioms
+'LexLeanLaws.sumInt_add' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.sumInt_append' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.sumInt_cons' does not depend on any axioms
+'LexLeanLaws.sumInt_const' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.sumInt_mul' depends on axioms: [propext]
+'LexLeanLaws.sumInt_mul_right' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.sumInt_mul_self' depends on axioms: [propext]
+'LexLeanLaws.sumInt_neg' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.sumInt_neg_self' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.sumInt_nil' does not depend on any axioms
+'LexLeanLaws.sumInt_perm' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.sumInt_reverse' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.sumInt_sub' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.sumNat' does not depend on any axioms
+'LexLeanLaws.sumNat._f' does not depend on any axioms
+'LexLeanLaws.sumNat._sunfold' does not depend on any axioms
+'LexLeanLaws.sumNat._unsafe_rec' does not depend on any axioms
+'LexLeanLaws.sumNat.eq_1' does not depend on any axioms
+'LexLeanLaws.sumNat.eq_2' does not depend on any axioms
+'LexLeanLaws.sumNat.eq_def' does not depend on any axioms
+'LexLeanLaws.sumNat.match_1' does not depend on any axioms
+'LexLeanLaws.sumNat_add' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.sumNat_append' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.sumNat_cons' does not depend on any axioms
+'LexLeanLaws.sumNat_const' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.sumNat_mul' does not depend on any axioms
+'LexLeanLaws.sumNat_mul_right' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.sumNat_mul_self' does not depend on any axioms
+'LexLeanLaws.sumNat_nil' does not depend on any axioms
+'LexLeanLaws.sumNat_perm' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.sumNat_reverse' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.tdiv_ediv' depends on axioms: [propext, Quot.sound]
+'LexLeanLaws.tmod_emod' depends on axioms: [propext, Quot.sound]
+'LexLeanRuntime.quotient.eq_1' does not depend on any axioms
+'LexLeanRuntime.remainder.eq_1' does not depend on any axioms
 'LexLeanModels.Agreement' does not depend on any axioms
 'LexLeanModels.Complete1' does not depend on any axioms
 'LexLeanModels.Complete2' does not depend on any axioms
@@ -471,6 +551,12 @@
 'Models.Main.classify' depends on axioms: [propext]
 'Models.Main.classifyChecked' depends on axioms: [propext]
 'Models.Main.classify_eight' depends on axioms: [propext]
+'Models.Main.corpus_scale_multipliers' depends on axioms: [propext]
+'Models.Main.corpus_scale_ratio_rounds_down' depends on axioms: [propext]
+'Models.Main.corpus_scale_ratio_rounds_up' depends on axioms: [propext]
+'Models.Main.corpus_scale_ratio_tie_even' depends on axioms: [propext]
+'Models.Main.deriveChannelMultipliers' depends on axioms: [propext]
+'Models.Main.deriveScaleMultiplier' depends on axioms: [propext]
 'Models.Main.drainChainStep' does not depend on any axioms
 'Models.Main.drain_chain_accepts' does not depend on any axioms
 'Models.Main.drain_chain_refuses_postcondition' does not depend on any axioms
@@ -586,11 +672,47 @@
 'Models.Recognizer.DigitNet.layer3' depends on axioms: [propext]
 'Models.Recognizer.DigitNet.layer4' does not depend on any axioms
 'Models.Recognizer.DigitNet.logits' depends on axioms: [propext]
+'Models.Recognizer.Dyadic' does not depend on any axioms
+'Models.Recognizer.DyadicMatches' does not depend on any axioms
 'Models.Recognizer.RawDigitModel' depends on axioms: [propext]
 'Models.Recognizer.Recognizes' does not depend on any axioms
 'Models.Recognizer.banner' does not depend on any axioms
 'Models.Recognizer.banner.bytes' does not depend on any axioms
 'Models.Recognizer.banner.decoded' does not depend on any axioms
+'Models.Recognizer.binary32_banner_normal' depends on axioms: [propext, Quot.sound]
+'Models.Recognizer.binary32_banner_subnormal' depends on axioms: [propext, Quot.sound]
+'Models.Recognizer.binary32_max_normal' depends on axioms: [propext]
+'Models.Recognizer.binary32_max_subnormal' depends on axioms: [propext]
+'Models.Recognizer.binary32_min_normal' depends on axioms: [propext]
+'Models.Recognizer.binary32_min_subnormal' depends on axioms: [propext]
+'Models.Recognizer.binary32_neg_one_half' depends on axioms: [propext]
+'Models.Recognizer.binary32_neg_zero' depends on axioms: [propext]
+'Models.Recognizer.binary32_one' depends on axioms: [propext]
+'Models.Recognizer.binary32_pos_zero' depends on axioms: [propext]
+'Models.Recognizer.binary32_rejects_nan' depends on axioms: [propext]
+'Models.Recognizer.binary32_rejects_neg_inf' depends on axioms: [propext]
+'Models.Recognizer.binary32_rejects_negative_input' depends on axioms: [propext]
+'Models.Recognizer.binary32_rejects_overflow_input' depends on axioms: [propext]
+'Models.Recognizer.binary32_rejects_pos_inf' depends on axioms: [propext]
+'Models.Recognizer.binary32_unit_scale' depends on axioms: [propext]
+'Models.Recognizer.binary64_banner_first' depends on axioms: [propext, Quot.sound]
+'Models.Recognizer.binary64_banner_last' depends on axioms: [propext, Quot.sound]
+'Models.Recognizer.binary64_max_normal' depends on axioms: [propext]
+'Models.Recognizer.binary64_max_subnormal' depends on axioms: [propext]
+'Models.Recognizer.binary64_min_normal' depends on axioms: [propext]
+'Models.Recognizer.binary64_min_subnormal' depends on axioms: [propext]
+'Models.Recognizer.binary64_neg_one_half' depends on axioms: [propext]
+'Models.Recognizer.binary64_neg_zero' depends on axioms: [propext]
+'Models.Recognizer.binary64_one' depends on axioms: [propext]
+'Models.Recognizer.binary64_pos_zero' depends on axioms: [propext]
+'Models.Recognizer.binary64_rejects_nan' depends on axioms: [propext]
+'Models.Recognizer.binary64_rejects_neg_inf' depends on axioms: [propext]
+'Models.Recognizer.binary64_rejects_pos_inf' depends on axioms: [propext]
+'Models.Recognizer.byteToInt' depends on axioms: [propext, Quot.sound]
+'Models.Recognizer.decodeBinary32' depends on axioms: [propext]
+'Models.Recognizer.decodeBinary32Bytes' depends on axioms: [propext, Quot.sound]
+'Models.Recognizer.decodeBinary64' depends on axioms: [propext]
+'Models.Recognizer.decodeBinary64Bytes' depends on axioms: [propext, Quot.sound]
 'Models.Recognizer.digitName' does not depend on any axioms
 'Models.Recognizer.digitNames' does not depend on any axioms
 'Models.Recognizer.digitNames.bytes' does not depend on any axioms
@@ -598,6 +720,14 @@
 'Models.Recognizer.digit_net_correct' depends on axioms: [propext]
 'Models.Recognizer.digit_net_exact' depends on axioms: [propext]
 'Models.Recognizer.digit_net_width' does not depend on any axioms
+'Models.Recognizer.dyadicMul' does not depend on any axioms
+'Models.Recognizer.dyadicRatioRound' depends on axioms: [propext]
+'Models.Recognizer.dyadicRoundShift' depends on axioms: [propext]
+'Models.Recognizer.dyadicTriple' does not depend on any axioms
+'Models.Recognizer.dyadic_round_shift_exact' depends on axioms: [propext]
+'Models.Recognizer.dyadic_round_shift_negative_tie_even' depends on axioms: [propext]
+'Models.Recognizer.dyadic_round_shift_tie_even_down' depends on axioms: [propext]
+'Models.Recognizer.dyadic_round_shift_tie_even_up' depends on axioms: [propext]
 'Models.Recognizer.hiddenBias' does not depend on any axioms
 'Models.Recognizer.hiddenBias.bytes' does not depend on any axioms
 'Models.Recognizer.hiddenBias.decoded' does not depend on any axioms
@@ -617,6 +747,18 @@
 'Models.Recognizer.recognizes_check_sound' depends on axioms: [propext]
 'Models.Recognizer.sameDigit' does not depend on any axioms
 'Models.Recognizer.same_digit_sound' depends on axioms: [propext]
+'Models.Recognizer.scaleMultipliersRound32' depends on axioms: [propext]
+'Models.Recognizer.scaleRatioRound32' depends on axioms: [propext]
+'Models.Recognizer.scale_multipliers_channel_batch' depends on axioms: [propext]
+'Models.Recognizer.scale_ratio_exact_cancel' depends on axioms: [propext]
+'Models.Recognizer.scale_ratio_negative_scale' depends on axioms: [propext]
+'Models.Recognizer.scale_ratio_rejects_nonfinite' depends on axioms: [propext]
+'Models.Recognizer.scale_ratio_rejects_zero_divisor' depends on axioms: [propext]
+'Models.Recognizer.scale_ratio_rounds_down' depends on axioms: [propext]
+'Models.Recognizer.scale_ratio_rounds_up' depends on axioms: [propext]
+'Models.Recognizer.scale_ratio_subnormal_scales' depends on axioms: [propext]
+'Models.Recognizer.scale_ratio_tie_even_stays_even' depends on axioms: [propext]
+'Models.Recognizer.scale_ratio_tie_odd_to_even' depends on axioms: [propext]
 'Models.Session.Affordable' does not depend on any axioms
 'Models.Session.Bounded' does not depend on any axioms
 'Models.Session.Conserves' does not depend on any axioms

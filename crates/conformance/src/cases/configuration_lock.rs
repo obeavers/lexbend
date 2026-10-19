@@ -1303,7 +1303,7 @@ pub(crate) fn run(id: &str) {
             let project = P::copy_example("bend-nat-add-zero");
             let config = project.read("lexlean.toml");
             assert!(config.contains("language = \"2.0\"\n"));
-            // A Lean-free example: the Bend pin follows the lock file (§10.5).
+            // A Lean-free example: the Bend pin follows the lock file (§10.6).
             assert!(config.contains(&format!(
                 "lockfile = \"lexlean.lock\"\nbend_toolchain = \"{}\"\n",
                 lexlean::BEND_TOOLCHAIN
@@ -1376,7 +1376,7 @@ pub(crate) fn run(id: &str) {
             let project = P::copy_example("bend-semantic");
             let config = project.read("lexlean.toml");
             assert!(config.contains("language = \"2.2\"\n"));
-            // A Lean-free example: the Bend pin follows the lock file (§10.5).
+            // A Lean-free example: the Bend pin follows the lock file (§10.6).
             assert!(config.contains(&format!(
                 "lockfile = \"lexlean.lock\"\nbend_toolchain = \"{}\"\n",
                 lexlean::BEND_TOOLCHAIN
@@ -1421,7 +1421,7 @@ pub(crate) fn run(id: &str) {
                 "a 2.2 lock under schema v3 is refused"
             );
             // `init` creates a Lean-free project of either Bend language
-            // that checks and builds its Bend (§10.5).
+            // that checks and builds its Bend (§10.6).
             for (language, spec) in [("2.0", "lexlean/lock/3"), ("2.2", "lexlean/lock/4")] {
                 let dir = tempfile::tempdir().expect("tempdir");
                 let root = camino::Utf8Path::from_path(dir.path()).expect("utf8");

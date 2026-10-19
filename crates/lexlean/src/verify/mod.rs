@@ -947,7 +947,7 @@ fn source_span(checked: &CheckedProject, module: &RenderedModule, range: (usize,
 /// name under the `declaration` role and its own reference origin, mapped to
 /// the declaration's whole source range, so the first coverage row carrying
 /// that origin under that role locates it: in the Lean, or, in a project
-/// that carries none, the Bend (§10.5). An
+/// that carries none, the Bend (§10.6). An
 /// axiom-policy, replay, or audit failure is about that declaration, not
 /// about the project manifest.
 fn declaration_span(
@@ -1632,23 +1632,41 @@ pub fn run_part(
                     target: row.target.clone(),
                     certificate: certificate_b.into_certificate(),
                     composed,
-                    crate_text: crate::calculus::rust::ast::print(&rendered),
+                    crate_text: crate::calculus::rust::ast::print(&rendered)
+                        .map_err(|reason| fail(internal(reason)))?,
                     entry: lowered.entry(),
                 });
             }
-            for generated in std::iter::once(&generated).chain(
-                renderings
-                    .iter()
-                    .flat_map(|rendering| [&rendering.certificate, &rendering.composed]),
+            // Every certificate held as data weighs what it is recorded as,
+            // the notation: the Lean text is the core backend's rendering,
+            // and its size is the backend's, not the certificate's.
+            let weight_a = generated
+                .source
+                .as_ref()
+                .map_or(generated.text.len(), String::len);
+            for (generated, weight) in std::iter::once((&generated, weight_a)).chain(
+                renderings.iter().flat_map(|rendering| {
+                    [
+                        (
+                            &rendering.certificate,
+                            crate::production::preserve::recorded_bytes(&rendering.certificate)
+                                .len(),
+                        ),
+                        (
+                            &rendering.composed,
+                            crate::production::preserve::recorded_bytes(&rendering.composed).len(),
+                        ),
+                    ]
+                }),
             ) {
-                if generated.text.len() as u64 > limits.max_file_bytes {
+                if weight as u64 > limits.max_file_bytes {
                     return Err(fail(Diagnostic::new(
                     code!("LLS8002"),
                     format!(
                         "max_file_bytes exceeded in phase certificates: configured {}, `{}` is {} bytes",
                         limits.max_file_bytes,
                         generated.module,
-                        generated.text.len()
+                        weight
                     ),
                 )));
                 }
@@ -1656,8 +1674,9 @@ pub fn run_part(
             for rendering in &renderings {
                 budget
                     .charge(
-                        rendering.certificate.text.len()
-                            + rendering.composed.text.len()
+                        crate::production::preserve::recorded_bytes(&rendering.certificate).len()
+                            + crate::production::preserve::recorded_bytes(&rendering.composed)
+                                .len()
                             + rendering.crate_text.len(),
                         &root.report.root,
                         "its certificates B and E and its crates",
@@ -1665,7 +1684,7 @@ pub fn run_part(
                     .map_err(fail)?;
             }
             budget
-                .charge(generated.text.len(), &root.report.root, "its certificate A")
+                .charge(weight_a, &root.report.root, "its certificate A")
                 .map_err(fail)?;
             certified.push(CertifiedRoot {
                 root: root.report.root.clone(),
@@ -1884,6 +1903,9 @@ pub fn run_part(
     // them before its own modules, the part that publishes also replays and
     // audits them, and its records are the ones the attestation lists, first
     // among the elaborations and first among the replays.
+    // The text-laws library (§17.12, *Text components*) is compiled before
+    // the runtime modules, so its records precede theirs in the attestation.
+    let mut text_laws_records: Vec<ChildRecord> = Vec::new();
     let mut runtime_lean_records: Vec<ChildRecord> = Vec::new();
     let mut runtime_replay_records: Vec<ChildRecord> = Vec::new();
     let is_runtime = |name: &str| runtime_modules.iter().any(|module| module.name == name);
@@ -1898,6 +1920,14 @@ pub fn run_part(
     stages.enter("part-import");
     let mut imported =
         partition::import(part.inputs(), &olean_root, part.publishes()).map_err(fail)?;
+    // Every record another part wrote was run by the toolchain this run's
+    // preflight hashed: the attestation lists them under its digests.
+    partition::check_toolchain(
+        &imported,
+        toolchain.lean.sha256,
+        toolchain.leanchecker.sha256,
+    )
+    .map_err(fail)?;
 
     // The leanchecker identity (module documentation), before any replay:
     // the preflight's toolchain-relative path and digest line, then the
@@ -1977,6 +2007,90 @@ pub fn run_part(
     )?;
 
     stages.enter("elaboration");
+    // §17.12 (text): a module that declares a text component imports the
+    // laws library, one native module the compiler embeds. Its Lean is
+    // generated from that data here, audited like every generated core
+    // module, and compiled into the same olean root before any module that
+    // imports it, so the import resolves to what the compiler wrote and to
+    // nothing read from a file it did not write.
+    if build
+        .modules
+        .iter()
+        .any(|module| crate::text_laws::imports_laws(module.lean_text()))
+    {
+        for file in crate::text_laws::stage().map_err(fail)? {
+            if let Err(reason) = generated_core_source_audit(&file.text) {
+                return Err(fail(internal(format!("`{}`: {reason}", file.module))));
+            }
+            write_staged(
+                staging.path(),
+                &format!("lean-src/{}", file.path),
+                file.text.as_bytes(),
+            )?;
+            let source = src_root.join(&file.path);
+            let olean = olean_root.join(file.path.replace(".lean", ".olean"));
+            if let Some(parent) = olean.parent() {
+                std::fs::create_dir_all(parent.as_std_path()).map_err(|io_error| {
+                    fail(Diagnostic::new(
+                        code!("LLB6003"),
+                        format!("staging oleans: {io_error}"),
+                    ))
+                })?;
+            }
+            let record = run_child(
+                &ChildSpec {
+                    tool: "lean",
+                    module: Some(file.module.clone()),
+                    program: &toolchain.lake.path,
+                    executable_sha256: toolchain.lean.sha256,
+                    argv: vec![
+                        "env".to_owned(),
+                        "lean".to_owned(),
+                        "-R".to_owned(),
+                        src_root.to_string(),
+                        "-o".to_owned(),
+                        olean.to_string(),
+                        source.to_string(),
+                    ],
+                    cwd: &workspace_root,
+                    extra_env: vec![("LEAN_PATH".to_owned(), lean_path_env.clone())],
+                    home: ChildHome::Toolchain {
+                        toolchain_bin: &toolchain_bin,
+                    },
+                },
+                &limits,
+                &normalizer,
+            )
+            .map_err(fail)?;
+            if record.exit_code != 0
+                || !record.stdout.trim().is_empty()
+                || !record.stderr.trim().is_empty()
+            {
+                let combined = format!("{}{}", record.stdout, record.stderr);
+                if let Some(exhausted) = resource_death(
+                    &file.module,
+                    record.exit_code,
+                    &combined,
+                    file.text.len() as u64,
+                    &limits,
+                ) {
+                    return Err(fail(exhausted));
+                }
+                return Err(fail(internal(format!(
+                    "text laws: `{}` does not compile silently under the pinned Lean: {}",
+                    file.module,
+                    lean_error(&combined)
+                ))));
+            }
+            write_staged(
+                staging.path(),
+                &format!("process/text-laws/{}.json", file.module),
+                &record.to_json().to_file_bytes(),
+            )?;
+            text_laws_records.push(record);
+        }
+    }
+
     // Stage 7: module elaboration in topological import order (§22.3).
     // A topological frontier contains no dependency edges, so its members
     // may run concurrently without making an imported olean observable
@@ -3046,11 +3160,20 @@ pub fn run_part(
         )?;
         tail_records.push(audit_record);
         for file in &stage.certificates {
-            write_staged(
-                staging.path(),
-                &format!("preserve/{}", file.path),
-                file.text.as_bytes(),
-            )?;
+            // A certificate held as data is recorded in the authoring
+            // notation; the Lean the decoder compiles is rendered from it.
+            match &file.source {
+                Some(source) => write_staged(
+                    staging.path(),
+                    &format!("preserve/{}", preserve::notation_path(&file.module)),
+                    source.as_bytes(),
+                )?,
+                None => write_staged(
+                    staging.path(),
+                    &format!("preserve/{}", file.path),
+                    file.text.as_bytes(),
+                )?,
+            }
         }
         // The program each root's certificates are about and the crate each
         // target's certificates B and E are about, published beside them and
@@ -3113,6 +3236,7 @@ pub fn run_part(
     )
     .map_err(fail)?;
     let mut process_records: Vec<ChildRecord> = vec![probe_record];
+    process_records.extend(text_laws_records);
     process_records.extend(runtime_lean_records);
     let missing = |what: &str, key: &str| {
         fail(internal(format!(
@@ -3320,6 +3444,22 @@ pub fn run_part(
         ),
         ("declarations", Json::Arr(declaration_rows)),
     ]);
+    // §10.5: the modules of a source package carry the package as their
+    // origin, keyed by their Lean module.
+    let origins: Vec<(&str, Json)> = build
+        .modules
+        .iter()
+        .filter_map(|module| {
+            checked.modules[&module.module]
+                .document
+                .origin
+                .as_ref()
+                .map(|origin| (module.lean_module.as_str(), Json::Str(origin.clone())))
+        })
+        .collect();
+    if !origins.is_empty() {
+        body_fields.push(("origins", Json::object(origins)));
+    }
     if let Some(row) = compiler_input_row {
         body_fields.push(("compiler_input", row));
     }

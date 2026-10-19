@@ -39,7 +39,7 @@ fn certified_projects() -> [(&'static str, P); 4] {
 /// model roots no input found overflows their arithmetic over the decoded
 /// weights. The list is checked both ways: a root on it that overflows, or a
 /// root off it that does not, fails SP-03.
-const UNREACHED_OVERFLOW: [&str; 23] = [
+const UNREACHED_OVERFLOW: [&str; 25] = [
     "Production.Main.halvings",
     "Coverage.Colls.mapOps",
     "Coverage.Colls.setOps",
@@ -49,6 +49,8 @@ const UNREACHED_OVERFLOW: [&str; 23] = [
     "Coverage.Prims.sequences",
     "Coverage.Prims.decimals",
     "Coverage.Prims.text",
+    "Coverage.Prims.widenings",
+    "Coverage.Prims.pixels",
     "Coverage.RecRoots.roseTotal",
     "Coverage.RecRoots.syntaxTotal",
     "Coverage.RecRoots.wellFounded",
@@ -86,6 +88,21 @@ fn assert_not_a_limit(what: &str, output: &str, text_len: usize) {
 /// template is instantiated, in the relation of a caller; not in the library,
 /// the environment, or an unrelated function.
 fn assert_targeted(plant: &preservation::Planted) {
+    if plant.refused.is_some() {
+        // The generator refused the mutated lowering while writing the
+        // certificate (it derives the lowering and the source in lockstep),
+        // which is earlier than the kernel; the function must still own a
+        // relation the mutation could have falsified.
+        assert!(
+            !plant.expected.is_empty(),
+            "{} {:?}: function {} ({:?}) has no relation to fail in",
+            plant.root,
+            plant.mutation,
+            plant.function,
+            plant.origin
+        );
+        return;
+    }
     assert_not_a_limit(
         &format!("{} {:?}", plant.root, plant.mutation),
         &plant.rejection,
@@ -385,17 +402,12 @@ fn stress_estimates() -> u64 {
             let largest = |numerator: usize| -> u64 {
                 preservation::certificates(&crate::stress::mixed_lifted(shape.scaled(numerator)))
                     .iter()
-                    .map(|entry| {
-                        std::iter::once(&entry.certificate)
-                            .chain(entry.renderings.iter().map(|(_, b)| b))
-                            .chain(entry.composed.iter().map(|(_, e)| e))
-                            .map(|certificate| certificate.text.len() as u64)
-                            .max()
-                            .unwrap_or(0)
-                    })
+                    .map(largest_certificate)
                     .max()
                     .unwrap_or(0)
             };
+            // A shape that fits at its full scale is not searched; it sits
+            // at the edge only when a scaling of it passes the limit.
             let (mut low, mut high) = (1_usize, 256_usize);
             if largest(high) <= limit {
                 low = high;
@@ -411,7 +423,7 @@ fn stress_estimates() -> u64 {
             }
             let size = largest(low);
             assert!(
-                size <= limit && size * 10 >= limit * 6,
+                size <= limit && (low == 256 || size * 10 >= limit * 6),
                 "mixed shape {index} ({shape:?}): the largest scaling that fits has certificates of {size} bytes, which is not near the limit {limit}"
             );
             let certified =
@@ -455,18 +467,21 @@ fn stress_estimates() -> u64 {
             for entry in certified {
                 assert_floor(&family, &entry);
                 assert_bounds(&family, &entry);
-                let a = entry.certificate.text.len() as u64;
+                let a = weight_a(&entry.certificate);
                 let e = entry
                     .composed
                     .iter()
-                    .map(|(_, certificate)| certificate.text.len() as u64)
+                    .map(|(_, certificate)| weight_a(certificate))
                     .max()
                     .unwrap_or(0);
                 for (target, certificate) in &entry.renderings {
-                    let size = certificate.text.len() as u64;
+                    let size = weight_a(certificate);
                     quadratic = quadratic.max(size.saturating_sub(a.max(e)));
                     // Certificate B stops at the limit it is given, at
-                    // the size it would have had or below it.
+                    // the size it would have had or below it: a quarter of
+                    // its size is a limit its nodes pass while it is derived
+                    // (a record's reads take 35 bytes a node in the
+                    // notation, the corpora's 14 to 18).
                     if family.starts_with("record copy 100") {
                         let krate = lexlean::calculus::rust::lower(
                             &entry.program,
@@ -478,7 +493,7 @@ fn stress_estimates() -> u64 {
                             &entry.program,
                             &krate,
                             &certificate.module,
-                            size / 2,
+                            size / 4,
                         )
                         .expect_err("a certificate beyond its limit is refused");
                         assert!(
@@ -528,6 +543,25 @@ fn stress_estimates() -> u64 {
     })
 }
 
+/// The weight of certificate A against `max_file_bytes`: the module as
+/// recorded, in the authoring notation, which is what the generator bounds.
+fn weight_a(certificate: &lexlean::production::certificate::Certificate) -> u64 {
+    certificate
+        .source
+        .as_ref()
+        .map_or(certificate.text.len(), String::len) as u64
+}
+
+/// The size of the largest certificate of a root: A and B by their recorded weight,
+/// E by its text.
+fn largest_certificate(entry: &preservation::Certified) -> u64 {
+    std::iter::once(weight_a(&entry.certificate))
+        .chain(entry.renderings.iter().map(|(_, b)| weight_a(b)))
+        .chain(entry.composed.iter().map(|(_, e)| weight_a(e)))
+        .max()
+        .unwrap_or(0)
+}
+
 /// The floor the lowering puts under certificate B from the entries of its
 /// field reads is no more than any certificate B generated.
 fn assert_floor(label: &str, entry: &preservation::Certified) {
@@ -535,10 +569,10 @@ fn assert_floor(label: &str, entry: &preservation::Certified) {
         .saturating_mul(lexlean::production::lower::CERTIFICATE_BYTES_PER_SLOT);
     for (target, certificate) in &entry.renderings {
         assert!(
-            floor <= certificate.text.len() as u64,
+            floor <= weight_a(certificate),
             "{label} {} ({target}): the floor {floor} is above certificate B, {} bytes",
             entry.root,
-            certificate.text.len()
+            weight_a(certificate)
         );
     }
 }
@@ -551,20 +585,20 @@ fn assert_bounds(label: &str, entry: &preservation::Certified) {
     let bounds = lexlean::production::lower::certificate_lower_bounds(
         &lexlean::production::lower::measure_program(&entry.program),
     );
-    let a = entry.certificate.text.len() as u64;
+    let a = weight_a(&entry.certificate);
     let smallest = |texts: Vec<u64>| texts.into_iter().min().unwrap_or(u64::MAX);
     let b = smallest(
         entry
             .renderings
             .iter()
-            .map(|(_, certificate)| certificate.text.len() as u64)
+            .map(|(_, certificate)| weight_a(certificate))
             .collect(),
     );
     let e = smallest(
         entry
             .composed
             .iter()
-            .map(|(_, certificate)| certificate.text.len() as u64)
+            .map(|(_, certificate)| weight_a(certificate))
             .collect(),
     );
     assert!(
@@ -921,6 +955,10 @@ fn assert_statement(
     rendering: &lexlean::production::certificate::Certificate,
     composed: &lexlean::production::certificate::Certificate,
 ) {
+    if let Some(data) = &composed.data {
+        assert_data_statement(name, entry, rendering, composed, data);
+        return;
+    }
     let at = composed
         .text
         .find("theorem root ")
@@ -1027,6 +1065,381 @@ fn assert_statement(
         composed.module,
         rest.lines().take(4).collect::<Vec<_>>().join("\n")
     );
+}
+
+/// The namespaces a certificate begins names with: from its constant nodes
+/// when it is held as data (every constant of kernel data is a resolved
+/// name), else from its text.
+fn referenced_namespaces_in(
+    certificate: &lexlean::production::certificate::Certificate,
+    user: &BTreeSet<String>,
+) -> BTreeSet<String> {
+    match &certificate.data {
+        Some(data) => data
+            .nodes
+            .iter()
+            .filter_map(|node| match node {
+                lexlean::ir::core::CoreNode::Const { n, .. } => {
+                    let first = n.split('.').next()?;
+                    (n.contains('.')
+                        && first.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
+                        && !user.contains(first)
+                        && !lexlean::ir::semantic::is_backend_bare_name(first))
+                    .then(|| first.to_owned())
+                }
+                _ => None,
+            })
+            .collect(),
+        None => referenced_namespaces(&certificate.text, user),
+    }
+}
+
+/// No name of a certificate can be captured by a parameter: in kernel data a
+/// constant is a resolved name and a variable an index, so there is nothing
+/// to check; a text certificate is checked lexeme by lexeme.
+fn assert_no_bare_globals_in(
+    certificate: &lexlean::production::certificate::Certificate,
+    user: &BTreeSet<String>,
+    prefix_root: &str,
+) {
+    if certificate.data.is_none() {
+        assert_no_bare_globals(&certificate.module, &certificate.text, user, prefix_root);
+    }
+}
+
+/// The end-to-end theorem a certificate E held as data states, read off its
+/// `root` row: the root's parameters then `__e_hrep : RepresentableL [enc xᵢ]`
+/// as binders, and the conclusion of §17.17 for the root or its entry, with
+/// certificate A's observation, certificate B's crate, the fallibility flag,
+/// and the function the entry is (SP-09, SP-14). Every binder the composition
+/// adds begins with two underscores.
+fn assert_data_statement(
+    name: &str,
+    entry: &preservation::Certified,
+    rendering: &lexlean::production::certificate::Certificate,
+    composed: &lexlean::production::certificate::Certificate,
+    data: &lexlean::ir::core::CoreModule,
+) {
+    use lexlean::ir::core::CoreNode;
+    let module = &composed.module;
+    let row = data
+        .declarations
+        .iter()
+        .find(|row| row.name == composed.theorem)
+        .unwrap_or_else(|| panic!("{name}: `{module}` states no root theorem"));
+    assert_eq!(
+        data.declarations
+            .iter()
+            .filter(|row| row.name.ends_with(".root"))
+            .count(),
+        1,
+        "{name}: `{module}` states one root theorem"
+    );
+    let node = |index: usize| &data.nodes[index];
+    let spine = |mut index: usize| -> (usize, Vec<usize>) {
+        let mut args = Vec::new();
+        while let CoreNode::App { f, x } = node(index) {
+            args.push(*x);
+            index = *f;
+        }
+        args.reverse();
+        (index, args)
+    };
+    let is_const = |index: usize, expected: &str| matches!(node(index), CoreNode::Const { n, .. } if n == expected);
+    let applied = |index: usize, head: &str, arity: usize| -> Vec<usize> {
+        let (f, args) = spine(index);
+        assert!(
+            is_const(f, head) && args.len() == arity,
+            "{name}: `{module}`: expected `{head}` applied to {arity} arguments, found {:?} to {}",
+            node(f),
+            args.len()
+        );
+        args
+    };
+    // The binders.
+    let parameters = &entry.program.functions[0].parameters;
+    let mut binders = Vec::new();
+    let mut body = row.r#type;
+    while let CoreNode::Forall { n, t, v, .. } = node(body) {
+        binders.push((n.clone(), *t));
+        body = *v;
+    }
+    assert_eq!(
+        binders.len(),
+        parameters.len() + 1,
+        "{name}: `{module}` binds the {} parameters and one hypothesis",
+        parameters.len()
+    );
+    let (hypothesis, own) = binders.split_last().expect("a hypothesis");
+    assert_eq!(
+        hypothesis.0, "__e_hrep",
+        "{name}: `{module}`: the hypothesis binder"
+    );
+    for (binder, _) in own {
+        assert!(
+            !binder.starts_with("__"),
+            "{name}: `{module}` binds the parameter `{binder}` under a generated name"
+        );
+    }
+    // The hypothesis: RepresentableL of the encodings, each applied to its
+    // parameter, the i-th of n parameters being #(n - 1 - i) under them.
+    let list = applied(hypothesis.1, "LexLeanPreservation.Rust.RepresentableL", 1)[0];
+    let encodings = list_items(data, list);
+    assert_eq!(
+        encodings.len(),
+        own.len(),
+        "{name}: `{module}`: one encoding per parameter"
+    );
+    for (position, encoding) in encodings.iter().enumerate() {
+        let (_, args) = spine(*encoding);
+        let last = *args
+            .last()
+            .unwrap_or_else(|| panic!("{name}: `{module}`: an encoding applies to its parameter"));
+        assert!(
+            matches!(node(last), CoreNode::BVar { i } if *i == own.len() - 1 - position),
+            "{name}: `{module}`: encoding {position} does not encode parameter {position}"
+        );
+    }
+    // The conclusion: ∃ __e_ro, …
+    let exists = applied(body, "Exists", 2);
+    assert!(
+        is_const(exists[0], "LexLeanPreservation.Rust.ROut"),
+        "{name}: `{module}`: the witness is an outcome"
+    );
+    let (witness, conjunction) = match node(exists[1]) {
+        CoreNode::Lambda { n, v, .. } => (n.clone(), *v),
+        other => panic!("{name}: `{module}`: the predicate is not a lambda: {other:?}"),
+    };
+    assert_eq!(witness, "__e_ro", "{name}: `{module}`: the witness binder");
+    let fallible = lexlean::calculus::rust::fallible_functions(&entry.program)
+        .expect("a valid program")[entry.entry as usize];
+    let flag = if fallible { "Bool.true" } else { "Bool.false" };
+    let a = &entry.certificate.module;
+    let b = &rendering.module;
+    // Under __e_ro, the encodings list of the hypothesis is lifted by one:
+    // the arguments of RCI are the encodings applied to #(n - i), checked as
+    // a list of the same length whose heads are the same encoders.
+    let check_args = |list_node: usize| {
+        let items = list_items(data, list_node);
+        assert_eq!(
+            items.len(),
+            own.len(),
+            "{name}: `{module}`: RCI takes one encoding per parameter"
+        );
+        for (position, item) in items.iter().enumerate() {
+            let (_, args) = spine(*item);
+            let last = *args.last().expect("an applied encoding");
+            assert!(
+                matches!(node(last), CoreNode::BVar { i } if *i == own.len() - position + 1),
+                "{name}: `{module}`: RCI's argument {position} is not the encoding of parameter {position}"
+            );
+        }
+    };
+    let check_rci = |rci: usize, function: u64| {
+        let args = applied(rci, "LexLeanPreservation.Rust.RCI", 4);
+        assert!(
+            is_const(args[0], &format!("{b}.krate")),
+            "{name}: `{module}`: RCI is about certificate B's crate"
+        );
+        let ident = applied(args[1], "LexLeanPreservation.Rust.fnIdent", 1);
+        assert!(
+            matches!(node(ident[0]), CoreNode::Nat { v } if *v == function.to_string()),
+            "{name}: `{module}`: RCI invokes function {function}"
+        );
+        check_args(args[2]);
+        assert!(
+            matches!(node(args[3]), CoreNode::BVar { i: 0 }),
+            "{name}: `{module}`: RCI ends in the witness"
+        );
+    };
+    let check_realizes = |realizes: usize, observation: &dyn Fn(usize)| {
+        let args = applied(realizes, "LexLeanPreservation.Rust.RealizesFn", 3);
+        assert!(
+            is_const(args[0], flag),
+            "{name}: `{module}`: the fallibility flag is `{flag}`"
+        );
+        observation(args[1]);
+        assert!(
+            matches!(node(args[2]), CoreNode::BVar { i: 0 }),
+            "{name}: `{module}`: RealizesFn ends in the witness"
+        );
+    };
+    let denote_of = |observation: usize, depth: usize| {
+        let (f, args) = spine(observation);
+        assert!(
+            is_const(f, &format!("{a}.denote")),
+            "{name}: `{module}`: the observation is certificate A's `denote`"
+        );
+        assert_eq!(
+            args.len(),
+            own.len(),
+            "{name}: `{module}`: `denote` takes the parameters"
+        );
+        for (position, arg) in args.iter().enumerate() {
+            assert!(
+                matches!(node(*arg), CoreNode::BVar { i } if *i == own.len() - 1 - position + depth),
+                "{name}: `{module}`: `denote`'s argument {position} is parameter {position}"
+            );
+        }
+    };
+    if entry.entry == 0 {
+        let both = applied(conjunction, "And", 2);
+        check_realizes(both[0], &|observation| denote_of(observation, 2));
+        check_rci(both[1], 0);
+    } else {
+        let both = applied(conjunction, "And", 2);
+        check_rci(both[0], entry.entry);
+        let tail = applied(both[1], "And", 2);
+        // (accepts xs → RealizesFn F (someObs (denote xs)) ro) ∧ (¬ accepts xs → RealizesFn F (Obs.value Value.none) ro)
+        let (accepts_ty, accepted) = match node(tail[0]) {
+            CoreNode::Forall { t, v, .. } => (*t, *v),
+            other => {
+                panic!("{name}: `{module}`: the accepted case is not an implication: {other:?}")
+            }
+        };
+        let (f, _) = spine(accepts_ty);
+        assert!(
+            is_const(f, &format!("{a}.accepts")),
+            "{name}: `{module}`: the hypothesis of the accepted case is `accepts`"
+        );
+        check_realizes_at(
+            data,
+            accepted,
+            flag,
+            1,
+            &|observation| {
+                let inner = applied(observation, "LexLeanPreservation.someObs", 1);
+                denote_of(inner[0], 3);
+            },
+            name,
+            module,
+        );
+        let (refuses_ty, refused) = match node(tail[1]) {
+            CoreNode::Forall { t, v, .. } => (*t, *v),
+            other => {
+                panic!("{name}: `{module}`: the refused case is not an implication: {other:?}")
+            }
+        };
+        let not = applied(refuses_ty, "Not", 1);
+        let (f, _) = spine(not[0]);
+        assert!(
+            is_const(f, &format!("{a}.accepts")),
+            "{name}: `{module}`: the refused case negates `accepts`"
+        );
+        check_realizes_at(
+            data,
+            refused,
+            flag,
+            1,
+            &|observation| {
+                let value = applied(observation, "LexLeanPreservation.Obs.value", 1);
+                assert!(
+                    is_const(value[0], "LexLeanTarget.TargetSyntax.Value.none"),
+                    "{name}: `{module}`: a refused entry returns none"
+                );
+            },
+            name,
+            module,
+        );
+    }
+    // No binder the composition adds is a name a parameter could be.
+    let own_names: BTreeSet<&str> = own.iter().map(|(binder, _)| binder.as_str()).collect();
+    for index in reachable(data, row.r#type)
+        .into_iter()
+        .chain(reachable(data, row.value.expect("a proof")))
+    {
+        if let CoreNode::Lambda { n, .. } | CoreNode::Forall { n, .. } = node(index) {
+            assert!(
+                n.is_empty() || n == "_" || n.starts_with("__") || own_names.contains(n.as_str()),
+                "{name}: `{module}` binds `{n}`, which a parameter of that name would capture"
+            );
+        }
+    }
+}
+
+/// `RealizesFn flag observation #witness` where the witness is `#witness`
+/// under the binders between it and the application.
+fn check_realizes_at(
+    data: &lexlean::ir::core::CoreModule,
+    realizes: usize,
+    flag: &str,
+    witness: usize,
+    observation: &dyn Fn(usize),
+    name: &str,
+    module: &str,
+) {
+    use lexlean::ir::core::CoreNode;
+    let mut args = Vec::new();
+    let mut index = realizes;
+    while let CoreNode::App { f, x } = &data.nodes[index] {
+        args.push(*x);
+        index = *f;
+    }
+    args.reverse();
+    assert!(
+        matches!(&data.nodes[index], CoreNode::Const { n, .. } if n == "LexLeanPreservation.Rust.RealizesFn")
+            && args.len() == 3,
+        "{name}: `{module}`: a RealizesFn statement"
+    );
+    assert!(
+        matches!(&data.nodes[args[0]], CoreNode::Const { n, .. } if n == flag),
+        "{name}: `{module}`: the fallibility flag is `{flag}`"
+    );
+    observation(args[1]);
+    assert!(
+        matches!(&data.nodes[args[2]], CoreNode::BVar { i } if *i == witness),
+        "{name}: `{module}`: RealizesFn ends in the witness"
+    );
+}
+
+/// The items of a `List.cons`/`List.nil` literal node.
+fn list_items(data: &lexlean::ir::core::CoreModule, mut list: usize) -> Vec<usize> {
+    use lexlean::ir::core::CoreNode;
+    let mut out = Vec::new();
+    loop {
+        let mut args = Vec::new();
+        let mut index = list;
+        while let CoreNode::App { f, x } = &data.nodes[index] {
+            args.push(*x);
+            index = *f;
+        }
+        args.reverse();
+        match &data.nodes[index] {
+            CoreNode::Const { n, .. } if n == "List.cons" && args.len() == 3 => {
+                out.push(args[1]);
+                list = args[2];
+            }
+            CoreNode::Const { n, .. } if n == "List.nil" && args.len() == 1 => return out,
+            other => panic!("not a list literal: {other:?}"),
+        }
+    }
+}
+
+/// Every node reachable from `root`.
+fn reachable(data: &lexlean::ir::core::CoreModule, root: usize) -> Vec<usize> {
+    use lexlean::ir::core::CoreNode;
+    let mut seen = vec![false; data.nodes.len()];
+    let mut stack = vec![root];
+    let mut out = Vec::new();
+    while let Some(index) = stack.pop() {
+        if seen[index] {
+            continue;
+        }
+        seen[index] = true;
+        out.push(index);
+        match &data.nodes[index] {
+            CoreNode::App { f, x } => stack.extend([*f, *x]),
+            CoreNode::Lambda { t, v, .. } | CoreNode::Forall { t, v, .. } => stack.extend([*t, *v]),
+            CoreNode::Let { t, v, body, .. } => stack.extend([*t, *v, *body]),
+            CoreNode::Mdata { x, .. } | CoreNode::Projection { x, .. } => stack.push(*x),
+            CoreNode::BVar { .. }
+            | CoreNode::Sort { .. }
+            | CoreNode::Const { .. }
+            | CoreNode::Nat { .. }
+            | CoreNode::String { .. } => {}
+        }
+    }
+    out
 }
 
 /// Certifying the projects takes minutes; the cases share one run, and the
@@ -1230,7 +1643,12 @@ pub fn run(id: &str) {
                         entry.root
                     );
                     assert!(
-                        entry.certificate.text.contains("theorem root"),
+                        entry.certificate.data.as_ref().is_some_and(|data| {
+                            data.declarations.iter().any(|row| {
+                                row.name == format!("{}.root", entry.certificate.module)
+                                    && matches!(row.kind, lexlean::ir::core::CoreDeclKind::Theorem)
+                            })
+                        }),
                         "{}: the certificate states the root theorem",
                         entry.root
                     );
@@ -1265,13 +1683,8 @@ pub fn run(id: &str) {
             let between = P::negative("certificate-resource-exhausted");
             let limit = support::limits(&between).max_file_bytes;
             for entry in preservation::certificates(&between) {
-                let module = entry.certificate.text.len() as u64;
-                let largest = std::iter::once(&entry.certificate)
-                    .chain(entry.renderings.iter().map(|(_, b)| b))
-                    .chain(entry.composed.iter().map(|(_, e)| e))
-                    .map(|certificate| certificate.text.len() as u64)
-                    .max()
-                    .unwrap_or(0);
+                let module = weight_a(&entry.certificate);
+                let largest = largest_certificate(&entry);
                 assert!(
                     largest <= limit && limit <= module.saturating_mul(4),
                     "certificate-resource-exhausted: {}: its limit {limit} must lie between its largest certificate, {largest}, and four times its module, {}",
@@ -1292,10 +1705,13 @@ pub fn run(id: &str) {
             }
             // A root whose lowered program, or the certificates it implies,
             // would exceed the project's limits is refused before anything is
-            // generated from it: a generic chain `g_k<T> = g_{k+1}<(T, T)>`
-            // 16 deep has a type of 2^16 nodes (its certificates are
-            // at least twice the limit), and `lexlean verify`
-            // refuses it with `LLS8002` without starting Lean.
+            // generated from it: a match on 400 constructors, 20 KB of
+            // source, has pairs of arms that make its certificate A more than
+            // twice the limit, and `lexlean verify` refuses it with
+            // `LLS8002` without starting Lean. (This was a generic chain
+            // `g_k<T> = g_{k+1}<(T, T)>` 16 deep, a type of 2^16 nodes,
+            // until certificates were kernel data: a repeated type is one
+            // node there, so the chain no longer costs a certificate.)
             let observed = crate::fixtures::observe_shared(
                 &repo_root().join("tests/negative/lowering-size-limit"),
             )
@@ -1325,11 +1741,16 @@ pub fn run(id: &str) {
                         }
                     }
                     for (_, rendering) in &entry.renderings {
+                        let data = rendering.data.as_ref().expect("certificate B is data");
                         for term in ["program", "krate"] {
+                            let row = data
+                                .declarations
+                                .iter()
+                                .find(|row| row.name == format!("{}.{term}", rendering.module))
+                                .expect("the term is a row of the module");
                             assert!(
-                                rendering
-                                    .text
-                                    .contains(&format!("noncomputable def {term} :")),
+                                matches!(row.kind, lexlean::ir::core::CoreDeclKind::Definition)
+                                    && !row.compiled,
                                 "{arms} arms: `{}` compiles its {term} term",
                                 rendering.module
                             );
@@ -1798,14 +2219,13 @@ pub fn run(id: &str) {
         // §17.17: a list of any length is a term Lean elaborates without
         // binders, in every list position of a witness.
         "SP-13" => {
-            let projects =
-                crate::stress::long_lists(lexlean::production::lean_list::LITERAL_MAX + 1);
+            let projects = crate::stress::long_lists(crate::lean_list::LITERAL_MAX + 1);
             for (shape, project) in &projects {
                 for certified in preservation::certificates(project) {
                     for certificate in certified.all() {
                         let longest = longest_literal(&certificate.text);
                         assert!(
-                            longest <= lexlean::production::lean_list::LITERAL_MAX,
+                            longest <= crate::lean_list::LITERAL_MAX,
                             "{shape}: `{}` writes a list literal of {longest} elements, which Lean splits under `let` binders",
                             certificate.module
                         );
@@ -1860,22 +2280,38 @@ pub fn run(id: &str) {
                             rendering["entry"]["symbol"].as_str(),
                             Some(format!("f{function}").as_str())
                         );
+                        // Certificate E is kernel-term data, recorded in the
+                        // authoring notation (SP-14).
                         let composed = std::fs::read_to_string(
-                            base.join(lexlean::production::preserve::module_path(
+                            base.join(lexlean::production::preserve::notation_path(
                                 rendering["composed"]["module"].as_str().expect("a module"),
                             ))
                             .as_std_path(),
                         )
                         .expect("the published certificate E");
-                        let invoked: BTreeSet<u64> = composed
-                            .match_indices("Rust.fnIdent ")
-                            .map(|(at, found)| {
-                                composed[at + found.len()..]
-                                    .chars()
-                                    .take_while(char::is_ascii_digit)
-                                    .collect::<String>()
-                                    .parse()
-                                    .expect("a function number")
+                        // The record is kernel data: the function E states is the
+                        // argument of every `fnIdent` node, and an entry is stated
+                        // through its `entry_accepts` theorem.
+                        let data: lexlean::ir::core::CoreModule = serde_json::from_value(
+                            lexlean::sdk::read_module(&composed).expect("the record reads"),
+                        )
+                        .expect("the record is a core module");
+                        let invoked: BTreeSet<u64> = data
+                            .nodes
+                            .iter()
+                            .filter_map(|node| match node {
+                                lexlean::ir::core::CoreNode::App { f, x } => {
+                                    match (&data.nodes[*f], &data.nodes[*x]) {
+                                        (
+                                            lexlean::ir::core::CoreNode::Const { n, .. },
+                                            lexlean::ir::core::CoreNode::Nat { v },
+                                        ) if n == "LexLeanPreservation.Rust.fnIdent" => {
+                                            Some(v.parse().expect("a function number"))
+                                        }
+                                        _ => None,
+                                    }
+                                }
+                                _ => None,
                             })
                             .collect();
                         assert_eq!(
@@ -1883,8 +2319,11 @@ pub fn run(id: &str) {
                             BTreeSet::from([function]),
                             "{example} R{index} {target}: E states the function the record names"
                         );
+                        let has_entry = data.nodes.iter().any(|node| {
+                            matches!(node, lexlean::ir::core::CoreNode::Const { n, .. } if n.ends_with(".entry_accepts"))
+                        });
                         assert_eq!(
-                            composed.contains("entry_accepts"),
+                            has_entry,
                             function != 0,
                             "{example} R{index} {target}: E has an entry exactly when the record names one"
                         );
@@ -1926,7 +2365,7 @@ pub fn run(id: &str) {
                     let module = row["module"].as_str().expect("a module");
                     let text = std::fs::read(
                         root.join("preserve")
-                            .join(lexlean::production::preserve::module_path(module)),
+                            .join(lexlean::production::preserve::notation_path(module)),
                     )
                     .expect("the published certificate");
                     assert_eq!(
@@ -1971,13 +2410,17 @@ pub fn run(id: &str) {
                     // Certificates B and E of each target are published and bound
                     // the same way.
                     for rendering in row["renderings"].as_array().expect("renderings") {
-                        for bound in [rendering, &rendering["composed"]] {
+                        for (bound, as_data) in [(rendering, true), (&rendering["composed"], true)]
+                        {
                             let module = bound["module"].as_str().expect("a module");
-                            let text = std::fs::read(
-                                root.join("preserve")
-                                    .join(lexlean::production::preserve::module_path(module)),
-                            )
-                            .expect("the published certificate");
+                            // Certificate E is recorded in the authoring notation.
+                            let path = if as_data {
+                                lexlean::production::preserve::notation_path(module)
+                            } else {
+                                lexlean::production::preserve::module_path(module)
+                            };
+                            let text = std::fs::read(root.join("preserve").join(path))
+                                .expect("the published certificate");
                             assert_eq!(
                                 bound["sha256"].as_str(),
                                 Some(
@@ -2140,18 +2583,14 @@ pub fn run(id: &str) {
             };
             let mut named: Vec<String> = Vec::new();
             for item in lexlean::calculus::rust::runtime::Item::all() {
-                let term = lexlean::production::rust_term::item(item);
-                let spelled = term
-                    .trim_start_matches('(')
-                    .trim_start_matches('.')
-                    .split(' ')
-                    .next()
-                    .expect("a constructor");
+                let (spelled, arguments) =
+                    lexlean::production::certificate::data_b::item_constructor(item)
+                        .unwrap_or_else(|| panic!("{item:?} is written as an Item constructor"));
                 let (name, fields) = declared
                     .iter()
-                    .find(|(name, _)| name == spelled)
-                    .unwrap_or_else(|| panic!("{item:?} (`{term}`) is declared"));
-                assert_eq!(*fields, usize::from(term.starts_with('(')), "{name}");
+                    .find(|(name, _)| *name == spelled)
+                    .unwrap_or_else(|| panic!("{item:?} (`{spelled}`) is declared"));
+                assert_eq!(*fields, arguments, "{name}");
                 assert_eq!(
                     classes(name),
                     Some((item.fallible(), item.heap())),
@@ -2322,8 +2761,8 @@ pub fn run(id: &str) {
                 ),
                 (
                     aligner.replacen(
-                        "            Term::Apply { .. } => self.apply(g, fl, false, term, lets, tail),\n",
-                        "            _ => self.apply(g, fl, false, term, lets, tail),\n",
+                        "            Term::Apply { .. } => self.apply(g, fl, false, term, ty, lets, tail),\n",
+                        "            _ => self.apply(g, fl, false, term, ty, lets, tail),\n",
                         1,
                     ),
                     library.constructors.clone(),
@@ -2353,7 +2792,7 @@ pub fn run(id: &str) {
             renderings.extend(entries);
             let mut used: BTreeSet<String> = BTreeSet::new();
             for rendering in &renderings {
-                used.extend(preservation::rules_used(&rendering.certificate.text));
+                used.extend(preservation::rules_used(&rendering.certificate));
             }
             assert!(
                 used.is_subset(&rules),
@@ -2365,7 +2804,7 @@ pub fn run(id: &str) {
             for (_, project) in certified_projects() {
                 for entry in preservation::certificates(&project) {
                     for (_, certificate) in &entry.renderings {
-                        used.extend(preservation::rules_used(&certificate.text));
+                        used.extend(preservation::rules_used(certificate));
                     }
                 }
             }
@@ -2635,21 +3074,44 @@ pub fn run(id: &str) {
                 .iter()
                 .find(|entry| entry.root.ends_with("groveRoot"))
                 .expect("the recursive-tree root is certified");
+            let data = grove
+                .certificate
+                .data
+                .as_ref()
+                .expect("certificate A is data");
+            let module = &grove.certificate.module;
+            let rows: Vec<&lexlean::ir::core::CoreDeclaration> = data.declarations.iter().collect();
+            let has = |short: &str| {
+                rows.iter()
+                    .any(|row| row.name.starts_with(&format!("{module}.{short}")))
+            };
+            // The recursive group's validators are one mutual group of rows.
+            assert!(
+                rows.iter().any(|row| {
+                    row.name.starts_with(&format!("{module}.__valid_"))
+                        && row.all.as_ref().is_some_and(|all| all.len() > 1)
+                }),
+                "the recursive tree's certificate states its validators as a mutual group"
+            );
             for needed in [
-                "mutual\ndef __valid_",
-                "theorem __viff_",
-                "theorem __vrel_",
-                "theorem __vinv_",
-                "LexLeanPreservation.invList_eqs",
-                "theorem entry_accepts",
-                "theorem entry_refuses",
-                "def accepts",
+                "__viff_",
+                "__vrel_",
+                "__vinv_",
+                "entry_accepts",
+                "entry_refuses",
+                "accepts",
             ] {
                 assert!(
-                    grove.certificate.text.contains(needed),
+                    has(needed),
                     "the recursive tree's certificate states `{needed}`"
                 );
             }
+            assert!(
+                data.nodes.iter().any(|node| matches!(node,
+                    lexlean::ir::core::CoreNode::Const { n, .. }
+                        if n == "LexLeanPreservation.invList_eqs")),
+                "the recursive tree's certificate applies the library's invList_eqs"
+            );
             // A validator called from inside the program is refused by the
             // lowering's audit, as is an entry the validators do not match.
             let checked = support::checked_project(&coverage);
@@ -2812,21 +3274,16 @@ pub fn run(id: &str) {
                     }
                 }
                 for entry in preservation::certificates(&project) {
-                    referenced.extend(referenced_namespaces(&entry.certificate.text, &users));
+                    referenced.extend(referenced_namespaces_in(&entry.certificate, &users));
                     for (_, rendering) in &entry.renderings {
-                        referenced.extend(referenced_namespaces(&rendering.text, &users));
+                        referenced.extend(referenced_namespaces_in(rendering, &users));
                     }
                     for (_, composed) in &entry.composed {
-                        referenced.extend(referenced_namespaces(&composed.text, &users));
+                        referenced.extend(referenced_namespaces_in(composed, &users));
                     }
                 }
             }
-            for namespace in [
-                "LexLeanPreservation",
-                "LexLeanTarget",
-                "LexLeanPreserve",
-                "Corr",
-            ] {
+            for namespace in ["LexLeanPreservation", "LexLeanTarget", "LexLeanPreserve"] {
                 assert!(
                     referenced.contains(namespace),
                     "the certificates of the corpora begin names with `{namespace}`: {referenced:?}"
@@ -2847,19 +3304,9 @@ pub fn run(id: &str) {
             let named_users = user_names(&names);
             let named_root = prefix_root(&names);
             for entry in &named {
-                assert_no_bare_globals(
-                    &entry.certificate.module,
-                    &entry.certificate.text,
-                    &named_users,
-                    &named_root,
-                );
+                assert_no_bare_globals_in(&entry.certificate, &named_users, &named_root);
                 for (_, composed) in &entry.composed {
-                    assert_no_bare_globals(
-                        &composed.module,
-                        &composed.text,
-                        &named_users,
-                        &named_root,
-                    );
+                    assert_no_bare_globals_in(composed, &named_users, &named_root);
                 }
             }
             for entry in &named {
@@ -2872,12 +3319,7 @@ pub fn run(id: &str) {
                 let users = user_names(&project);
                 let root = prefix_root(&project);
                 for entry in preservation::certificates(&project) {
-                    assert_no_bare_globals(
-                        &entry.certificate.module,
-                        &entry.certificate.text,
-                        &users,
-                        &root,
-                    );
+                    assert_no_bare_globals_in(&entry.certificate, &users, &root);
                     let targets: Vec<&String> =
                         entry.composed.iter().map(|(target, _)| target).collect();
                     assert_eq!(
@@ -2907,14 +3349,13 @@ pub fn run(id: &str) {
                         // representable, and the conclusion is the two
                         // statements of §17.17 and nothing else.
                         assert_statement(name, &entry, rendering, composed);
-                        assert_no_bare_globals(&composed.module, &composed.text, &users, &root);
+                        assert_no_bare_globals_in(composed, &users, &root);
                         for mutation in preservation::CompositionMutation::ALL {
-                            let places = mutation.places(&composed.text);
+                            let places = mutation.places_in(composed);
                             assert!(places > 0, "{mutation:?} applies to `{}`", composed.module);
                             for nth in 0..places {
-                                let planted = mutation
-                                    .plant(&composed.text, nth)
-                                    .expect("a counted place");
+                                let planted =
+                                    mutation.plant_in(composed, nth).expect("a counted place");
                                 assert_ne!(planted, composed.text, "{mutation:?} {nth}");
                             }
                         }
@@ -2931,8 +3372,8 @@ pub fn run(id: &str) {
             let declared = crate::stress::declared_names();
             for entry in preservation::certificates(&declared) {
                 assert!(
-                    entry.certificate.text.contains("«native_decide»"),
-                    "certificate A quotes the declaration `native_decide`"
+                    entry.certificate.text.contains("native_decide"),
+                    "certificate A, held as data, names the declaration `native_decide` as a string"
                 );
             }
             support::verify_ok(&declared);
@@ -3032,6 +3473,1169 @@ pub fn run(id: &str) {
                 missing.iter().any(|key| key == "primitive.map_insert"),
                 "withheld collection roots are reported: {missing:?}"
             );
+        }
+        // §17.17: certificate E is kernel-term data, recorded in the notation.
+        "SP-14" => {
+            // Every certificate E of the four corpora is built as a core
+            // module: the record reads back to the data byte for byte, the
+            // data audit admits it, and every row pins its axioms exactly.
+            let mut built = 0usize;
+            let mut notation_bytes = 0usize;
+            let mut failures: Vec<String> = Vec::new();
+            for (name, project) in certified_projects() {
+                let checked = support::checked_project(&project);
+                let limits = support::limits(&project);
+                let linked = linked_modules(&checked);
+                let hex = checked.semantic_id.to_hex()[..32].to_owned();
+                for (index, root) in roots(&checked).expect("the reports").iter().enumerate() {
+                    let lowered =
+                        lower_root(&linked, &root.module, &root.name, root.report, &limits)
+                            .expect("the root lowers");
+                    let module = format!("LexLeanPreserve.C{hex}.R{index}");
+                    let fallible = lexlean::calculus::rust::fallible_functions(&lowered.program)
+                        .expect("the fallible functions")[lowered.entry() as usize];
+                    for row in &root.report.targets {
+                        let module_b =
+                            lexlean::production::rust_cert::module_for(&module, &row.target)
+                                .expect("a Rust target");
+                        let module_e = lexlean::production::rust_cert::module_for(
+                            &format!("{module}.Compose"),
+                            &row.target,
+                        )
+                        .expect("a Rust target");
+                        let composed = lexlean::production::certificate::certificate_e(
+                            &linked,
+                            &root.module,
+                            &root.name,
+                            &lowered,
+                            &module,
+                            &module_b,
+                            &module_e,
+                            fallible,
+                            limits.max_file_bytes,
+                        );
+                        let certificate = match composed {
+                            Ok(certificate) => certificate,
+                            Err(diagnostic) => {
+                                failures.push(format!(
+                                    "{name} R{index} {}: {}",
+                                    row.target, diagnostic.message
+                                ));
+                                continue;
+                            }
+                        };
+                        let data = certificate.data.as_ref().expect("certificate E is data");
+                        let source = certificate
+                            .source
+                            .as_ref()
+                            .expect("certificate E is recorded in the notation");
+                        let read = lexlean::sdk::read_module(source).expect("the record reads");
+                        let canonical = serde_json::to_value(data).expect("the data is JSON");
+                        assert_eq!(
+                            read, canonical,
+                            "{module_e}: the record reads back to the data"
+                        );
+                        let environment: BTreeSet<String> = [
+                            module.clone(),
+                            module_b.clone(),
+                            "LexLeanPreservation.Compose".to_owned(),
+                        ]
+                        .into_iter()
+                        .collect();
+                        preserve::audit_core(data, &environment).expect("the data audit admits it");
+                        for declaration in &data.declarations {
+                            assert!(
+                                matches!(
+                                    declaration.policy,
+                                    lexlean::ir::core::CoreAxiomPolicy::Exact(_)
+                                ),
+                                "{module_e}: `{}` pins its axioms exactly",
+                                declaration.name
+                            );
+                        }
+                        built += 1;
+                        notation_bytes += source.len();
+                    }
+                }
+            }
+            eprintln!(
+                "SP-14: {built} certificates E built as data, {notation_bytes} bytes of notation"
+            );
+            assert!(
+                failures.is_empty(),
+                "every certificate E is built as data:\n{}",
+                failures.join("\n")
+            );
+            // The committed records hold every certificate E in the notation.
+            for (name, _) in certified_projects() {
+                let base = repo_root()
+                    .join("examples")
+                    .join(name)
+                    .join("expected/verify/preserve");
+                let record: serde_json::Value = serde_json::from_slice(
+                    &std::fs::read(base.join("preservation.json").as_std_path())
+                        .expect("a committed record"),
+                )
+                .expect("the record is JSON");
+                for row in record["roots"].as_array().expect("roots") {
+                    for rendering in row["renderings"].as_array().expect("renderings") {
+                        let module = rendering["composed"]["module"].as_str().expect("a module");
+                        let path = base.join(preserve::notation_path(module));
+                        assert!(
+                            path.as_std_path().is_file(),
+                            "{name}: certificate E `{module}` is recorded in the notation at {path}"
+                        );
+                    }
+                }
+            }
+            if !support::lean_backed("SP-14") {
+                return;
+            }
+            // The production example, certified end to end with every
+            // certificate E as data: every module compiles, replays, and the
+            // audit sees exactly the axioms each row pins.
+            let project = P::copy_example("production");
+            let certified = preservation::certificates(&project);
+            let workspace = preservation::staged(&project, &certified);
+            let root = tempfile::Builder::new()
+                .prefix("lexlean-sp14-")
+                .tempdir()
+                .expect("tempdir");
+            let checked = preservation::check(&workspace, root.path());
+            assert!(
+                checked.failure.is_none(),
+                "every certificate as data verifies under the pinned Lean: {:?}",
+                checked.failure
+            );
+            let all: Vec<lexlean::production::certificate::Certificate> = certified
+                .iter()
+                .flat_map(preservation::Certified::all)
+                .collect();
+            audit(&checked.audit_output, &all).expect("the audit, every row's axioms included");
+            // Four plants in the data of one certificate E, each refused: a
+            // wrong lemma, a changed statement, a forged crate reference, and
+            // an added axiom (refused before Lean by the data audit, and, as
+            // a lying policy, by the audit module).
+            let (target, composed) = &certified[0].composed[0];
+            let module_b = lexlean::production::rust_cert::module_for(
+                &certified[0].certificate.module,
+                target,
+            )
+            .expect("a Rust target");
+            let data = composed.data.as_ref().expect("certificate E is data");
+            let rename = |data: &lexlean::ir::core::CoreModule, from: &str, to: &str| {
+                let mut planted = data.clone();
+                let mut renamed = 0;
+                for node in &mut planted.nodes {
+                    if let lexlean::ir::core::CoreNode::Const { n, .. } = node {
+                        if n == from {
+                            *n = to.to_owned();
+                            renamed += 1;
+                        }
+                    }
+                }
+                assert!(renamed > 0, "the plant renames `{from}`");
+                planted
+            };
+            let refused = |label: &str, planted: &lexlean::ir::core::CoreModule| {
+                let module = format!("{}Plant{label}", composed.module);
+                let text = lexlean::backend::core::lean_text_legacy(planted, &module)
+                    .expect("the planted module renders");
+                let output = preservation::compile_text(root.path(), &module, &text);
+                let joined = format!(
+                    "{}{}",
+                    String::from_utf8_lossy(&output.stdout),
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                assert!(
+                    !output.status.success() && joined.contains("error"),
+                    "{label}: the planted certificate E is refused by Lean: {joined}"
+                );
+                // The first error, with the kernel's reason on the lines after it.
+                joined.lines().take(3).collect::<Vec<_>>().join(
+                    "
+    ",
+                )
+            };
+            let scalar = data
+                .nodes
+                .iter()
+                .find_map(|node| match node {
+                    lexlean::ir::core::CoreNode::Const { n, .. }
+                        if n.starts_with("LexLeanPreservation.Rust.wt_")
+                            && !n.ends_with("wt_bool") =>
+                    {
+                        Some(n.clone())
+                    }
+                    _ => None,
+                })
+                .expect("a scalar well-typedness lemma");
+            let wrong_lemma = refused(
+                "WrongLemma",
+                &rename(data, &scalar, "LexLeanPreservation.Rust.wt_bool"),
+            );
+            let flag = if data.nodes.iter().any(|node| {
+                matches!(node, lexlean::ir::core::CoreNode::Const { n, .. } if n == "Bool.true")
+            }) {
+                ("Bool.true", "Bool.false")
+            } else {
+                ("Bool.false", "Bool.true")
+            };
+            let changed_statement = refused("ChangedStatement", &rename(data, flag.0, flag.1));
+            let forged_crate = refused(
+                "ForgedCrate",
+                &rename(
+                    data,
+                    &format!("{module_b}.krate"),
+                    &format!("{module_b}.flags"),
+                ),
+            );
+            // An added axiom: `sorryAx` as the root's proof is refused by the
+            // data audit before any Lean runs.
+            let mut with_axiom = data.clone();
+            with_axiom.nodes.push(lexlean::ir::core::CoreNode::Const {
+                n: "sorryAx".to_owned(),
+                u: vec![lexlean::ir::core::CoreLevel::Zero],
+            });
+            let last = with_axiom.nodes.len() - 1;
+            for row in &mut with_axiom.declarations {
+                if row.name == composed.theorem {
+                    row.value = Some(last);
+                }
+            }
+            let environment: BTreeSet<String> = workspace
+                .files
+                .iter()
+                .map(|file| file.module.clone())
+                .collect();
+            let audit_refusal = preserve::audit_core(&with_axiom, &environment)
+                .expect_err("the data audit refuses the added axiom");
+            assert!(
+                audit_refusal.contains("sorryAx"),
+                "the data audit names the forbidden constant: {audit_refusal}"
+            );
+            // A row whose policy lies about its axioms compiles, and the audit
+            // module refuses it: the policies are checked, not trusted.
+            let mut lying = data.clone();
+            for row in &mut lying.declarations {
+                if row.name == composed.theorem {
+                    row.policy = lexlean::ir::core::CoreAxiomPolicy::Exact(Vec::new());
+                }
+            }
+            let mut lying_certificate = composed.clone();
+            lying_certificate.module = format!("{}PlantLyingPolicy", composed.module);
+            lying_certificate.text =
+                lexlean::backend::core::lean_text_legacy(&lying, &lying_certificate.module)
+                    .expect("the planted module renders");
+            lying_certificate.data = Some(lying);
+            let output = preservation::compile_text(
+                root.path(),
+                &lying_certificate.module,
+                &lying_certificate.text,
+            );
+            assert!(
+                output.status.success(),
+                "a lying policy is not Lean's to refuse: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            let rendered = support::rendered(&project);
+            let user: Vec<(String, String)> = rendered
+                .modules
+                .iter()
+                .map(|module| (module.lean_module.clone(), module.lean_text().to_owned()))
+                .collect();
+            // The planted E is staged after the A and B it imports, as the
+            // root's certificates are.
+            let mut planted_set = vec![certified[0].certificate.clone()];
+            planted_set.extend(
+                certified[0]
+                    .renderings
+                    .iter()
+                    .filter(|(rendered_target, _)| rendered_target == target)
+                    .map(|(_, b)| b.clone()),
+            );
+            planted_set.push(lying_certificate.clone());
+            let planted_workspace =
+                preserve::workspace(&user, &planted_set).expect("the planted workspace stages");
+            let audit_output = preservation::compile_text(
+                root.path(),
+                &format!("{}Plant", preserve::AUDIT_MODULE),
+                &planted_workspace.audit.text,
+            );
+            let audit_text = format!(
+                "{}{}",
+                String::from_utf8_lossy(&audit_output.stdout),
+                String::from_utf8_lossy(&audit_output.stderr)
+            );
+            let lying_policy = audit(&audit_text, std::slice::from_ref(&lying_certificate))
+                .expect_err("the audit refuses a row whose policy lies");
+            assert!(
+                lying_policy.contains("its policy pins"),
+                "the audit names the lying row: {lying_policy}"
+            );
+            eprintln!(
+                "SP-14 plants refused:\n  wrong lemma: {wrong_lemma}\n  changed statement: {changed_statement}\n  forged crate: {forged_crate}\n  added axiom: {audit_refusal}\n  lying policy: {lying_policy}"
+            );
+        }
+        "SP-15" => {
+            // Every certificate A of the four corpora is built as a core
+            // module: the record reads back to the data byte for byte, the
+            // data audit admits it, every row pins its axioms exactly, and
+            // the committed records hold it in the notation.
+            let mut built = 0usize;
+            let mut rows = 0usize;
+            let mut notation_bytes = 0usize;
+            let mut failures: Vec<String> = Vec::new();
+            for (name, project) in certified_projects() {
+                let checked = support::checked_project(&project);
+                let limits = support::limits(&project);
+                let linked = linked_modules(&checked);
+                let hex = checked.semantic_id.to_hex()[..32].to_owned();
+                let environment: BTreeSet<String> =
+                    lexlean::production::certificate::LIBRARY_MODULES
+                        .iter()
+                        .map(|module| (*module).to_owned())
+                        .chain(linked.values().map(|module| module.lean_module.to_owned()))
+                        .collect();
+                for (index, root) in roots(&checked).expect("the reports").iter().enumerate() {
+                    let lowered =
+                        lower_root(&linked, &root.module, &root.name, root.report, &limits)
+                            .expect("the root lowers");
+                    let module = format!("LexLeanPreserve.C{hex}.R{index}");
+                    let certificate = match lexlean::production::certificate::certificate(
+                        &linked,
+                        &root.module,
+                        &root.name,
+                        root.report,
+                        &lowered,
+                        &module,
+                        limits.max_file_bytes,
+                    ) {
+                        Ok(certificate) => certificate,
+                        Err(diagnostic) => {
+                            failures.push(format!(
+                                "{name} R{index} {}: {}",
+                                root.report.root, diagnostic.message
+                            ));
+                            continue;
+                        }
+                    };
+                    let data = certificate.data.as_ref().expect("certificate A is data");
+                    let source = certificate
+                        .source
+                        .as_ref()
+                        .expect("certificate A is recorded in the notation");
+                    let read = lexlean::sdk::read_module(source).expect("the record reads");
+                    let canonical = serde_json::to_value(data).expect("the data is JSON");
+                    assert_eq!(
+                        read, canonical,
+                        "{module}: the record reads back to the data"
+                    );
+                    preserve::audit_core(data, &environment).expect("the data audit admits it");
+                    for declaration in &data.declarations {
+                        assert!(
+                            matches!(
+                                declaration.policy,
+                                lexlean::ir::core::CoreAxiomPolicy::Exact(_)
+                            ),
+                            "{module}: `{}` pins its axioms exactly",
+                            declaration.name
+                        );
+                    }
+                    assert!(
+                        data.declarations
+                            .iter()
+                            .any(|row| row.name == format!("{module}.root")),
+                        "{module}: the root theorem is a row"
+                    );
+                    built += 1;
+                    rows += data.declarations.len();
+                    notation_bytes += source.len();
+                }
+            }
+            eprintln!(
+                "SP-15: {built} certificates A built as data, {rows} rows, {notation_bytes} bytes of notation"
+            );
+            assert!(
+                failures.is_empty(),
+                "every certificate A is built as data:\n{}",
+                failures.join("\n")
+            );
+            // The committed records hold every certificate A in the notation.
+            for (name, _) in certified_projects() {
+                let base = repo_root()
+                    .join("examples")
+                    .join(name)
+                    .join("expected/verify/preserve");
+                let record: serde_json::Value = serde_json::from_slice(
+                    &std::fs::read(base.join("preservation.json").as_std_path())
+                        .expect("a committed record"),
+                )
+                .expect("the record is JSON");
+                for row in record["roots"].as_array().expect("roots") {
+                    let module = row["module"].as_str().expect("a module");
+                    let path = base.join(preserve::notation_path(module));
+                    assert!(
+                        path.as_std_path().is_file(),
+                        "{name}: certificate A `{module}` is recorded in the notation at {path}"
+                    );
+                }
+            }
+            // No Lean text template for certificate A remains in the
+            // compiler: the sources that build it name no tactic, no
+            // declaration keyword of a row, and no termination clause. The
+            // markers are spelled in halves so that this list is not itself
+            // a template (the same discipline as `audit-deferral`).
+            let markers: Vec<String> = [
+                ("theorem ", "__rel_"),
+                ("def ", "__fits_"),
+                ("termination", "_by"),
+                ("decreasing", "_by"),
+                ("by ", "simp"),
+                ("by ", "rw ["),
+                ("exact ", "_root_"),
+                ("(fun _ => ", "rfl)"),
+            ]
+            .iter()
+            .map(|(head, tail)| format!("{head}{tail}"))
+            .collect();
+            let templates = |source: &str| -> Vec<String> {
+                markers
+                    .iter()
+                    .filter(|marker| source.contains(marker.as_str()))
+                    .cloned()
+                    .collect()
+            };
+            let production = repo_root().join("crates/lexlean/src/production");
+            let mut scanned = 0usize;
+            let mut sources = vec![production.join("certificate.rs")];
+            for entry in walkdir::WalkDir::new(production.join("certificate/data_a").as_std_path())
+                .into_iter()
+                .flatten()
+            {
+                if entry
+                    .path()
+                    .extension()
+                    .is_some_and(|extension| extension == "rs")
+                {
+                    sources.push(
+                        camino::Utf8PathBuf::from_path_buf(entry.path().to_path_buf())
+                            .expect("a UTF-8 path"),
+                    );
+                }
+            }
+            sources.push(production.join("certificate/data_a.rs"));
+            for path in &sources {
+                let text = std::fs::read_to_string(path.as_std_path()).expect("a source");
+                assert!(
+                    templates(&text).is_empty(),
+                    "{path}: Lean text template for certificate A: {:?}",
+                    templates(&text)
+                );
+                scanned += 1;
+            }
+            assert!(
+                scanned > 10,
+                "the scan reads the sources that build certificate A"
+            );
+            // The scan is armed: a planted template is found.
+            assert!(
+                !templates(&format!("format!(\"theorem {}0 : …\")", "__rel_")).is_empty(),
+                "the template scan finds a planted template"
+            );
+            if !support::lean_backed("SP-15") {
+                return;
+            }
+            // The production example, certified end to end with every
+            // certificate A as data: every module compiles, replays, and the
+            // audit sees exactly the axioms each row pins.
+            let project = P::copy_example("production");
+            let certified = preservation::certificates(&project);
+            let workspace = preservation::staged(&project, &certified);
+            let root = tempfile::Builder::new()
+                .prefix("lexlean-sp15-")
+                .tempdir()
+                .expect("tempdir");
+            let checked = preservation::check(&workspace, root.path());
+            assert!(
+                checked.failure.is_none(),
+                "every certificate as data verifies under the pinned Lean: {:?}",
+                checked.failure
+            );
+            let all: Vec<lexlean::production::certificate::Certificate> = certified
+                .iter()
+                .flat_map(preservation::Certified::all)
+                .collect();
+            audit(&checked.audit_output, &all).expect("the audit, every row's axioms included");
+            // Four plants in the data of one certificate A, each refused: a
+            // wrong lemma application, a changed statement, a forged program
+            // literal, and an added axiom (refused before Lean by the data
+            // audit, and, as a lying policy, by the audit module).
+            let certificate = &certified
+                .iter()
+                .find(|entry| {
+                    entry.certificate.data.as_ref().is_some_and(|data| {
+                        data.nodes.iter().any(|node| {
+                            matches!(node, lexlean::ir::core::CoreNode::Const { n, .. }
+                                    if n == "LexLeanPreservation.prim_natAdd")
+                        })
+                    })
+                })
+                .expect("a root that adds")
+                .certificate;
+            let data = certificate.data.as_ref().expect("certificate A is data");
+            let rename = |data: &lexlean::ir::core::CoreModule, from: &str, to: &str| {
+                let mut planted = data.clone();
+                let mut renamed = 0;
+                for node in &mut planted.nodes {
+                    if let lexlean::ir::core::CoreNode::Const { n, .. } = node {
+                        if n == from {
+                            *n = to.to_owned();
+                            renamed += 1;
+                        }
+                    }
+                }
+                assert!(renamed > 0, "the plant renames `{from}`");
+                planted
+            };
+            let refused = |label: &str, planted: &lexlean::ir::core::CoreModule| {
+                let module = format!("{}Plant{label}", certificate.module);
+                let text = lexlean::backend::core::lean_text_legacy(planted, &module)
+                    .expect("the planted module renders");
+                let output = preservation::compile_text(root.path(), &module, &text);
+                let joined = format!(
+                    "{}{}",
+                    String::from_utf8_lossy(&output.stdout),
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                assert!(
+                    !output.status.success() && joined.contains("error"),
+                    "{label}: the planted certificate A is refused by Lean: {joined}"
+                );
+                joined.lines().take(3).collect::<Vec<_>>().join("\n    ")
+            };
+            let wrong_lemma = refused(
+                "WrongLemma",
+                &rename(
+                    data,
+                    "LexLeanPreservation.prim_natAdd",
+                    "LexLeanPreservation.prim_natMul",
+                ),
+            );
+            let changed_statement =
+                refused("ChangedStatement", &rename(data, "Bool.true", "Bool.false"));
+            // A forged program literal: one literal of the program's row,
+            // rebuilt on a fresh path so no other row sees it.
+            let forged = {
+                let program = data
+                    .declarations
+                    .iter()
+                    .find(|row| row.name == format!("{}.__prog", certificate.module))
+                    .and_then(|row| row.value)
+                    .expect("the program row");
+                let mut planted = data.clone();
+                // The first literal along the application spine, whichever
+                // side of an application holds it; the nodes above it are
+                // rebuilt on fresh indices.
+                fn forge(nodes: &mut Vec<lexlean::ir::core::CoreNode>, at: usize) -> Option<usize> {
+                    use lexlean::ir::core::CoreNode;
+                    match nodes[at].clone() {
+                        CoreNode::Nat { v } => {
+                            let v = v.parse::<u64>().expect("a small literal") + 1;
+                            nodes.push(CoreNode::Nat { v: v.to_string() });
+                            Some(nodes.len() - 1)
+                        }
+                        CoreNode::App { f, x } => {
+                            let (f, x) = match forge(nodes, f) {
+                                Some(f) => (f, x),
+                                None => (f, forge(nodes, x)?),
+                            };
+                            nodes.push(CoreNode::App { f, x });
+                            Some(nodes.len() - 1)
+                        }
+                        _ => None,
+                    }
+                }
+                let replacement =
+                    forge(&mut planted.nodes, program).expect("the program's row holds a literal");
+                for row in &mut planted.declarations {
+                    if row.name == format!("{}.__prog", certificate.module) {
+                        row.value = Some(replacement);
+                    }
+                }
+                planted
+            };
+            let forged_program = refused("ForgedProgram", &forged);
+            // An added axiom: `sorryAx` as the root's proof is refused by the
+            // data audit before any Lean runs.
+            let mut with_axiom = data.clone();
+            with_axiom.nodes.push(lexlean::ir::core::CoreNode::Const {
+                n: "sorryAx".to_owned(),
+                u: vec![lexlean::ir::core::CoreLevel::Zero],
+            });
+            let last = with_axiom.nodes.len() - 1;
+            let theorem = format!("{}.root", certificate.module);
+            for row in &mut with_axiom.declarations {
+                if row.name == theorem {
+                    row.value = Some(last);
+                }
+            }
+            let environment: BTreeSet<String> = workspace
+                .files
+                .iter()
+                .map(|file| file.module.clone())
+                .collect();
+            let audit_refusal = preserve::audit_core(&with_axiom, &environment)
+                .expect_err("the data audit refuses the added axiom");
+            assert!(
+                audit_refusal.contains("sorryAx"),
+                "the data audit names the forbidden constant: {audit_refusal}"
+            );
+            // A row whose policy lies about its axioms compiles, and the audit
+            // module refuses it: the policies are checked, not trusted.
+            let mut lying = data.clone();
+            let liar = lying
+                .declarations
+                .iter_mut()
+                .find(|row| {
+                    matches!(&row.policy, lexlean::ir::core::CoreAxiomPolicy::Exact(axioms)
+                        if !axioms.is_empty())
+                })
+                .expect("a row that pins an axiom");
+            liar.policy = lexlean::ir::core::CoreAxiomPolicy::Exact(Vec::new());
+            let mut lying_certificate = certificate.clone();
+            lying_certificate.module = format!("{}PlantLyingPolicy", certificate.module);
+            lying_certificate.text =
+                lexlean::backend::core::lean_text_legacy(&lying, &lying_certificate.module)
+                    .expect("the planted module renders");
+            lying_certificate.data = Some(lying);
+            let output = preservation::compile_text(
+                root.path(),
+                &lying_certificate.module,
+                &lying_certificate.text,
+            );
+            assert!(
+                output.status.success(),
+                "a lying policy is not Lean's to refuse: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            let rendered = support::rendered(&project);
+            let user: Vec<(String, String)> = rendered
+                .modules
+                .iter()
+                .map(|module| (module.lean_module.clone(), module.lean_text().to_owned()))
+                .collect();
+            let planted_workspace =
+                preserve::workspace(&user, std::slice::from_ref(&lying_certificate))
+                    .expect("the planted workspace stages");
+            let audit_output = preservation::compile_text(
+                root.path(),
+                &format!("{}Plant", preserve::AUDIT_MODULE),
+                &planted_workspace.audit.text,
+            );
+            let audit_text = format!(
+                "{}{}",
+                String::from_utf8_lossy(&audit_output.stdout),
+                String::from_utf8_lossy(&audit_output.stderr)
+            );
+            let lying_policy = audit(&audit_text, std::slice::from_ref(&lying_certificate))
+                .expect_err("the audit refuses a row whose policy lies");
+            assert!(
+                lying_policy.contains("its policy pins"),
+                "the audit names the lying row: {lying_policy}"
+            );
+            eprintln!(
+                "SP-15 plants refused:\n  wrong lemma: {wrong_lemma}\n  changed statement: {changed_statement}\n  forged program: {forged_program}\n  added axiom: {audit_refusal}\n  lying policy: {lying_policy}"
+            );
+        }
+        "SP-16" => {
+            // Every certificate B of the four corpora is built as a core
+            // module: the record reads back to the data byte for byte, the
+            // data audit admits it, every row pins its axioms exactly, its
+            // rows are the ones the text certificate declared, and the
+            // committed records hold it in the notation.
+            let mut built = 0usize;
+            let mut rows = 0usize;
+            let mut notation_bytes = 0usize;
+            let mut failures: Vec<String> = Vec::new();
+            for (name, project) in certified_projects() {
+                let checked = support::checked_project(&project);
+                let limits = support::limits(&project);
+                let linked = linked_modules(&checked);
+                let hex = checked.semantic_id.to_hex()[..32].to_owned();
+                let environment: BTreeSet<String> =
+                    [lexlean::production::rust_cert::SOUNDNESS_MODULE.to_owned()]
+                        .into_iter()
+                        .collect();
+                for (index, root) in roots(&checked).expect("the reports").iter().enumerate() {
+                    let lowered =
+                        lower_root(&linked, &root.module, &root.name, root.report, &limits)
+                            .expect("the root lowers");
+                    let module = format!("LexLeanPreserve.C{hex}.R{index}");
+                    for row in &root.report.targets {
+                        let profile = lexlean::calculus::rust::Profile::named(&row.target)
+                            .expect("a Rust profile");
+                        let krate = lexlean::calculus::rust::lower(&lowered.program, profile)
+                            .expect("the program renders");
+                        let module_b =
+                            lexlean::production::rust_cert::module_for(&module, &row.target)
+                                .expect("a Rust target");
+                        let certificate = match lexlean::production::rust_cert::certificate_b(
+                            &lowered.program,
+                            &krate,
+                            &module_b,
+                            limits.max_file_bytes,
+                        ) {
+                            Ok(certificate) => certificate,
+                            Err(reason) => {
+                                failures.push(format!("{name} R{index} {}: {reason}", row.target));
+                                continue;
+                            }
+                        };
+                        let read = lexlean::sdk::read_module(&certificate.source)
+                            .expect("the record reads");
+                        let canonical =
+                            serde_json::to_value(&certificate.data).expect("the data is JSON");
+                        assert_eq!(
+                            read, canonical,
+                            "{module_b}: the record reads back to the data"
+                        );
+                        preserve::audit_core(&certificate.data, &environment)
+                            .expect("the data audit admits it");
+                        for declaration in &certificate.data.declarations {
+                            assert!(
+                                matches!(
+                                    declaration.policy,
+                                    lexlean::ir::core::CoreAxiomPolicy::Exact(_)
+                                ),
+                                "{module_b}: `{}` pins its axioms exactly",
+                                declaration.name
+                            );
+                        }
+                        // The rows are the text certificate's: the program, the
+                        // crate, the flags, a theorem per function, the assembly,
+                        // and the root.
+                        let mut expected: Vec<String> = ["program", "krate", "flags"]
+                            .iter()
+                            .map(|row| format!("{module_b}.{row}"))
+                            .collect();
+                        expected.extend(
+                            (0..lowered.program.functions.len())
+                                .map(|function| format!("{module_b}.fun{function}")),
+                        );
+                        expected.push(format!("{module_b}.crate_ok"));
+                        expected.push(format!("{module_b}.root"));
+                        let actual: Vec<String> = certificate
+                            .data
+                            .declarations
+                            .iter()
+                            .map(|row| row.name.clone())
+                            .collect();
+                        assert_eq!(actual, expected, "{module_b}: its rows");
+                        built += 1;
+                        rows += actual.len();
+                        notation_bytes += certificate.source.len();
+                    }
+                }
+            }
+            eprintln!(
+                "SP-16: {built} certificates B built as data, {rows} rows, {notation_bytes} bytes of notation"
+            );
+            assert!(
+                failures.is_empty(),
+                "every certificate B is built as data:\n{}",
+                failures.join("\n")
+            );
+            // The committed records hold every certificate B in the notation
+            // and no Lean text of one.
+            for (name, _) in certified_projects() {
+                let base = repo_root()
+                    .join("examples")
+                    .join(name)
+                    .join("expected/verify/preserve");
+                let record: serde_json::Value = serde_json::from_slice(
+                    &std::fs::read(base.join("preservation.json").as_std_path())
+                        .expect("a committed record"),
+                )
+                .expect("the record is JSON");
+                for row in record["roots"].as_array().expect("roots") {
+                    for rendering in row["renderings"].as_array().expect("renderings") {
+                        let module = rendering["module"].as_str().expect("a module");
+                        let path = base.join(preserve::notation_path(module));
+                        assert!(
+                            path.as_std_path().is_file(),
+                            "{name}: certificate B `{module}` is recorded in the notation at {path}"
+                        );
+                        assert!(
+                            !base
+                                .join(preserve::module_path(module))
+                                .as_std_path()
+                                .exists(),
+                            "{name}: certificate B `{module}` has no Lean text record"
+                        );
+                    }
+                }
+            }
+            // No Lean text template for certificate B remains in the
+            // compiler: the Rust-term renderer is gone, and the sources that
+            // build the certificate name no theorem row, no tactic proof of
+            // the assembly, no namespace line, and no derivation spelled as
+            // text. The markers are spelled in halves so that this list is
+            // not itself a template (the discipline of `audit-deferral`).
+            let markers: Vec<String> = [
+                ("theorem ", "fun"),
+                ("noncomputable ", "def"),
+                ("simp [program", ""),
+                ("intro f ", "fn h"),
+                ("(Corr", "."),
+                ("namespace ", "{"),
+                ("open LexLeanTarget ", "LexLeanPreservation"),
+                ("set_option max", "RecDepth"),
+            ]
+            .iter()
+            .map(|(head, tail)| format!("{head}{tail}"))
+            .collect();
+            let templates = |source: &str| -> Vec<String> {
+                markers
+                    .iter()
+                    .filter(|marker| source.contains(marker.as_str()))
+                    .cloned()
+                    .collect()
+            };
+            let production = repo_root().join("crates/lexlean/src/production");
+            assert!(
+                !production.join("rust_term.rs").as_std_path().exists(),
+                "the Rust-term text renderer of certificate B is deleted"
+            );
+            let mut sources = vec![
+                production.join("rust_cert.rs"),
+                production.join("certificate/data_b.rs"),
+            ];
+            for entry in walkdir::WalkDir::new(production.join("certificate/data_b").as_std_path())
+                .into_iter()
+                .flatten()
+            {
+                if entry
+                    .path()
+                    .extension()
+                    .is_some_and(|extension| extension == "rs")
+                {
+                    sources.push(
+                        camino::Utf8PathBuf::from_path_buf(entry.path().to_path_buf())
+                            .expect("a UTF-8 path"),
+                    );
+                }
+            }
+            for path in &sources {
+                let text = std::fs::read_to_string(path.as_std_path()).expect("a source");
+                assert!(
+                    templates(&text).is_empty(),
+                    "{path}: Lean text template for certificate B: {:?}",
+                    templates(&text)
+                );
+            }
+            assert!(
+                sources.len() >= 4,
+                "the scan reads the sources that build certificate B"
+            );
+            // The scan is armed: a planted template is found.
+            assert!(
+                !templates(&format!("format!(\"theorem {}0 : …\")", "fun")).is_empty(),
+                "the template scan finds a planted template"
+            );
+            if !support::lean_backed("SP-16") {
+                return;
+            }
+            // The production example, certified end to end with every
+            // certificate B as data: every module compiles, replays, and the
+            // audit sees exactly the axioms each row pins.
+            let project = P::copy_example("production");
+            let certified = preservation::certificates(&project);
+            let workspace = preservation::staged(&project, &certified);
+            let root = tempfile::Builder::new()
+                .prefix("lexlean-sp16-")
+                .tempdir()
+                .expect("tempdir");
+            let checked = preservation::check(&workspace, root.path());
+            assert!(
+                checked.failure.is_none(),
+                "every certificate as data verifies under the pinned Lean: {:?}",
+                checked.failure
+            );
+            let all: Vec<lexlean::production::certificate::Certificate> = certified
+                .iter()
+                .flat_map(preservation::Certified::all)
+                .collect();
+            audit(&checked.audit_output, &all).expect("the audit, every row's axioms included");
+            // Five plants in the data of one certificate B, each refused: a
+            // wrong lemma application, a changed statement, a forged program
+            // literal (a Rust term that does not match the calculus
+            // function), an added axiom (refused before Lean by the data
+            // audit), and a lying policy (refused by the audit module).
+            let certificate = certified
+                .iter()
+                .flat_map(|entry| entry.renderings.iter())
+                .map(|(_, certificate)| certificate)
+                .find(|certificate| {
+                    certificate.data.as_ref().is_some_and(|data| {
+                        data.declarations
+                            .iter()
+                            .any(|row| row.name == format!("{}.fun1", certificate.module))
+                            && data.nodes.iter().any(|node| {
+                                matches!(node, lexlean::ir::core::CoreNode::Const { n, .. }
+                                    if n == "LexLeanTarget.RustSyntax.Item.natAdd")
+                            })
+                    })
+                })
+                .expect("a rendering of several functions that adds");
+            let data = certificate.data.as_ref().expect("certificate B is data");
+            let rename = |data: &lexlean::ir::core::CoreModule, from: &str, to: &str| {
+                let mut planted = data.clone();
+                let mut renamed = 0;
+                for node in &mut planted.nodes {
+                    if let lexlean::ir::core::CoreNode::Const { n, .. } = node {
+                        if n == from {
+                            *n = to.to_owned();
+                            renamed += 1;
+                        }
+                    }
+                }
+                assert!(renamed > 0, "the plant renames `{from}`");
+                planted
+            };
+            let refused = |label: &str, planted: &lexlean::ir::core::CoreModule| {
+                let module = format!("{}Plant{label}", certificate.module);
+                let text = lexlean::backend::core::lean_text_legacy(planted, &module)
+                    .expect("the planted module renders");
+                let output = preservation::compile_text(root.path(), &module, &text);
+                let joined = format!(
+                    "{}{}",
+                    String::from_utf8_lossy(&output.stdout),
+                    String::from_utf8_lossy(&output.stderr)
+                );
+                assert!(
+                    !output.status.success() && joined.contains("error"),
+                    "{label}: the planted certificate B is refused by Lean: {joined}"
+                );
+                // The first error, with the kernel's reason on the lines after it.
+                joined.lines().take(3).collect::<Vec<_>>().join("\n    ")
+            };
+            // A rule of the correspondence applied where another one belongs.
+            let rules: Vec<String> = preservation::rules_used(certificate).into_iter().collect();
+            let (first, second) = (
+                rules.first().expect("a rule is used"),
+                rules.get(1).expect("two rules are used"),
+            );
+            let wrong_lemma = refused(
+                "WrongLemma",
+                &rename(
+                    data,
+                    &format!("LexLeanPreservation.Rust.Corr.{first}"),
+                    &format!("LexLeanPreservation.Rust.Corr.{second}"),
+                ),
+            );
+            // The statement of function 0 claimed of function 1.
+            let changed_statement = {
+                let mut planted = data.clone();
+                let ty_of = |function: usize| {
+                    planted
+                        .declarations
+                        .iter()
+                        .find(|row| row.name == format!("{}.fun{function}", certificate.module))
+                        .map(|row| row.r#type)
+                        .expect("a function's theorem")
+                };
+                let claimed = ty_of(1);
+                for row in &mut planted.declarations {
+                    if row.name == format!("{}.fun0", certificate.module) {
+                        row.r#type = claimed;
+                    }
+                }
+                refused("ChangedStatement", &planted)
+            };
+            // A forged program literal: the crate's addition is a subtraction,
+            // so no derivation relates the crate to the program.
+            let forged_program = refused(
+                "ForgedProgram",
+                &rename(
+                    data,
+                    "LexLeanTarget.RustSyntax.Item.natAdd",
+                    "LexLeanTarget.RustSyntax.Item.natSub",
+                ),
+            );
+            // An added axiom: `sorryAx` as the root's proof is refused by the
+            // data audit before any Lean runs.
+            let mut with_axiom = data.clone();
+            with_axiom.nodes.push(lexlean::ir::core::CoreNode::Const {
+                n: "sorryAx".to_owned(),
+                u: vec![lexlean::ir::core::CoreLevel::Zero],
+            });
+            let last = with_axiom.nodes.len() - 1;
+            for row in &mut with_axiom.declarations {
+                if row.name == certificate.theorem {
+                    row.value = Some(last);
+                }
+            }
+            let environment: BTreeSet<String> = workspace
+                .files
+                .iter()
+                .map(|file| file.module.clone())
+                .collect();
+            let audit_refusal = preserve::audit_core(&with_axiom, &environment)
+                .expect_err("the data audit refuses the added axiom");
+            assert!(
+                audit_refusal.contains("sorryAx"),
+                "the data audit names the forbidden constant: {audit_refusal}"
+            );
+            // A row whose policy lies about its axioms compiles, and the audit
+            // module refuses it: the policies are checked, not trusted.
+            let mut lying = data.clone();
+            for row in &mut lying.declarations {
+                if row.name == certificate.theorem {
+                    row.policy = lexlean::ir::core::CoreAxiomPolicy::Exact(Vec::new());
+                }
+            }
+            let mut lying_certificate = certificate.clone();
+            lying_certificate.module = format!("{}PlantLyingPolicy", certificate.module);
+            lying_certificate.text =
+                lexlean::backend::core::lean_text_legacy(&lying, &lying_certificate.module)
+                    .expect("the planted module renders");
+            lying_certificate.data = Some(lying);
+            let output = preservation::compile_text(
+                root.path(),
+                &lying_certificate.module,
+                &lying_certificate.text,
+            );
+            assert!(
+                output.status.success(),
+                "a lying policy is not Lean's to refuse: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            let planted_workspace =
+                preserve::workspace(&[], std::slice::from_ref(&lying_certificate))
+                    .expect("the planted workspace stages");
+            let audit_output = preservation::compile_text(
+                root.path(),
+                &format!("{}Plant", preserve::AUDIT_MODULE),
+                &planted_workspace.audit.text,
+            );
+            let audit_text = format!(
+                "{}{}",
+                String::from_utf8_lossy(&audit_output.stdout),
+                String::from_utf8_lossy(&audit_output.stderr)
+            );
+            let lying_policy = audit(&audit_text, std::slice::from_ref(&lying_certificate))
+                .expect_err("the audit refuses a row whose policy lies");
+            assert!(
+                lying_policy.contains("its policy pins"),
+                "the audit names the lying row: {lying_policy}"
+            );
+            eprintln!(
+                "SP-16 plants refused:\n  wrong lemma: {wrong_lemma}\n  changed statement: {changed_statement}\n  forged program: {forged_program}\n  added axiom: {audit_refusal}\n  lying policy: {lying_policy}"
+            );
+        }
+        "SP-17" => {
+            use crate::lean_literals::{
+                auxiliary_part_from, is_lean_syntax, scan_repository, scan_source,
+            };
+            let root = repo_root();
+            // The repository holds no Lean source text template.
+            let found = scan_repository(root.as_std_path());
+            assert!(
+                found.is_empty(),
+                "Lean syntax literals in the production compiler: {found:#?}"
+            );
+            // The scan reads the sources: it takes the real source of the
+            // staged audit module and of the backend and finds what is planted
+            // in them, and nothing else.
+            let planted_line = "fn planted(x: u64) -> String {\n    format!(\"theorem t (n : Nat) : n = {x} := by decide\")\n}\n";
+            for relative in [
+                "crates/lexlean/src/production/preserve.rs",
+                "crates/lexlean/src/production/certificate.rs",
+                "crates/lexlean/src/production/lower.rs",
+            ] {
+                let source = std::fs::read_to_string(root.join(relative)).expect("a source reads");
+                let name = relative
+                    .strip_prefix("crates/lexlean/src/")
+                    .expect("prefix");
+                assert!(
+                    scan_source(name, &source, 1).is_empty(),
+                    "{name} is clean as it is"
+                );
+                let at = source.lines().count() + 1;
+                let planted = scan_source(name, &format!("{source}\n{planted_line}"), 1);
+                assert_eq!(
+                    planted.len(),
+                    1,
+                    "{name}: the planted template is reported once: {planted:?}"
+                );
+                assert!(
+                    planted[0].line > at && planted[0].literal.starts_with("theorem t"),
+                    "{name}: the planted template is the one reported: {planted:?}"
+                );
+                eprintln!(
+                    "SP-17 planted in {name}: line {} `{}`",
+                    planted[0].line, planted[0].literal
+                );
+            }
+            // In the auxiliary module part of the backend, a template is
+            // reported, and a command line outside the allow-list too.
+            let backend = std::fs::read_to_string(root.join("crates/lexlean/src/backend/lean.rs"))
+                .expect("the backend reads");
+            let from = auxiliary_part_from(&backend);
+            assert!(from > 1, "the backend has an auxiliary module part");
+            let planted = scan_source(
+                "backend/lean.rs",
+                &format!("{backend}\nfn planted() -> String {{ String::from(\"namespace Planted\\nend Planted\\n\") }}\n"),
+                from,
+            );
+            assert_eq!(
+                planted.len(),
+                1,
+                "the backend's planted template is reported: {planted:?}"
+            );
+            eprintln!(
+                "SP-17 planted in backend/lean.rs: line {} `{}`",
+                planted[0].line, planted[0].literal
+            );
+            // Test code is not production: the same template under
+            // `#[cfg(test)]` is not reported, and the definition separates a
+            // bare word, a diagnostic and Lean.
+            let in_tests = "#[cfg(test)]\nmod tests {\n    fn f() -> &'static str { \"theorem t : True := trivial\" }\n}\nfn g() {}\n";
+            assert!(
+                scan_source("production/x.rs", in_tests, 1).is_empty(),
+                "test code is not scanned"
+            );
+            for lean in [
+                "theorem t : True := trivial",
+                "def f (x : Nat) : Nat := x",
+                "import Lean",
+                "fun x => x",
+                "(.option {})",
+                "#print axioms {}",
+                "set_option maxHeartbeats 0\\n",
+            ] {
+                assert!(is_lean_syntax(lean), "`{lean}` is Lean syntax");
+            }
+            for plain in [
+                "inductive",
+                "theorem ",
+                "instance `{module}.{name}` is recursive",
+                "a match on a pair splits it",
+                "function {index} lowered",
+            ] {
+                assert!(!is_lean_syntax(plain), "`{plain}` is not Lean syntax");
+            }
+            // Every allow-list entry is used: one that matches nothing is a
+            // hole that no longer has a reason.
+            for (file, beginning, reason) in crate::lean_literals::ALLOWED {
+                let source = std::fs::read_to_string(root.join("crates/lexlean/src").join(file))
+                    .expect("an allowed file reads");
+                assert!(
+                    source.contains(&format!("\"{beginning}")),
+                    "the allow-list entry {file} `{beginning}` ({reason}) matches nothing"
+                );
+            }
         }
         _ => panic!("no preservation case is wired for {id}"),
     }

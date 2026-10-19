@@ -135,6 +135,14 @@ fn declaration(value: &SnapshotSemanticDeclaration) -> usize {
         SnapshotSemanticDeclaration::Verifier { subject, candidate, .. } => {
             ty(&subject.r#type) + ty(&candidate.r#type)
         }
+        SnapshotSemanticDeclaration::Tokenizer { type_parameters, vocabulary, axioms, .. } => {
+            type_parameters.len() + vocabulary.type_arguments.len() + axioms.len()
+        }
+        SnapshotSemanticDeclaration::ContextWindow { capacity, .. } => *capacity as usize,
+        SnapshotSemanticDeclaration::TextGenerator { max_tokens, scorer, .. } => {
+            *max_tokens as usize + scorer.type_arguments.len()
+        }
+        SnapshotSemanticDeclaration::TextClassifier { model, .. } => model.type_arguments.len(),
         SnapshotSemanticDeclaration::Reasoner { observe, rules, strategy, answer, claims, .. } => {
             observe.as_ref().map_or(0, term)
                 + rules.len()
@@ -265,6 +273,11 @@ fn prove(value: &SnapshotProof) -> usize {
         SnapshotProof::Apply { type_arguments, arguments, .. } => {
             type_arguments.iter().map(ty).sum::<usize>() + arguments.iter().map(term).sum::<usize>()
         }
+        SnapshotProof::Law { type_arguments, arguments, premises, .. } => {
+            type_arguments.iter().map(ty).sum::<usize>()
+                + arguments.iter().map(term).sum::<usize>()
+                + premises.len()
+        }
     }
 }
 "#,
@@ -374,6 +387,30 @@ impl P {
         Self { temp, root }
     }
 
+    /// A fresh copy of the committed source-package workspace
+    /// (`tests/packages/workspace`, SPEC.md §10.5): `root` is the member
+    /// project `member` (`app`, `lib`, or `base`), and the workspace itself is
+    /// [`Self::workspace_dir`]. The members carry no lock and no build output.
+    #[must_use]
+    pub fn package_workspace(member: &str) -> Self {
+        let temp = tempfile::Builder::new()
+            .prefix("lexlean-packages-case-")
+            .tempdir()
+            .expect("tempdir");
+        let source = repo_root().join("tests/packages/workspace");
+        assert!(source.is_dir(), "the package workspace fixture is required");
+        copy_tree(source.as_std_path(), temp.path(), &[]);
+        let root = Utf8PathBuf::from_path_buf(temp.path().join(member)).expect("utf8 tempdir");
+        assert!(root.is_dir(), "`{member}` is a member of the fixture");
+        Self { temp, root }
+    }
+
+    /// The directory holding the project copies of [`Self::package_workspace`].
+    #[must_use]
+    pub fn workspace_dir(&self) -> Utf8PathBuf {
+        Utf8PathBuf::from_path_buf(self.temp.path().to_path_buf()).expect("utf8 tempdir")
+    }
+
     /// A fresh copy of the preservation library's own project (SPEC.md
     /// §17.17), without build output or a lock.
     #[must_use]
@@ -384,6 +421,25 @@ impl P {
             .expect("tempdir");
         let source = repo_root().join(lexlean::production::preserve::LIBRARY_DIR);
         assert!(source.is_dir(), "the library project is required");
+        copy_tree(
+            source.as_std_path(),
+            temp.path(),
+            &[".lexlean", "lexlean.lock"],
+        );
+        let root = Utf8PathBuf::from_path_buf(temp.path().to_path_buf()).expect("utf8 tempdir");
+        Self { temp, root }
+    }
+
+    /// A fresh copy of the package scaffold's own project (SPEC.md §17.16),
+    /// without build output or a lock.
+    #[must_use]
+    pub fn package_project() -> Self {
+        let temp = tempfile::Builder::new()
+            .prefix("lexlean-package-case-")
+            .tempdir()
+            .expect("tempdir");
+        let source = repo_root().join("language/package-1.2/library");
+        assert!(source.is_dir(), "the scaffold project is required");
         copy_tree(
             source.as_std_path(),
             temp.path(),
@@ -469,6 +525,54 @@ impl P {
         );
         copy_tree(source.as_std_path(), temp.path(), &[".lexlean", "expected"]);
         let root = Utf8PathBuf::from_path_buf(temp.path().to_path_buf()).expect("utf8 tempdir");
+        Self { temp, root }
+    }
+
+    /// A fresh copy of the standard library's project (SPEC.md §17.22),
+    /// without build output or expected records.
+    #[must_use]
+    pub fn stdlib() -> Self {
+        let temp = tempfile::Builder::new()
+            .prefix("lexlean-stdlib-case-")
+            .tempdir()
+            .expect("tempdir");
+        let source = repo_root().join("stdlib");
+        assert!(
+            source.is_dir(),
+            "the committed standard library project is required"
+        );
+        copy_tree(source.as_std_path(), temp.path(), &[".lexlean", "expected"]);
+        let root = Utf8PathBuf::from_path_buf(temp.path().to_path_buf()).expect("utf8 tempdir");
+        Self { temp, root }
+    }
+
+    /// A fresh copy of the bootstrap project (SPEC.md §17.23), without build
+    /// output or expected records, beside the standard library it imports as a
+    /// source package (§10.5) and the repository's workspace file.
+    #[must_use]
+    pub fn bootstrap() -> Self {
+        let temp = tempfile::Builder::new()
+            .prefix("lexlean-bootstrap-case-")
+            .tempdir()
+            .expect("tempdir");
+        for member in ["bootstrap", "stdlib"] {
+            let source = repo_root().join(member);
+            assert!(
+                source.is_dir(),
+                "the committed `{member}` project is required"
+            );
+            copy_tree(
+                source.as_std_path(),
+                &temp.path().join(member),
+                &[".lexlean", "expected"],
+            );
+        }
+        std::fs::copy(
+            repo_root().join("lexlean-workspace.toml").as_std_path(),
+            temp.path().join("lexlean-workspace.toml"),
+        )
+        .expect("the workspace file");
+        let root = Utf8PathBuf::from_path_buf(temp.path().join("bootstrap")).expect("utf8");
         Self { temp, root }
     }
 

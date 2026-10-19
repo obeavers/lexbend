@@ -39,6 +39,9 @@ pub struct ModuleRow {
     pub lean_module: String,
     /// The project-relative source path.
     pub source_path: String,
+    /// The source package the module belongs to (SPEC.md §10.5), absent for a
+    /// module of the project itself.
+    pub origin: Option<String>,
 }
 
 /// The build manifest (§21.6). It never contains its own hash.
@@ -58,7 +61,7 @@ pub struct BuildManifest {
     pub semantic_id: Sha256Digest,
     /// The build ID.
     pub build_id: Sha256Digest,
-    /// Whether the project carries Lean (§10.5).
+    /// Whether the project carries Lean (§10.6).
     pub carries_lean: bool,
     /// Selected module names, sorted.
     pub selection: Vec<String>,
@@ -115,11 +118,15 @@ impl BuildManifest {
                 self.modules
                     .iter()
                     .map(|row| {
-                        Json::object(vec![
+                        let mut fields = vec![
                             ("module", Json::Str(row.module.clone())),
                             ("lean_module", Json::Str(row.lean_module.clone())),
                             ("source_path", Json::Str(row.source_path.clone())),
-                        ])
+                        ];
+                        if let Some(origin) = &row.origin {
+                            fields.push(("origin", Json::Str(origin.clone())));
+                        }
+                        Json::object(fields)
                     })
                     .collect(),
             ),

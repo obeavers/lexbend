@@ -38,6 +38,7 @@ fn main() -> ExitCode {
         "check-production-export" => check_production_export(write),
         "check-package" => check_package(&root),
         "check-test-inventory" => ci::check_test_inventory(&root),
+        "bdd" => ci::bdd(&root),
         "ci-summary" => ci::ci_summary(&root, &std::env::args().skip(2).collect::<Vec<_>>()),
         "ci-hints" => ci::ci_hints(&std::env::args().skip(2).collect::<Vec<_>>()),
         "ci-shards" => ci::ci_shards(&root),
@@ -62,7 +63,10 @@ fn main() -> ExitCode {
                  check-production-export §24.7: the consumer's exported packages equal the committed\n\
                                          packages under tests/production-export\n\
                  check-package          §30.3, RP-12: package lexlean crate, verify offline build & identity\n\
-                 check-test-inventory    RP-13: the `test` and `bdd` recipes partition the workspace tests\n\
+                 check-test-inventory    RP-13: the `test` and `bdd` recipes partition the workspace tests,\n\
+                                         and the parts of .github/bdd-parts.json partition `bdd`\n\
+                 bdd                     §9.2: the repo-conformance suite, or the part LEXLEAN_BDD_PART\n\
+                                         names (§9.4)\n\
                  ci-summary              §9.4: summarize ci-evidence/ (recipe, stage, module times; memory)\n\
                  ci-hints                §22.11: scheduling hints from a verifier telemetry file\n\
                                          (--from verify-telemetry.jsonl --out hints.json)\n\
@@ -147,6 +151,20 @@ fn example_dirs(root: &Path) -> Result<Vec<PathBuf>, Fail> {
         return Err("§17.14: the compiler project is missing".into());
     }
     dirs.push(compiler);
+    // The standard library (§17.22) is source of the product under the same
+    // gates.
+    let stdlib = root.join("stdlib");
+    if !stdlib.join("lexlean.toml").exists() {
+        return Err("§17.22: the standard library project is missing".into());
+    }
+    dirs.push(stdlib);
+    // The bootstrap project (§17.23) holds the compiler's own components as
+    // language-1.2 source under the same gates.
+    let bootstrap = root.join("bootstrap");
+    if !bootstrap.join("lexlean.toml").exists() {
+        return Err("§17.23: the bootstrap project is missing".into());
+    }
+    dirs.push(bootstrap);
     Ok(dirs)
 }
 
@@ -194,9 +212,12 @@ fn verify_examples(root: &Path, write: bool) -> Result<(), Fail> {
         // Preserve the example's two-component repository-relative position,
         // so any declared local path requirement resolves exactly as it does
         // in the checkout while the example itself remains a clean copy.
-        let staged = scratch.path().join("examples").join(&name);
-        std::fs::create_dir_all(&staged)?;
-        copy_example(&dir, &staged)?;
+        let staged = stage_project(
+            root,
+            &dir,
+            scratch.path(),
+            &scratch.path().join("examples").join(&name),
+        )?;
         for required in example_path_requirements(&dir, root)? {
             let destination = scratch.path().join(&required);
             std::fs::create_dir_all(&destination)?;
@@ -657,12 +678,16 @@ fn compare_tree(
 /// Copy an example into a fresh temporary directory, run a real `build`,
 /// and return the published `.lexlean/build/<id>/` tree as
 /// `(relative, bytes)` plus the temporary root (kept alive by the caller).
-fn published_build(dir: &Path, relock: bool) -> Result<(tempfile::TempDir, Files), Fail> {
+fn published_build(
+    root: &Path,
+    dir: &Path,
+    relock: bool,
+) -> Result<(tempfile::TempDir, Files), Fail> {
     let temp = tempfile::Builder::new()
         .prefix("lexlean-build-")
         .tempdir()?;
-    copy_example(dir, temp.path())?;
-    let engine = engine_for(temp.path())?;
+    let staged = stage_project(root, dir, temp.path(), temp.path())?;
+    let engine = engine_for(&staged)?;
     if relock {
         // The preservation library's project is language data, so its lock
         // would have to contain the digest of the tree that holds the lock.
@@ -681,11 +706,10 @@ fn published_build(dir: &Path, relock: bool) -> Result<(tempfile::TempDir, Files
     let build_id = built
         .build_id
         .ok_or("a successful build has a build ID (§21.5)")?;
-    let config = utf8(&temp.path().join("lexlean.toml"))?;
+    let config = utf8(&staged.join("lexlean.toml"))?;
     let project = lexlean::project::Project::load(&config)
         .map_err(|error| format!("{}: {error}", dir.display()))?;
-    let published = temp
-        .path()
+    let published = staged
         .join(&project.config.build_root)
         .join("build")
         .join(build_id.to_hex());
@@ -729,7 +753,7 @@ fn check_golden(root: &Path, write: bool) -> Result<(), Fail> {
             .unwrap_or_default()
             .to_string_lossy()
             .to_string();
-        let (_temp, files) = published_build(&dir, false)?;
+        let (_temp, files) = published_build(root, &dir, false)?;
         let expected_root = dir.join("expected").join("build");
         if write {
             if expected_root.exists() {
@@ -801,6 +825,66 @@ fn example_path_requirements(dir: &Path, root: &Path) -> Result<Vec<PathBuf>, Fa
     Ok(out)
 }
 
+/// The members of the repository's workspace that a project needs when it
+/// declares source packages (§10.5): its own directory first, then every
+/// package it names and every package those name, as repository-relative
+/// directories. `None` for a project that declares none.
+fn workspace_members_of(root: &Path, dir: &Path) -> Result<Option<Vec<PathBuf>>, Fail> {
+    let read = |directory: &Path| -> Result<lexlean::config::ProjectConfig, Fail> {
+        let bytes = std::fs::read(directory.join("lexlean.toml"))?;
+        lexlean::config::parse_project("lexlean.toml", &bytes)
+            .map_err(|errors| format!("{}: {errors:?}", directory.display()).into())
+    };
+    let config = read(dir)?;
+    if config.source_packages.is_empty() {
+        return Ok(None);
+    }
+    let own = dir.strip_prefix(root)?.to_path_buf();
+    let mut members = vec![own];
+    let mut pending: Vec<String> = config
+        .source_packages
+        .iter()
+        .map(|package| package.path.clone())
+        .collect();
+    while let Some(path) = pending.pop() {
+        let member = PathBuf::from(&path);
+        if members.contains(&member) {
+            continue;
+        }
+        pending.extend(
+            read(&root.join(&member))?
+                .source_packages
+                .iter()
+                .map(|package| package.path.clone()),
+        );
+        members.push(member);
+    }
+    Ok(Some(members))
+}
+
+/// Stage the project at `dir` under `scratch` and return its staged root. A
+/// project that declares source packages is staged at its repository-relative
+/// path beside the workspace file and the members it needs, so the packages
+/// resolve exactly as they do in the checkout; any other project is staged at
+/// `flat`.
+fn stage_project(root: &Path, dir: &Path, scratch: &Path, flat: &Path) -> Result<PathBuf, Fail> {
+    let Some(members) = workspace_members_of(root, dir)? else {
+        std::fs::create_dir_all(flat)?;
+        copy_example(dir, flat)?;
+        return Ok(flat.to_path_buf());
+    };
+    std::fs::copy(
+        root.join(lexlean::source_package::WORKSPACE_FILE),
+        scratch.join(lexlean::source_package::WORKSPACE_FILE),
+    )?;
+    for member in &members {
+        let destination = scratch.join(member);
+        std::fs::create_dir_all(&destination)?;
+        copy_example(&root.join(member), &destination)?;
+    }
+    Ok(scratch.join(&members[0]))
+}
+
 fn copy_example(from: &Path, to: &Path) -> Result<(), Fail> {
     for entry in walkdir::WalkDir::new(from).into_iter().flatten() {
         let relative = entry.path().strip_prefix(from).unwrap_or(entry.path());
@@ -830,8 +914,8 @@ fn check_reproducibility(root: &Path) -> Result<(), Fail> {
             .unwrap_or_default()
             .to_string_lossy()
             .to_string();
-        let (temp_a, files_a) = published_build(&dir, false)?;
-        let (temp_b, files_b) = published_build(&dir, false)?;
+        let (temp_a, files_a) = published_build(root, &dir, false)?;
+        let (temp_b, files_b) = published_build(root, &dir, false)?;
         if temp_a.path() == temp_b.path() {
             return Err("the two build directories must be distinct".into());
         }
@@ -871,8 +955,8 @@ fn check_reproducibility(root: &Path) -> Result<(), Fail> {
         ),
     ] {
         let library = root.join(directory);
-        let (temp_a, files_a) = published_build(&library, true)?;
-        let (temp_b, files_b) = published_build(&library, true)?;
+        let (temp_a, files_a) = published_build(root, &library, true)?;
+        let (temp_b, files_b) = published_build(root, &library, true)?;
         if temp_a.path() == temp_b.path() {
             return Err("the two build directories must be distinct".into());
         }

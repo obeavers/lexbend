@@ -34,7 +34,7 @@ statement = "A natural-number or mathematical-integer value outside the target w
 
 [[effect]]
 id = "recursion"
-statement = "The realization recurses to a depth bounded only by its input; exhausting the stack stops it with an explicit failure."
+statement = "The realization recurses to a depth bounded only by its input; exhausting the stack aborts the process, and the realization states no failure for it."
 
 [[construct]]
 key = "type.type"
@@ -929,6 +929,22 @@ recursion = false
 note = "A key comparison."
 
 [[construct]]
+key = "primitive.to_int"
+disposition = "runtime"
+allocation = false
+overflow = ["int"]
+recursion = false
+note = "Realized through its elaboration: a let, bit tests by bit_and and equal, conditionals, and an exact integer sum, which leaves the 64-bit range exactly when an unsigned 64-bit operand does."
+
+[[construct]]
+key = "primitive.to_nat"
+disposition = "runtime"
+allocation = false
+overflow = []
+recursion = false
+note = "Realized through its elaboration: a let, bit tests by bit_and and equal, conditionals, and a natural-number sum, which never leaves the 64-bit range."
+
+[[construct]]
 key = "declaration.structure"
 disposition = "runtime"
 allocation = false
@@ -1058,3 +1074,35 @@ allocation = false
 overflow = []
 recursion = false
 note = "Realized through the bounded loops and step types it elaborates to; its generated theorems are erased."
+
+[[construct]]
+key = "declaration.tokenizer"
+disposition = "formal-only"
+allocation = false
+overflow = []
+recursion = false
+note = "Formal only: its elaborated definitions apply the embedded text-laws library, which no production target realizes, so a root whose closure reaches one fails; its generated theorems are erased."
+
+[[construct]]
+key = "declaration.context_window"
+disposition = "formal-only"
+allocation = false
+overflow = []
+recursion = false
+note = "Formal only: linking does not elaborate a context window in this release (it is refused before any closure is formed)."
+
+[[construct]]
+key = "declaration.text_generator"
+disposition = "formal-only"
+allocation = false
+overflow = []
+recursion = false
+note = "Formal only: linking does not elaborate a text generator in this release (it is refused before any closure is formed)."
+
+[[construct]]
+key = "declaration.text_classifier"
+disposition = "formal-only"
+allocation = false
+overflow = []
+recursion = false
+note = "Formal only: linking does not elaborate a text classifier in this release (it is refused before any closure is formed)."

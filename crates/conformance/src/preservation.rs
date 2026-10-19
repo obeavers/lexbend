@@ -197,7 +197,11 @@ pub fn halved(project: &P, certified: &[Certified]) -> Vec<(String, String, Vec<
                 root.report,
                 &lowered,
                 &module,
-                held.certificate.text.len() as u64 / 2,
+                held.certificate
+                    .source
+                    .as_ref()
+                    .map_or(held.certificate.text.len(), String::len) as u64
+                    / 2,
             ));
             let fallible = lexlean::calculus::rust::fallible_functions(&lowered.program)
                 .expect("a valid program")[lowered.entry() as usize];
@@ -217,7 +221,12 @@ pub fn halved(project: &P, certified: &[Certified]) -> Vec<(String, String, Vec<
                         &module_b,
                         &module_e,
                         fallible,
-                        composed.text.len() as u64 / 2,
+                        composed
+                            .source
+                            .as_ref()
+                            .map_or(composed.text.len(), String::len)
+                            as u64
+                            / 2,
                     ))
                 })
                 .collect();
@@ -396,7 +405,11 @@ pub(crate) fn shipped() -> &'static Shipped {
                 std::fs::create_dir_all(path.parent().expect("a parent")).expect("mkdir");
             }
             std::fs::write(&source, &file.text).expect("write");
+            // The source root names the module, so its private names are
+            // the ones its rows state (SPEC.md §17.10).
             let output = pinned_with("lean", &building, &search)
+                .arg("-R")
+                .arg(building.join("src"))
                 .arg("-o")
                 .arg(&olean)
                 .arg(&source)
@@ -429,6 +442,29 @@ fn lean(root: &Path, arguments: &[String]) -> std::process::Output {
         .expect("lean runs")
 }
 
+/// Compile one more module into a checked workspace's build, over the
+/// modules [`check`] compiled: the planted or oracle module a case adds
+/// after the workspace is checked. Returns Lean's output.
+pub fn compile_text(root: &Path, module: &str, text: &str) -> std::process::Output {
+    let path = lexlean::production::preserve::module_path(module);
+    let source = root.join("src").join(&path);
+    std::fs::create_dir_all(source.parent().expect("a parent")).expect("mkdir");
+    std::fs::write(&source, text).expect("write");
+    let olean = root
+        .join("build")
+        .join(path.trim_end_matches(".lean"))
+        .with_extension("olean");
+    std::fs::create_dir_all(olean.parent().expect("a parent")).expect("mkdir");
+    lean(
+        root,
+        &[
+            "-o".to_owned(),
+            olean.display().to_string(),
+            source.display().to_string(),
+        ],
+    )
+}
+
 pub(crate) fn joined(output: &std::process::Output) -> String {
     format!(
         "{}{}",
@@ -455,7 +491,20 @@ fn parallel<T: Sync, R: Send>(items: &[T], job: impl Fn(&T) -> R + Sync) -> Vec<
                 let Some(item) = items.get(index) else {
                     break;
                 };
-                let result = job(item);
+                let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| job(item)))
+                    .unwrap_or_else(|payload| {
+                        let message = payload
+                            .downcast_ref::<String>()
+                            .cloned()
+                            .or_else(|| {
+                                payload
+                                    .downcast_ref::<&str>()
+                                    .map(|text| (*text).to_owned())
+                            })
+                            .unwrap_or_default();
+                        eprintln!("PARALLEL JOB PANIC: {message}");
+                        std::panic::resume_unwind(payload)
+                    });
                 results.lock().expect("the results")[index] = Some(result);
             });
         }
@@ -647,6 +696,144 @@ impl CompositionMutation {
         self.marks(text).len()
     }
 
+    /// How many places a certificate has for this defect: in its data when
+    /// it is held as data (SP-14), else in its text.
+    #[must_use]
+    pub fn places_in(self, certificate: &Certificate) -> usize {
+        match &certificate.data {
+            Some(data) => self.data_places(data).len(),
+            None => self.places(&certificate.text),
+        }
+    }
+
+    /// The certificate with this defect planted at its `nth` place, as the
+    /// Lean text verification compiles: the data mutated and rendered by the
+    /// core backend for a certificate held as data, else the text.
+    #[must_use]
+    pub fn plant_in(self, certificate: &Certificate, nth: usize) -> Option<String> {
+        match &certificate.data {
+            Some(data) => {
+                let planted = self.plant_data(data, nth)?;
+                Some(
+                    lexlean::backend::core::lean_text_legacy(&planted, &certificate.module)
+                        .expect("the planted module renders"),
+                )
+            }
+            None => self.plant(&certificate.text, nth),
+        }
+    }
+
+    /// The nodes of `data` this defect applies to: the constant of the
+    /// fallibility flag, each `fnIdent` application, the type of each
+    /// `__e_hrep` binder (one node, shared by the statement and the proof).
+    fn data_places(self, data: &lexlean::ir::core::CoreModule) -> Vec<usize> {
+        use lexlean::ir::core::CoreNode;
+        let mut out = Vec::new();
+        for (index, node) in data.nodes.iter().enumerate() {
+            let hit = match (self, node) {
+                (Self::Fallibility, CoreNode::Const { n, .. }) => {
+                    n == "Bool.true" || n == "Bool.false"
+                }
+                (Self::Function, CoreNode::App { f, x }) => {
+                    matches!(&data.nodes[*f], CoreNode::Const { n, .. } if n == "LexLeanPreservation.Rust.fnIdent")
+                        && matches!(&data.nodes[*x], CoreNode::Nat { .. })
+                }
+                (Self::Hypothesis, CoreNode::Forall { n, t, .. }) => {
+                    n == "__e_hrep" && !out.contains(t)
+                }
+                _ => false,
+            };
+            if hit {
+                out.push(match (self, node) {
+                    (Self::Hypothesis, CoreNode::Forall { t, .. }) => *t,
+                    _ => index,
+                });
+            }
+        }
+        out
+    }
+
+    /// `data` with this defect planted at its `nth` place. The DAG is
+    /// rebuilt child before parent, the nodes a mutation adds inserted
+    /// before the first node that uses them.
+    fn plant_data(
+        self,
+        data: &lexlean::ir::core::CoreModule,
+        nth: usize,
+    ) -> Option<lexlean::ir::core::CoreModule> {
+        use lexlean::ir::core::CoreNode;
+        let place = *self.data_places(data).get(nth)?;
+        let mut planted = data.clone();
+        match self {
+            Self::Fallibility => {
+                if let CoreNode::Const { n, .. } = &mut planted.nodes[place] {
+                    *n = if n == "Bool.true" {
+                        "Bool.false".to_owned()
+                    } else {
+                        "Bool.true".to_owned()
+                    };
+                }
+                Some(planted)
+            }
+            Self::Function | Self::Hypothesis => {
+                // Rebuild with an index map, inserting the new nodes.
+                let mut nodes: Vec<CoreNode> = Vec::with_capacity(data.nodes.len() + 4);
+                let mut map: Vec<usize> = Vec::with_capacity(data.nodes.len());
+                let mut replacement: Option<usize> = None;
+                for (index, node) in data.nodes.iter().enumerate() {
+                    let mut node = remap(node, &map);
+                    if self == Self::Function && index == place {
+                        if let CoreNode::App { x, .. } = &mut node {
+                            let value = match &nodes[*x] {
+                                CoreNode::Nat { v } => v.parse::<u64>().ok()? + 1,
+                                _ => return None,
+                            };
+                            nodes.push(CoreNode::Nat {
+                                v: value.to_string(),
+                            });
+                            *x = nodes.len() - 1;
+                        }
+                    }
+                    if self == Self::Hypothesis {
+                        if let CoreNode::Forall { n, t, .. } | CoreNode::Lambda { n, t, .. } =
+                            &mut node
+                        {
+                            if n == "__e_hrep" && map[place] == *t {
+                                let wrapped = *replacement.get_or_insert_with(|| {
+                                    let and = nodes.len();
+                                    nodes.push(CoreNode::Const {
+                                        n: "And".to_owned(),
+                                        u: Vec::new(),
+                                    });
+                                    nodes.push(CoreNode::Const {
+                                        n: "False".to_owned(),
+                                        u: Vec::new(),
+                                    });
+                                    nodes.push(CoreNode::App { f: and, x: *t });
+                                    nodes.push(CoreNode::App {
+                                        f: nodes.len() - 1,
+                                        x: and + 1,
+                                    });
+                                    nodes.len() - 1
+                                });
+                                *t = wrapped;
+                            }
+                        }
+                    }
+                    map.push(nodes.len());
+                    nodes.push(node);
+                }
+                for row in &mut planted.declarations {
+                    row.r#type = map[row.r#type];
+                    row.value = row.value.map(|value| map[value]);
+                }
+                planted.proof_nodes = planted.proof_nodes.iter().map(|p| map[*p]).collect();
+                planted.nodes = nodes;
+                Some(planted)
+            }
+        }
+    }
+
     /// `text` with this defect planted at its `nth` place, or `None` when it
     /// has none.
     #[must_use]
@@ -671,6 +858,52 @@ impl CompositionMutation {
             }
             Self::Hypothesis => format!("{} ∧ False{}", &text[..at], &text[at..]),
         })
+    }
+}
+
+/// `node` with its children renumbered by `map`, which holds the new index
+/// of every earlier node.
+fn remap(node: &lexlean::ir::core::CoreNode, map: &[usize]) -> lexlean::ir::core::CoreNode {
+    use lexlean::ir::core::CoreNode;
+    match node {
+        CoreNode::App { f, x } => CoreNode::App {
+            f: map[*f],
+            x: map[*x],
+        },
+        CoreNode::Lambda { n, b, t, v } => CoreNode::Lambda {
+            n: n.clone(),
+            b: *b,
+            t: map[*t],
+            v: map[*v],
+        },
+        CoreNode::Forall { n, b, t, v } => CoreNode::Forall {
+            n: n.clone(),
+            b: *b,
+            t: map[*t],
+            v: map[*v],
+        },
+        CoreNode::Let { n, t, v, body, d } => CoreNode::Let {
+            n: n.clone(),
+            t: map[*t],
+            v: map[*v],
+            body: map[*body],
+            d: *d,
+        },
+        CoreNode::Mdata { m, x } => CoreNode::Mdata {
+            m: m.clone(),
+            x: map[*x],
+        },
+        CoreNode::Projection { n, s, i, x } => CoreNode::Projection {
+            n: n.clone(),
+            s: s.clone(),
+            i: *i,
+            x: map[*x],
+        },
+        other @ (CoreNode::BVar { .. }
+        | CoreNode::Sort { .. }
+        | CoreNode::Const { .. }
+        | CoreNode::Nat { .. }
+        | CoreNode::String { .. }) => other.clone(),
     }
 }
 
@@ -777,18 +1010,21 @@ fn witnesses(
     // The names the encoders of the arguments unfold through: the ones
     // certificate A defines and the library's.
     let mut names: Vec<String> = Vec::new();
-    for line in certificate_a.text.lines() {
-        if let Some(rest) = line.strip_prefix("def ") {
-            let name: String = rest
-                .chars()
-                .take_while(|character| character.is_alphanumeric() || *character == '_')
-                .collect();
-            if ["__enc_", "__aux_", "__items_", "__L_", "__O_"]
-                .iter()
-                .any(|prefix| name.starts_with(prefix))
-            {
-                names.push(format!("{}.{name}", certificate_a.module));
-            }
+    let data = certificate_a
+        .data
+        .as_ref()
+        .expect("certificate A is held as data");
+    for row in &data.declarations {
+        let name = row
+            .name
+            .strip_prefix(&format!("{}.", certificate_a.module))
+            .unwrap_or(&row.name);
+        if ["__enc_", "__aux_", "__items_", "__L_", "__O_"]
+            .iter()
+            .any(|prefix| name.starts_with(prefix))
+            && !name.ends_with("._unsafe_rec")
+        {
+            names.push(row.name.clone());
         }
     }
     for (at, found) in composed.text.match_indices("LexLeanPreservation.enc") {
@@ -923,6 +1159,16 @@ pub fn certify(project: &P, name: &str) -> Report {
     let differential = crate::differential::compare(&text, &denotes)
         .unwrap_or_else(|failures| panic!("{name}: differential:\n{failures}"));
     let crates = crate::machine::crates(&certified);
+    let compiled = compile_text(
+        scratch.path(),
+        crate::machine::CRATES_MODULE,
+        &crate::machine::crate_module(&crates),
+    );
+    assert!(
+        compiled.status.success(),
+        "{name}: the crates' module was rejected:\n{}",
+        joined(&compiled)
+    );
     let path = scratch.path().join("src/LexLeanPreserve/Machine.lean");
     std::fs::write(&path, crate::machine::module(&crates, &cases)).expect("write");
     let output = lean(scratch.path(), &[path.display().to_string()]);
@@ -1031,11 +1277,11 @@ fn plant_composed(
             continue;
         };
         for mutation in CompositionMutation::ALL {
-            let places = mutation.places(&composed.text);
+            let places = mutation.places_in(composed);
             assert!(places > 0, "{mutation:?} applies to `{}`", composed.module);
             for nth in 0..places {
                 let mut text = mutation
-                    .plant(&composed.text, nth)
+                    .plant_in(composed, nth)
                     .expect("the place was counted");
                 if mutation == CompositionMutation::Hypothesis {
                     // A vacuous statement proves, so only applying it shows.
@@ -1482,6 +1728,9 @@ pub struct Planted {
     /// what makes the failure targeted: the relation of the mutated
     /// function, not an unrelated one.
     pub declaration: Option<String>,
+    /// The generator's refusal when the mutated lowering no longer follows the
+    /// source, so that no certificate was written for Lean to reject.
+    pub refused: Option<String>,
 }
 
 /// The top-level declaration of `text` that the first error of Lean's
@@ -1566,7 +1815,60 @@ fn expected_declarations(
         Origin::Definition { .. } | Origin::Instance { .. } | Origin::Lambda { .. } => {
             vec![format!("__rel_{function}")]
         }
-        Origin::Validator { .. } => vec![format!("__vrel_{function}")],
+        // The relations of validators that call one another are one
+        // recursion of the group's recursors, whose every row contains every
+        // minor premise: the kernel refuses the first of them it adds.
+        Origin::Validator { .. } => {
+            let calls = |from: usize| -> Vec<usize> {
+                // From the layout's kinds, which the source decides, not
+                // from the bodies, which a planted defect changes.
+                use lexlean::production::lower::Validation;
+                match &lowered.layout.functions[from] {
+                    Origin::Validator { kind, .. } => match kind {
+                        Validation::Trivial | Validation::Set => Vec::new(),
+                        Validation::Map { value: callee }
+                        | Validation::List { element: callee }
+                        | Validation::Option { value: callee } => vec![*callee as usize],
+                        Validation::Pair { left, right } => {
+                            vec![*left as usize, *right as usize]
+                        }
+                        Validation::Result { ok, error } => vec![*ok as usize, *error as usize],
+                        Validation::Document { fields } => fields
+                            .iter()
+                            .flatten()
+                            .flatten()
+                            .map(|callee| *callee as usize)
+                            .collect(),
+                    },
+                    _ => Vec::new(),
+                }
+            };
+            let reach = |from: usize| -> Vec<usize> {
+                let mut seen = vec![from];
+                let mut next = 0;
+                while next < seen.len() {
+                    for callee in calls(seen[next]) {
+                        if !seen.contains(&callee)
+                            && matches!(lowered.layout.functions[callee], Origin::Validator { .. })
+                        {
+                            seen.push(callee);
+                        }
+                    }
+                    next += 1;
+                }
+                seen
+            };
+            let forward = reach(function);
+            let mut group: Vec<usize> = forward
+                .into_iter()
+                .filter(|other| reach(*other).contains(&function))
+                .collect();
+            group.sort_unstable();
+            group
+                .into_iter()
+                .map(|member| format!("__vrel_{member}"))
+                .collect()
+        }
         Origin::Entry { .. } => vec!["entry".to_owned()],
         Origin::Template {
             template,
@@ -1668,7 +1970,7 @@ pub fn plant(project: &P, mutations: &[Mutation]) -> Vec<Planted> {
             .position(|job| *job == (mutation, root, function, ordinal))
             .expect("the job");
         let module = format!("LexLeanPreserve.Planted.P{index}");
-        let certificate = certificate(
+        let certificate = match certificate(
             &modules,
             &roots[root].module,
             &roots[root].name,
@@ -1676,8 +1978,32 @@ pub fn plant(project: &P, mutations: &[Mutation]) -> Vec<Planted> {
             &lowered,
             &module,
             UNBOUNDED,
-        )
-        .expect("the certificate is generated from the source");
+        ) {
+            Ok(certificate) => certificate,
+            // Certificate A is derived from the source and the lowering in
+            // lockstep, so a lowering that no longer follows the source is
+            // refused while the certificate is written, before Lean sees it:
+            // the defect is caught earlier than by the kernel, and no
+            // declaration of a certificate exists to name.
+            Err(refusal) if refusal.message.starts_with("phase preservation:") => {
+                return Planted {
+                    root: roots[root].report.root.clone(),
+                    mutation,
+                    function,
+                    ordinal,
+                    origin,
+                    expected,
+                    declaration: None,
+                    text_len: 0,
+                    rejection: refusal.message.clone(),
+                    refused: Some(refusal.message),
+                };
+            }
+            Err(error) => panic!(
+                "the certificate is generated from the source ({mutation:?} in function {function} at site {ordinal} of {}): {error:?}",
+                roots[root].report.root
+            ),
+        };
         let path = directory.join(format!("P{index}.lean"));
         std::fs::write(&path, &certificate.text).expect("write");
         let output = lean(scratch.path(), &[path.display().to_string()]);
@@ -1696,6 +2022,7 @@ pub fn plant(project: &P, mutations: &[Mutation]) -> Vec<Planted> {
             declaration: failing_declaration(&certificate.text, &rejection),
             text_len: certificate.text.len(),
             rejection,
+            refused: None,
         }
     })
 }
@@ -2243,15 +2570,25 @@ pub fn entry_renderings(certified: &[Certified]) -> Vec<Rendering> {
     out
 }
 
-/// The rules of the correspondence a certificate's derivations use.
+/// The rules of the correspondence a certificate's derivations use: the
+/// constructors of `Corr` its data names.
+///
+/// # Panics
+///
+/// Panics when the certificate is not held as data.
 #[must_use]
-pub fn rules_used(text: &str) -> std::collections::BTreeSet<String> {
-    text.split("(Corr.")
-        .skip(1)
-        .map(|rest| {
-            rest.chars()
-                .take_while(char::is_ascii_alphanumeric)
-                .collect()
+pub fn rules_used(certificate: &Certificate) -> std::collections::BTreeSet<String> {
+    certificate
+        .data
+        .as_ref()
+        .expect("certificate B is data")
+        .nodes
+        .iter()
+        .filter_map(|node| match node {
+            lexlean::ir::core::CoreNode::Const { n, .. } => n
+                .strip_prefix("LexLeanPreservation.Rust.Corr.")
+                .map(str::to_owned),
+            _ => None,
         })
         .collect()
 }
@@ -2315,14 +2652,22 @@ pub fn plant_renderings(renderings: &[Rendering]) -> Vec<(RustPlanted, Vec<(Stri
                 .expect("the site was counted");
             let base = format!("LexLeanPreserve.Planted.{mutation:?}F{index}N{function}O{ordinal}");
             let stale_module = format!("{base}.Stale");
-            let stale_text = rendering
-                .certificate
-                .text
-                .replace(
-                    &lexlean::production::rust_term::crate_term(&rendering.krate),
-                    &lexlean::production::rust_term::crate_term(&mutated),
+            let stale_data = lexlean::production::certificate::data_b::renamed(
+                &lexlean::production::certificate::data_b::restated_over(
+                    rendering
+                        .certificate
+                        .data
+                        .as_ref()
+                        .expect("certificate B is data"),
+                    &rendering.certificate.module,
+                    &mutated,
                 )
-                .replace(&rendering.certificate.module, &stale_module);
+                .expect("the derivation is restated over the mutated crate"),
+                &rendering.certificate.module,
+                &stale_module,
+            );
+            let stale_text = lexlean::backend::core::lean_text_legacy(&stale_data, &stale_module)
+                .expect("the restatement renders");
             let mut modules = vec![(stale_module, stale_text)];
             let realigned_module = format!("{base}.Realigned");
             let unaligned =
@@ -2526,7 +2871,9 @@ pub fn rustc_differential(project: &P, certified: &[Certified], example: &str) -
                     })
                     .collect(),
                 sources: Vec::new(),
-            };
+                effects: Vec::new(),
+            }
+            .showing_effects();
             let rendered = package(&manifest)
                 .unwrap_or_else(|reason| panic!("{} on {target}: {reason}", entry.root));
             let owned: Vec<Vec<Passing>> = functions

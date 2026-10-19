@@ -134,7 +134,7 @@ pub struct Coverage {
     /// Canonical LaTeX rows sorted by `byte_start`.
     pub latex: Vec<OutputRow>,
     /// Generated Lean rows sorted by `byte_start`, for a project that
-    /// carries Lean (§10.5).
+    /// carries Lean (§10.6).
     pub lean: Option<Vec<OutputRow>>,
     /// Generated Bend rows sorted by `byte_start`, for a module that lowers
     /// to Bend (§18.10).

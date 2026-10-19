@@ -146,7 +146,7 @@ pub(crate) fn run(id: &str) {
             let build = example_build("bend-semantic");
             let again = example_build("bend-semantic");
             assert_eq!(build.files, again.files, "the build is byte-deterministic");
-            // The example carries no Lean (§10.5).
+            // The example carries no Lean (§10.6).
             assert!(
                 !build.files.iter().any(|(path, _)| path.ends_with(".lean")),
                 "the Lean-free example renders no Lean"
@@ -938,7 +938,7 @@ pub(crate) fn run(id: &str) {
                 assert!(output.contains("exprSize.ll_eq_literal"), "{output}");
             }
         }
-        // §10.5: a Bend project needs no Lean.
+        // §10.6: a Bend project needs no Lean.
         "BN-24" => super::bend_verification::lean_free(id),
         other => panic!("no language-2.2 bend-backend case is wired for {other}"),
     }

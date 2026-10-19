@@ -21,6 +21,9 @@ fn gather(root: &Path, dirs: &[&str], extensions: &[&str], out: &mut Vec<PathBuf
         for entry in walkdir::WalkDir::new(&base)
             .follow_links(false)
             .into_iter()
+            .filter_entry(|entry| {
+                !(entry.file_type().is_dir() && entry.path().join("CACHEDIR.TAG").is_file())
+            })
             .flatten()
         {
             if entry.file_type().is_dir() {
@@ -869,8 +872,18 @@ pub fn audit_deferral(root: &Path) -> Result<(), Fail> {
     gather(
         root,
         &[
-            "crates", "xtask", "language", "schemas", "features", "examples", "model", "tests",
-            "lean", "compiler",
+            "crates",
+            "xtask",
+            "language",
+            "schemas",
+            "features",
+            "examples",
+            "model",
+            "tests",
+            "lean",
+            "compiler",
+            "stdlib",
+            "bootstrap",
         ],
         &[
             ".rs", ".toml", ".json", ".md", ".feature", ".lex.tex", ".lean", ".txt", ".sh", ".bend",
@@ -1074,7 +1087,15 @@ pub fn audit_errors(root: &Path, model: &repo_model::Model) -> Result<(), Fail> 
     let mut mention_files = Vec::new();
     gather(
         root,
-        &["tests", "features", "examples", "model", "compiler"],
+        &[
+            "tests",
+            "features",
+            "examples",
+            "model",
+            "compiler",
+            "stdlib",
+            "bootstrap",
+        ],
         &[".toml", ".json", ".feature", ".md", ".txt"],
         &mut mention_files,
     );
