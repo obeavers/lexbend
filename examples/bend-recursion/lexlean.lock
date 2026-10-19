@@ -1,6 +1,6 @@
 spec = "lexlean/lock/4"
 language = "2.2"
-compiler_semantics = "b66e3398abe90070e71f03d85ba9f7aae493c1998f35a9bf8af8380cff5c774d"
+compiler_semantics = "54464c9ff63a0931c7c5a0914e7da61e666d2dc8048d6498072be63237dab9ce"
 project_config_sha256 = "3f0c5ba601c698f74566d59aceafdd1e3bcf940dd49570bd8918a6eb779dfd12"
 bend_toolchain = "bend 2.0.37"
 
